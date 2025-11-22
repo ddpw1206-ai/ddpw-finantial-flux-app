@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>둠둠파우 가계부 Flux</title>
+</head>
+<body>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+    body {
+      margin: 0;
+      background: #fff;
+      color: #1F2937;
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 32px 20px 32px;
+      background: #fff;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    .header .title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #3B82F6;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header .user {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #1F2937;
+      background: #F3F4F6;
+      padding: 7px 16px;
+      border-radius: 20px;
+    }
+
+    /* Navigation */
+    .nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #fff;
+      border-bottom: 1px solid #F3F4F6;
+      gap: 8px;
+    }
+    .nav-tab {
+      appearance: none;
+      border: none;
+      outline: none;
+      background: #F3F4F6;
+      color: #1F2937;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 11px 26px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      margin-bottom: -1px;
+    }
+    .nav-tab.active {
+      background: #3B82F6;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 -2px 8px rgba(59,130,246,0.07);
+      z-index: 1;
+    }
+
+    /* Month Select Bar */
+    .month-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #fff;
+      border-bottom: 1px solid #F3F4F6;
+      padding: 24px 0 18px 0;
+      font-size: 1.13rem;
+      font-weight: 500;
+      gap: 24px;
+      color: #1F2937;
+    }
+    .month-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #3B82F6;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .month-btn:active {
+      background: #F3F4F6;
+    }
+
+    /* Main Content */
+    .main-content {
+      padding: 36px 24px 64px 24px;
+      background: #F3F4F6;
+      min-height: 360px;
+      font-size: 1.07rem;
+      color: #1F2937;
+      border-radius: 0 0 18px 18px;
+      max-width: 680px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    /* Floating Button */
+    .fab {
+      position: fixed;
+      right: 30px;
+      bottom: 32px;
+      width: 60px;
+      height: 60px;
+      background: #3B82F6;
+      color: #fff;
+      border: none;
+      outline: none;
+      border-radius: 50%;
+      font-size: 2.45rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 24px rgba(59,130,246,0.23);
+      cursor: pointer;
+      z-index: 99;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .fab:active {
+      background: #2563eb;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.19);
+    }
+
+    @media (max-width: 600px) {
+      .header, .main-content {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      .main-content {
+        padding-left: 8px;
+        padding-right: 8px;
+        padding-top: 20px;
+      }
+      .fab {
+        right: 16px;
+        bottom: 18px;
+      }
+    }
+  </style>
+
+  <div class="header">
+    <div class="title">💰 DDPW 가계부 Flux</div>
+    <div class="user">둠둠파우님</div>
+  </div>
+
+  <nav class="nav" id="nav-tabs">
+    <button class="nav-tab active" data-tab="dashboard">월별현황</button>
+    <button class="nav-tab" data-tab="stats">통계</button>
+    <button class="nav-tab" data-tab="saving">저축관리</button>
+    <button class="nav-tab" data-tab="settings">설정</button>
+  </nav>
+
+  <div class="month-bar">
+    <button class="month-btn" id="prev-month" title="이전 달">◀</button>
+    <span id="month-text">2025년 11월</span>
+    <button class="month-btn" id="next-month" title="다음 달">▶</button>
+  </div>
+
+  <main class="main-content" id="main-content">
+    <div id="dashboard-content">
+     <style>
+      /* 하위 탭 스타일 */
+      .sub-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 26px;
+      }
+      .sub-tab-btn {
+        background: none;
+        border: none;
+        outline: none;
+        color: #9CA3AF;
+        font-size: 1rem;
+        font-weight: 500;
+        padding: 7px 18px 7px 18px;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition: color 0.18s, border-bottom 0.2s;
+      }
+      .sub-tab-btn.active {
+        color: #2563EB;
+        border-bottom: 2px solid #3B82F6;
+        font-weight: 700;
+      }
+
+      /* 대시보드 카드 스타일 */
+      .dashboard-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+        margin-bottom: 36px;
+      }
+      .dash-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 20px 14px 18px 18px;
+        box-shadow: 0 4px 14px rgba(31, 41, 55, 0.06);
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .dash-title {
+        font-size: 1.10rem;
+        color: #6B7280;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+      .dash-value {
+        font-size: 1.48rem;
+        font-weight: 700;
+        line-height: 1.24;
+      }
+      .income { color: #14BD5A; }
+      .expense { color: #FA4747; }
+      .asset { color: #2563EB; }
+      .budget { color: #2563EB; }
+
+      .progress-bar-bg {
+        background: #E5E7EB;
+        border-radius: 8px;
+        width: 100%;
+        height: 14px;
+        overflow: hidden;
+      }
+      .progress-bar-fill {
+        background: #3B82F6;
+        height: 100%;
+        width: 73%;
+        border-radius: 8px 0 0 8px;
+        transition: width 0.4s;
+      }
+
+      /* 반응형 처리 */
+      @media (max-width: 900px) {
+        .dashboard-cards {
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+      }
+      @media (max-width: 600px) {
+        .dashboard-cards {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .dash-card { padding: 13px 9px 12px 12px;}
+        .sub-tabs { gap: 7px; }
+      }
+
+      .sub-tab-content {
+        margin-top: 20px;
+      }
+     </style>
+        <!-- 하위 탭: 전체 소비 / 카드별 내역 / 통장 입출금 -->
+        <nav class="sub-tabs" id="sub-tabs">
+        <button class="sub-tab-btn active" data-subtab="total">전체 소비</button>
+        <button class="sub-tab-btn" data-subtab="card">카드별 내역</button>
+        <button class="sub-tab-btn" data-subtab="bank">통장 입출금</button>
+        </nav>
+
+        <!-- 대시보드 카드 4개 -->
+        <section class="dashboard-cards">
+        <div class="dash-card">
+            <div class="dash-title">💰 총 수입</div>
+            <div class="dash-value income">3,000,000원</div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-title">💸 총 지출</div>
+            <div class="dash-value expense">2,200,000원</div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-title">💵 순 자산</div>
+            <div class="dash-value asset">+800,000원</div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-title">📊 예산 달성</div>
+            <div class="dash-value budget">73%</div>
+            <div class="progress-bar-bg" aria-label="예산 달성 진행바">
+            <div class="progress-bar-fill"></div>
+            </div>
+        </div>
+        </section>
+
+        <!-- 하위 탭별 내용 영역 -->
+        <section class="sub-tab-content">
+        <div id="total-content" style="display: block; overflow-x: auto;">
+            <style>
+            .expense-table-container {
+                background: #fff;
+                padding: 16px 12px 8px 12px;
+                border-radius: 8px;
+                box-shadow: 0 0 0 1px #e0e0e0;
+                margin-bottom: 12px;
+            }
+            .expense-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                min-width: 700px;
+            }
+            .expense-table th, .expense-table td {
+                padding: 9px 10px;
+                border-bottom: 1px solid #f0f0f0;
+                text-align: center;
+                white-space: nowrap;
+            }
+            .expense-table th {
+                background: #f4f5f7;
+                font-weight: bold;
+                color: #333;
+                border-bottom: 2px solid #dedede;
+            }
+            .expense-income {
+                color: #1976d2;
+                font-weight: 500;
+            }
+            .expense-out {
+                color: #d32f2f;
+                font-weight: 500;
+            }
+            .expense-bankpay {
+                background: #fafbfc;
+            }
+            .expense-table .btn-action {
+                display: inline-block;
+                border: 1px solid #1976d2;
+                background: #fff;
+                color: #1976d2;
+                font-size: 12px;
+                border-radius: 4px;
+                padding: 2px 9px;
+                margin-left: 3px;
+                margin-right: 2px;
+                cursor: pointer;
+                transition: background 0.15s;
+                text-decoration: none;
+            }
+            .expense-table .btn-action:hover {
+                background: #eaf4fc;
+            }
+            @media (max-width: 600px) {
+                .expense-table-container {
+                padding: 6px 1px 6px 1px;
+                border-radius: 0;
+                box-shadow: none;
+                }
+                .expense-table th, .expense-table td {
+                padding: 7px 5px;
+                font-size: 13px;
+                }
+            }
+            </style>
+            <div class="expense-table-container">
+            <table class="expense-table" aria-label="전체 소비 내역">
+                <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>담당자</th>
+                    <th>항목</th>
+                    <th>카테고리</th>
+                    <th>금액</th>
+                    <th>결제수단</th>
+                    <th>상태</th>
+                    <th>작업</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>11/22</td>
+                    <td>🔵둠둠파우</td>
+                    <td>점심</td>
+                    <td>식비</td>
+                    <td class="expense-out">-12,000원</td>
+                    <td>KB신용</td>
+                    <td>⏳대기</td>
+                    <td>
+                    <button class="btn-action">수정</button>
+                    <button class="btn-action">삭제</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>11/22</td>
+                    <td>🔵둠둠파우</td>
+                    <td>월급</td>
+                    <td>수입</td>
+                    <td class="expense-income">+3,000,000원</td>
+                    <td>이체</td>
+                    <td>✅완료</td>
+                    <td>
+                    <button class="btn-action">수정</button>
+                    <button class="btn-action">삭제</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>11/21</td>
+                    <td>🔴배우자</td>
+                    <td>마트</td>
+                    <td>생활</td>
+                    <td class="expense-out">-50,000원</td>
+                    <td>삼성신용</td>
+                    <td>⏳대기</td>
+                    <td>
+                    <button class="btn-action">수정</button>
+                    <button class="btn-action">삭제</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>11/20</td>
+                    <td>🔵둠둠파우</td>
+                    <td>택시</td>
+                    <td>교통</td>
+                    <td class="expense-out">-15,000원</td>
+                    <td>현금</td>
+                    <td>✅완료</td>
+                    <td>
+                    <button class="btn-action">수정</button>
+                    <button class="btn-action">삭제</button>
+                    </td>
+                </tr>
+                <tr class="expense-bankpay">
+                    <td>11/25</td>
+                    <td>-</td>
+                    <td>KB카드11월</td>
+                    <td>카드대금</td>
+                    <td class="expense-out">-1,220,000원</td>
+                    <td>자동</td>
+                    <td>✅완료</td>
+                    <td>
+                    <button class="btn-action">수정</button>
+                    <button class="btn-action">삭제</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <div id="card-content" style="display: none;">카드별 내역 테이블이 여기 표시됩니다</div>
+        <div id="bank-content" style="display: none;">통장 입출금 내역 테이블이 여기 표시됩니다</div>
+        </section>
+    </div>  
+</main>
+
+  <button class="fab" id="fab-btn" title="입력 추가">+</button>
+  <style>
+    #modal-overlay {
+      display: none; /* 기본적으로 숨김 */
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+    }
+    #modal-content {
+      background: #fff;
+      border-radius: 14px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18);
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 24px 20px 24px;
+      position: relative;
+      animation: modalFadeIn .2s;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(30px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .modal-title {
+      font-size: 1.22rem;
+      font-weight: bold;
+      letter-spacing: -1px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: #888;
+      cursor: pointer;
+      padding: 2px 6px;
+      margin-left: 6px;
+      transition: color 0.18s;
+      border-radius: 50%;
+    }
+    .modal-close:hover { color: #e22; background: #eee; }
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .modal-form label {
+      font-size: 0.96rem;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    .modal-form input[type="date"],
+    .modal-form select,
+    .modal-form input[type="number"],
+    .modal-form textarea {
+      width: 100%;
+      border: 1px solid #d7dbe4;
+      border-radius: 7px;
+      padding: 7px 11px;
+      font-size: 0.98rem;
+      outline: none;
+      box-sizing: border-box;
+      margin-top: 2px;
+      transition: border 0.12s;
+      background: #f9fafb;
+      resize: none;
+    }
+    .modal-form textarea {
+      min-height: 56px;
+      max-height: 120px;
+      font-family: inherit;
+    }
+    .modal-form input[type="number"]::-webkit-input-placeholder,
+    .modal-form textarea::-webkit-input-placeholder {
+      color: #b5bfcf;
+    }
+    .modal-form .row-radio {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .modal-form .row-radio label {
+      font-weight: normal;
+      margin-bottom: 0;
+    }
+    .modal-form .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .modal-footer {
+      margin-top: 24px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .modal-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 9px 20px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.18s, color 0.16s;
+    }
+    .modal-btn-cancel {
+      background: #eef0f7;
+      color: #555;
+    }
+    .modal-btn-cancel:hover {
+      background: #d6dbe4;
+      color: #d33;
+    }
+    .modal-btn-save {
+      background: #3078ff;
+      color: #fff;
+    }
+    .modal-btn-save:hover {
+      background: #1d5ed7;
+    }
+  </style>
+
+  <div id="modal-overlay">
+    <div id="modal-content" role="dialog" aria-modal="true" tabindex="-1">
+      <div class="modal-header">
+        <span class="modal-title">📝 내역 입력</span>
+        <button class="modal-close" type="button" id="modal-close-btn" aria-label="닫기">✕</button>
+      </div>
+      <form class="modal-form" id="entry-form" autocomplete="off">
+        <div>
+          <label for="entry-date">날짜</label>
+          <input id="entry-date" name="date" type="date" value="2025-11-22" required>
+        </div>
+        
+        <div>
+          <label for="entry-owner">담당자</label>
+          <select id="entry-owner" required>
+            <option value="🔵둠둠파우">🔵둠둠파우</option>
+            <option value="🔴배우자">🔴배우자</option>
+          </select>
+        </div>
+        
+        <div>
+          <label>구분</label>
+          <div class="row-radio">
+            <label>
+              <input type="radio" name="type" value="expense" checked required> 지출
+            </label>
+            <label>
+              <input type="radio" name="type" value="income" required> 수입
+            </label>
+          </div>
+        </div>
+        
+        <div>
+          <label for="entry-category-item">항목</label>
+          <select id="entry-category-item" name="item" required>
+            <option value="">--선택--</option>
+            <option value="점심">점심</option>
+            <option value="마트">마트</option>
+            <option value="월급">월급</option>
+            <option value="커피">커피</option>
+            <option value="택시">택시</option>
+            <option value="편의점">편의점</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="entry-category-kind">카테고리</label>
+          <select id="entry-category-kind" name="category" required>
+            <option value="">--선택--</option>
+            <option value="식비">식비</option>
+            <option value="생활">생활</option>
+            <option value="교통">교통</option>
+            <option value="수입">수입</option>
+            <option value="주거">주거</option>
+            <option value="의료">의료</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="entry-amount">금액</label>
+          <input id="entry-amount" name="amount" type="number" min="0" step="1" placeholder="금액 입력" required>
+        </div>
+        
+        <div>
+          <label for="entry-method">결제수단</label>
+          <select id="entry-method" name="method" required>
+            <option value="credit">신용카드</option>
+            <option value="debit">체크카드</option>
+            <option value="transfer">계좌이체</option>
+            <option value="cash">현금</option>
+          </select>
+          
+          <div id="payment-credit" style="display: none; margin-top: 10px;">
+            <label style="margin-right:6px;">카드 선택</label>
+            <select name="credit-card">
+              <option value="KB 탄탄대로 올쇼핑">KB 탄탄대로 올쇼핑 티타늄</option>
+              <option value="삼성 네이버 taptap">삼성 네이버 taptap</option>
+              <option value="삼성 베네핏">삼성 베네핏</option>
+            </select>
+            <div style="margin-top: 6px;">
+              <span style="margin-right:14px;">결제일: <span>매월 25일</span></span>
+              <span>연결계좌: <span>KB국민-980101</span></span>
+            </div>
+          </div>
+          
+          <div id="payment-debit" style="display: none; margin-top: 10px;">
+            <label style="margin-right:6px;">카드 선택</label>
+            <select name="debit-card">
+              <option value="카카오뱅크 체크">카카오뱅크 체크카드</option>
+            </select>
+            <div style="margin-top: 6px;">
+              <span style="margin-right:14px;">결제일: <span>매월 1일</span></span>
+              <span>연결계좌: <span>카카오-5678</span></span>
+            </div>
+          </div>
+          
+          <div id="payment-transfer" style="display: none; margin-top: 10px;">
+            <label style="margin-right:6px;">계좌 선택</label>
+            <select name="transfer-account">
+              <option value="KB국민-980101">KB국민-980101</option>
+              <option value="카카오-5678">카카오-5678</option>
+            </select>
+            <div style="margin-top: 6px; color: #8492a6; font-size: 13px;">
+              (즉시 차감됨)
+            </div>
+          </div>
+          
+          <div id="payment-cash" style="display: none; margin-top: 10px;">
+            <label style="margin-right:6px;">출금계좌</label>
+            <select name="cash-account">
+              <option value="KB국민-980101">KB국민-980101</option>
+              <option value="카카오-5678">카카오-5678</option>
+            </select>
+            <div style="margin-top: 6px; color: #8492a6; font-size: 13px;">
+              (즉시 차감됨)
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <label for="entry-memo">메모</label>
+          <textarea id="entry-memo" name="memo" placeholder="메모 (선택)"></textarea>
+        </div>
+        
+        <div class="checkbox-row">
+          <input id="entry-regular" name="regular" type="checkbox" style="width:17px;height:17px;margin:0 5px 0 0;vertical-align:-2px;">
+          <label for="entry-regular" style="margin-bottom:0; user-select:none;">정기 등록 (매월 반복)</label>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="modal-btn modal-btn-cancel" id="modal-cancel-btn">취소</button>
+          <button type="submit" class="modal-btn modal-btn-save">저장</button>
+        </div>
+      </form>
+      
+    </div>
+  </div>
+
+  <script>
+// ========================================
+// DOMContentLoaded - 페이지 로드 후 실행
+// ========================================
+document.addEventListener('DOMContentLoaded', function() {
+  
+  // ========================================
+  // 데이터 저장 배열
+  // ========================================
+  let transactionData = [];
+  
+  const savedData = localStorage.getItem('budgetData');
+  if (savedData) {
+    transactionData = JSON.parse(savedData);
+  }
+  
+  // 데이터 저장 함수
+  function saveData() {
+    localStorage.setItem('budgetData', JSON.stringify(transactionData));
+  }
+  
+  // ========================================
+  // 1. 탭 전환 기능 (상단 메인 탭)
+  // ========================================
+  const tabButtons = document.querySelectorAll('.nav-tab');
+  const mainContent = document.getElementById('main-content');
+  const dashboardContent = document.getElementById('dashboard-content');
+  
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // 탭 활성화
+      tabButtons.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      const key = this.getAttribute('data-tab');
+      
+      if (key === 'dashboard') {
+        // 월별현황: 대시보드 표시
+        if (dashboardContent) {
+          dashboardContent.style.display = 'block';
+        }
+        // 다른 콘텐츠 숨김
+        const otherContent = document.getElementById('other-tab-content');
+        if (otherContent) {
+          otherContent.style.display = 'none';
+        }
+      } else {
+        // 다른 탭: 대시보드 숨김
+        if (dashboardContent) {
+          dashboardContent.style.display = 'none';
+        }
+        
+        // 다른 탭 콘텐츠 표시
+        let otherContent = document.getElementById('other-tab-content');
+        if (!otherContent) {
+          otherContent = document.createElement('div');
+          otherContent.id = 'other-tab-content';
+          otherContent.style.padding = '20px';
+          mainContent.appendChild(otherContent);
+        }
+        
+        const contents = {
+          stats: '통계 탭 - 그래프와 분석이 여기 표시됩니다',
+          saving: '저축관리 탭 - 저축 목표가 여기 표시됩니다',
+          settings: '설정 탭 - 계좌/카드/항목 관리가 여기 표시됩니다'
+        };
+        otherContent.textContent = contents[key] || '';
+        otherContent.style.display = 'block';
+      }
+    });
+  });
+
+  // ========================================
+  // 2. 월 선택 기능
+  // ========================================
+  const monthText = document.getElementById('month-text');
+  const prevMonthBtn = document.getElementById('prev-month');
+  const nextMonthBtn = document.getElementById('next-month');
+
+  let curYear = 2025;
+  let curMonth = 11;
+
+  function updateMonthText() {
+    monthText.textContent = `${curYear}년 ${curMonth}월`;
+  }
+
+  prevMonthBtn.addEventListener('click', function() {
+    curMonth--;
+    if (curMonth < 1) {
+      curMonth = 12;
+      curYear--;
+    }
+    updateMonthText();
+  });
+
+  nextMonthBtn.addEventListener('click', function() {
+    curMonth++;
+    if (curMonth > 12) {
+      curMonth = 1;
+      curYear++;
+    }
+    updateMonthText();
+  });
+
+  // ========================================
+  // 3. 하위 탭 전환 기능
+  // ========================================
+  function initSubTabs() {
+    const subTabBtns = document.querySelectorAll('.sub-tab-btn');
+    const totalContent = document.getElementById('total-content');
+    const cardContent = document.getElementById('card-content');
+    const bankContent = document.getElementById('bank-content');
+
+    subTabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        subTabBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const target = this.getAttribute('data-subtab');
+        
+        if (totalContent) totalContent.style.display = 'none';
+        if (cardContent) cardContent.style.display = 'none';
+        if (bankContent) bankContent.style.display = 'none';
+        
+        if (target === 'total' && totalContent) {
+          totalContent.style.display = 'block';
+        } else if (target === 'card' && cardContent) {
+          cardContent.style.display = 'block';
+        } else if (target === 'bank' && bankContent) {
+          bankContent.style.display = 'block';
+        }
+      });
+    });
+  }
+
+  initSubTabs();
+
+  // ========================================
+  // 4. 모달 열기/닫기
+  // ========================================
+  const fabBtn = document.getElementById('fab-btn');
+  const modalOverlay = document.getElementById('modal-overlay');
+  const modalClose = document.getElementById('modal-close-btn');
+  const modalCancel = document.getElementById('modal-cancel-btn');
+
+  if (fabBtn && modalOverlay) {
+    function closeModal() {
+      modalOverlay.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    fabBtn.addEventListener('click', function() {
+      modalOverlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    });
+
+    if (modalClose) {
+      modalClose.addEventListener('click', closeModal);
+    }
+
+    if (modalCancel) {
+      modalCancel.addEventListener('click', closeModal);
+    }
+
+    modalOverlay.addEventListener('click', function(e) {
+      if (e.target === modalOverlay) {
+        closeModal();
+      }
+    });
+
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modalOverlay.style.display === 'flex') {
+        closeModal();
+      }
+    });
+  }
+
+  // ========================================
+  // 5. 결제수단별 하위 옵션 표시
+  // ========================================
+  const methodSelect = document.getElementById('entry-method');
+  const paymentCredit = document.getElementById('payment-credit');
+  const paymentDebit = document.getElementById('payment-debit');
+  const paymentTransfer = document.getElementById('payment-transfer');
+  const paymentCash = document.getElementById('payment-cash');
+
+  if (methodSelect) {
+    function updatePaymentFields() {
+      if (paymentCredit) paymentCredit.style.display = 'none';
+      if (paymentDebit) paymentDebit.style.display = 'none';
+      if (paymentTransfer) paymentTransfer.style.display = 'none';
+      if (paymentCash) paymentCash.style.display = 'none';
+
+      const val = methodSelect.value;
+      if (val === 'credit' && paymentCredit) {
+        paymentCredit.style.display = 'block';
+      } else if (val === 'debit' && paymentDebit) {
+        paymentDebit.style.display = 'block';
+      } else if (val === 'transfer' && paymentTransfer) {
+        paymentTransfer.style.display = 'block';
+      } else if (val === 'cash' && paymentCash) {
+        paymentCash.style.display = 'block';
+      }
+    }
+
+    methodSelect.addEventListener('change', updatePaymentFields);
+    updatePaymentFields();
+  }
+
+  // ========================================
+  // 6. 폼 제출 (데이터 저장)
+  // ========================================
+  const form = document.getElementById('entry-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const date = document.getElementById('entry-date')?.value;
+      const user = document.getElementById('entry-owner')?.value;
+      const typeRadio = form.querySelector('input[name="type"]:checked');
+      const type = typeRadio ? typeRadio.value : 'expense';
+      const item = document.getElementById('entry-category-item')?.value;
+      const category = document.getElementById('entry-category-kind')?.value;
+      const amountRaw = document.getElementById('entry-amount')?.value;
+      const amount = Number(amountRaw) || 0;
+      const paymentMethod = document.getElementById('entry-method')?.value;
+      const memo = document.getElementById('entry-memo')?.value || '';
+      const recurring = document.getElementById('entry-regular')?.checked || false;
+      
+      let paymentDetail = '';
+      if (paymentMethod === 'credit') {
+        const select = form.querySelector('select[name="credit-card"]');
+        paymentDetail = select ? select.value : '';
+      } else if (paymentMethod === 'debit') {
+        const select = form.querySelector('select[name="debit-card"]');
+        paymentDetail = select ? select.value : '';
+      } else if (paymentMethod === 'transfer') {
+        const select = form.querySelector('select[name="transfer-account"]');
+        paymentDetail = select ? select.value : '';
+      } else if (paymentMethod === 'cash') {
+        const select = form.querySelector('select[name="cash-account"]');
+        paymentDetail = select ? select.value : '';
+      }
+      
+      const now = Date.now();
+      const entry = {
+        id: now,
+        date: date,
+        user: user,
+        type: type,
+        item: item,
+        category: category,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        paymentDetail: paymentDetail,
+        memo: memo,
+        recurring: recurring,
+        status: '⏳대기',
+        timestamp: now
+      };
+      
+      transactionData.push(entry);
+      saveData();
+      renderTable();
+      
+      alert('저장되었습니다!');
+      modalOverlay.style.display = 'none';
+      form.reset();
+    });
+  }
+
+// ========================================
+// 7. 테이블 렌더링
+// ========================================
+// ========================================
+// 7. 테이블 렌더링
+// ========================================
+function renderTable() {
+  const tbody = document.querySelector('#total-content tbody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  
+  if (transactionData.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="8" style="text-align:center; padding:40px;">등록된 내역이 없습니다</td>';
+    tbody.appendChild(tr);
+    return;
+  }
+  
+  const sorted = [...transactionData].sort((a, b) => b.timestamp - a.timestamp);
+  
+  sorted.forEach(entry => {
+    const tr = document.createElement('tr');
+    const dateObj = new Date(entry.date);
+    const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+    
+    // 금액: 수입은 +, 지출은 -
+    let amountStr = '';
+    let amountClass = '';
+    if (entry.type === 'income') {
+      amountStr = `+${entry.amount.toLocaleString()}원`;
+      amountClass = 'expense-income';
+    } else {
+      amountStr = `-${entry.amount.toLocaleString()}원`;
+      amountClass = 'expense-out';
+    }
+    
+    // 결제수단 한글 표시
+    let paymentMethodText = entry.paymentMethod;
+    if (entry.paymentDetail) {
+      paymentMethodText = entry.paymentDetail;
+    }
+    
+    tr.innerHTML = `
+      <td>${dateStr}</td>
+      <td>${entry.user}</td>
+      <td>${entry.item}</td>
+      <td>${entry.category}</td>
+      <td class="${amountClass}">${amountStr}</td>
+      <td>${paymentMethodText}</td>
+      <td>${entry.status}</td>
+      <td>
+        <button class="btn-action" onclick="editTransaction(${entry.id})">수정</button>
+        <button class="btn-action" onclick="deleteTransaction(${entry.id})">삭제</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// 수정/삭제 함수
+window.editTransaction = function(id) {
+  alert('수정 기능은 곧 추가됩니다. ID: ' + id);
+};
+
+window.deleteTransaction = function(id) {
+  if (confirm('정말 삭제하시겠습니까?')) {
+    const index = transactionData.findIndex(item => item.id === id);
+    if (index > -1) {
+      transactionData.splice(index, 1);
+      saveData();
+      renderTable();
+      alert('삭제되었습니다!');
+    }
+  }
+};
+
+
+  // 초기 렌더링
+  renderTable();
+});
+</script>
+
+    
+</body>
+</html>
