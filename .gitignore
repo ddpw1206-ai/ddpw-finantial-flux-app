@@ -1,0 +1,18 @@
+# 운영체제
+.DS_Store
+Thumbs.db
+
+# 에디터
+.vscode/
+.idea/
+
+# 임시 파일
+*.tmp
+*.bak
+*~
+
+# 로그
+*.log
+
+# Node modules
+node_modules/
