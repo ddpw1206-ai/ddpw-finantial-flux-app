@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>둠둠파우 가계부 Flux</title>
+  <title>DDPW Moneybook Flux</title>
   <!-- Google Sheets API -->
   <script src="https://apis.google.com/js/api.js"></script>
 </head>
@@ -23,14 +23,15 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 24px 32px 20px 32px;
-      background: #fff;
-      border-bottom: 1px solid #F3F4F6;
+      padding: 28px 48px 24px 48px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     .header .title {
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       font-weight: 700;
-      color: #3B82F6;
+      color: #111827;
       letter-spacing: -0.5px;
       display: flex;
       align-items: center;
@@ -64,29 +65,36 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #fff;
-      border-bottom: 1px solid #F3F4F6;
-      gap: 8px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      gap: 4px;
+      padding: 0 48px;
     }
     .nav-tab {
       appearance: none;
       border: none;
       outline: none;
-      background: #F3F4F6;
-      color: #1F2937;
-      font-size: 1rem;
+      background: transparent;
+      color: #6B7280;
+      font-size: 0.95rem;
       font-weight: 500;
-      padding: 11px 26px;
-      border-radius: 8px 8px 0 0;
+      padding: 14px 28px;
+      border-radius: 0;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      transition: all 0.2s ease;
       margin-bottom: -1px;
+      border-bottom: 2px solid transparent;
+      position: relative;
+    }
+    .nav-tab:hover {
+      color: #111827;
+      background: #F9FAFB;
     }
     .nav-tab.active {
-      background: #3B82F6;
-      color: #fff;
-      font-weight: 700;
-      box-shadow: 0 -2px 8px rgba(59,130,246,0.07);
+      background: transparent;
+      color: #111827;
+      font-weight: 600;
+      border-bottom: 2px solid #3B82F6;
       z-index: 1;
     }
 
@@ -95,13 +103,13 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #fff;
-      border-bottom: 1px solid #F3F4F6;
-      padding: 24px 0 18px 0;
-      font-size: 1.13rem;
-      font-weight: 500;
-      gap: 24px;
-      color: #1F2937;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      padding: 28px 48px 24px 48px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      gap: 32px;
+      color: #111827;
     }
     .month-btn {
       background: none;
@@ -119,15 +127,24 @@
 
     /* Main Content */
     .main-content {
-      padding: 36px 24px 64px 24px;
-      background: #F3F4F6;
+      padding: 40px 48px 80px 48px;
+      background: #F9FAFB;
       min-height: 360px;
       font-size: 1.07rem;
       color: #1F2937;
-      border-radius: 0 0 18px 18px;
-      max-width: 680px;
+      border-radius: 0;
+      max-width: 1920px;
+      width: 100%;
       margin: 0 auto;
       box-sizing: border-box;
+    }
+    
+    .version {
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: #6B7280;
+      margin-left: 8px;
+      letter-spacing: 0.5px;
     }
 
     /* Floating Button */
@@ -157,25 +174,48 @@
       box-shadow: 0 4px 14px rgba(59,130,246,0.19);
     }
 
+    /* 1080p 이상 화면 최적화 */
+    @media (min-width: 1920px) {
+      .main-content {
+        max-width: 1600px;
+        padding: 48px 64px 96px 64px;
+      }
+      .header {
+        padding: 32px 64px 28px 64px;
+      }
+      .nav {
+        padding: 0 64px;
+      }
+      .month-bar {
+        padding: 32px 64px 28px 64px;
+      }
+    }
+    
     @media (max-width: 600px) {
       .header, .main-content {
-        padding-left: 12px;
-        padding-right: 12px;
+        padding-left: 16px;
+        padding-right: 16px;
       }
       .main-content {
-        padding-left: 8px;
-        padding-right: 8px;
-        padding-top: 20px;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 24px;
       }
       .fab {
         right: 16px;
         bottom: 18px;
       }
+      .header .title {
+        font-size: 1.4rem;
+      }
+      .version {
+        font-size: 0.75rem;
+      }
     }
   </style>
 
   <div class="header">
-    <div class="title">💰 DDPW 가계부 Flux</div>
+    <div class="title">💰 DDPW Moneybook Flux <span class="version">V.000</span></div>
     <div style="display: flex; align-items: center; gap: 12px;">
       <div id="google-auth-status" style="font-size: 0.9rem; color: #6B7280;"></div>
       <button id="google-login-btn" class="header-btn" style="display: none;">🔐 Google 로그인</button>
@@ -203,57 +243,72 @@
       /* 하위 탭 스타일 */
       .sub-tabs {
         display: flex;
-        gap: 12px;
-        margin-bottom: 26px;
+        gap: 8px;
+        margin-bottom: 32px;
+        padding-bottom: 0;
+        border-bottom: 1px solid #E5E7EB;
       }
       .sub-tab-btn {
         background: none;
         border: none;
         outline: none;
-        color: #9CA3AF;
-        font-size: 1rem;
+        color: #6B7280;
+        font-size: 0.95rem;
         font-weight: 500;
-        padding: 7px 18px 7px 18px;
+        padding: 12px 20px;
         border-bottom: 2px solid transparent;
         cursor: pointer;
-        transition: color 0.18s, border-bottom 0.2s;
+        transition: all 0.2s ease;
+        position: relative;
+        margin-bottom: -1px;
+      }
+      .sub-tab-btn:hover {
+        color: #111827;
       }
       .sub-tab-btn.active {
-        color: #2563EB;
+        color: #111827;
         border-bottom: 2px solid #3B82F6;
-        font-weight: 700;
+        font-weight: 600;
       }
 
       /* 대시보드 카드 스타일 */
       .dashboard-cards {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
-        margin-bottom: 36px;
+        gap: 24px;
+        margin-bottom: 48px;
       }
       .dash-card {
-        background: #fff;
-        border-radius: 18px;
-        padding: 20px 14px 18px 18px;
-        box-shadow: 0 4px 14px rgba(31, 41, 55, 0.06);
+        background: #FFFFFF;
+        border-radius: 12px;
+        padding: 28px 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        border: 1px solid #E5E7EB;
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 7px;
+        gap: 12px;
+        transition: all 0.2s ease;
+      }
+      .dash-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
       }
       .dash-title {
-        font-size: 1.10rem;
+        font-size: 0.95rem;
         color: #6B7280;
         font-weight: 500;
         display: flex;
         align-items: center;
         gap: 6px;
         margin-bottom: 4px;
+        letter-spacing: -0.2px;
       }
       .dash-value {
-        font-size: 1.48rem;
+        font-size: 1.75rem;
         font-weight: 700;
-        line-height: 1.24;
+        line-height: 1.3;
+        letter-spacing: -0.5px;
       }
       .income { color: #14BD5A; }
       .expense { color: #FA4747; }
@@ -298,33 +353,37 @@
       /* 검색바 스타일 */
       .search-bar {
         display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
         align-items: center;
       }
       #search-input {
         flex: 1;
-        padding: 10px 15px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
+        padding: 12px 16px;
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        font-size: 0.95rem;
         outline: none;
-        transition: border 0.2s;
+        transition: all 0.2s ease;
+        background: #FFFFFF;
+        color: #111827;
       }
       #search-input:focus {
         border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
       }
       .search-btn, .search-clear-btn {
-        padding: 10px 18px;
+        padding: 12px 20px;
         border: none;
-        border-radius: 6px;
-        font-size: 14px;
+        border-radius: 8px;
+        font-size: 0.9rem;
         font-weight: 500;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: all 0.2s ease;
+        white-space: nowrap;
       }
       .search-btn {
         background: #3B82F6;
@@ -332,41 +391,47 @@
       }
       .search-btn:hover {
         background: #2563eb;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
       }
       .search-clear-btn {
-        background: #E5E7EB;
-        color: #1F2937;
+        background: #F3F4F6;
+        color: #374151;
+        border: 1px solid #E5E7EB;
       }
       .search-clear-btn:hover {
-        background: #D1D5DB;
+        background: #E5E7EB;
       }
 
       /* 정렬 컨트롤 스타일 */
       .sort-controls {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
       }
       .sort-controls label {
-        font-size: 14px;
+        font-size: 0.9rem;
         font-weight: 500;
-        color: #1F2937;
+        color: #374151;
+        white-space: nowrap;
       }
       #sort-select {
-        padding: 8px 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
+        padding: 10px 14px;
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        font-size: 0.9rem;
         outline: none;
         cursor: pointer;
-        background: #fff;
+        background: #FFFFFF;
+        color: #111827;
+        transition: all 0.2s ease;
       }
       #sort-select:focus {
         border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
       }
      </style>
         <!-- 검색바 -->
@@ -422,57 +487,75 @@
         <div id="total-content" style="display: block; overflow-x: auto;">
             <style>
             .expense-table-container {
-                background: #fff;
-                padding: 16px 12px 8px 12px;
-                border-radius: 8px;
-                box-shadow: 0 0 0 1px #e0e0e0;
-                margin-bottom: 12px;
+                background: #FFFFFF;
+                padding: 24px;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+                border: 1px solid #E5E7EB;
+                margin-bottom: 24px;
+                overflow-x: auto;
             }
             .expense-table {
                 width: 100%;
                 border-collapse: separate;
                 border-spacing: 0;
-                min-width: 700px;
+                min-width: 1000px;
             }
             .expense-table th, .expense-table td {
-                padding: 9px 10px;
-                border-bottom: 1px solid #f0f0f0;
+                padding: 14px 16px;
+                border-bottom: 1px solid #F3F4F6;
                 text-align: center;
-                white-space: nowrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                max-width: 200px;
             }
             .expense-table th {
-                background: #f4f5f7;
-                font-weight: bold;
-                color: #333;
-                border-bottom: 2px solid #dedede;
+                background: #F9FAFB;
+                font-weight: 600;
+                color: #111827;
+                border-bottom: 2px solid #E5E7EB;
+                font-size: 0.9rem;
+                letter-spacing: -0.2px;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            .expense-table td {
+                color: #374151;
+                font-size: 0.9rem;
+            }
+            .expense-table tbody tr:hover {
+                background: #F9FAFB;
             }
             .expense-income {
-                color: #1976d2;
-                font-weight: 500;
+                color: #059669;
+                font-weight: 600;
             }
             .expense-out {
-                color: #d32f2f;
-                font-weight: 500;
+                color: #DC2626;
+                font-weight: 600;
             }
             .expense-bankpay {
-                background: #fafbfc;
+                background: #F9FAFB;
             }
             .expense-table .btn-action {
                 display: inline-block;
-                border: 1px solid #1976d2;
-                background: #fff;
-                color: #1976d2;
-                font-size: 12px;
-                border-radius: 4px;
-                padding: 2px 9px;
-                margin-left: 3px;
-                margin-right: 2px;
+                border: 1px solid #D1D5DB;
+                background: #FFFFFF;
+                color: #374151;
+                font-size: 0.85rem;
+                border-radius: 6px;
+                padding: 6px 12px;
+                margin: 0 2px;
                 cursor: pointer;
-                transition: background 0.15s;
+                transition: all 0.2s ease;
                 text-decoration: none;
+                font-weight: 500;
             }
             .expense-table .btn-action:hover {
-                background: #eaf4fc;
+                background: #3B82F6;
+                color: #FFFFFF;
+                border-color: #3B82F6;
             }
             @media (max-width: 600px) {
                 .expense-table-container {
@@ -588,17 +671,18 @@
       align-items: center;
     }
     #modal-content {
-      background: #fff;
-      border-radius: 14px;
-      max-width: 500px;
+      background: #FFFFFF;
+      border-radius: 16px;
+      max-width: 600px;
       width: 90%;
-      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
       margin: auto;
       display: flex;
       flex-direction: column;
-      padding: 32px 24px 20px 24px;
+      padding: 40px 32px 32px 32px;
       position: relative;
       animation: modalFadeIn .2s;
+      border: 1px solid #E5E7EB;
     }
     @keyframes modalFadeIn {
       from { opacity: 0; transform: translateY(30px);}
@@ -611,9 +695,10 @@
       margin-bottom: 18px;
     }
     .modal-title {
-      font-size: 1.22rem;
-      font-weight: bold;
-      letter-spacing: -1px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #111827;
     }
     .modal-close {
       background: none;
@@ -638,20 +723,28 @@
       font-weight: 500;
     }
     .modal-form input[type="date"],
+    .modal-form input[type="text"],
     .modal-form select,
     .modal-form input[type="number"],
     .modal-form textarea {
       width: 100%;
-      border: 1px solid #d7dbe4;
-      border-radius: 7px;
-      padding: 7px 11px;
-      font-size: 0.98rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.95rem;
       outline: none;
       box-sizing: border-box;
-      margin-top: 2px;
-      transition: border 0.12s;
-      background: #f9fafb;
+      margin-top: 6px;
+      transition: all 0.2s ease;
+      background: #FFFFFF;
       resize: none;
+      color: #111827;
+    }
+    .modal-form input:focus,
+    .modal-form select:focus,
+    .modal-form textarea:focus {
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
     .modal-form textarea {
       min-height: 56px;
@@ -838,9 +931,19 @@
 
   <script>
 // ========================================
+// 버전 정보
+// ========================================
+const APP_VERSION = '000';
+
+// ========================================
 // DOMContentLoaded - 페이지 로드 후 실행
 // ========================================
 document.addEventListener('DOMContentLoaded', function() {
+  // 버전 표시 업데이트
+  const versionElement = document.querySelector('.version');
+  if (versionElement) {
+    versionElement.textContent = `V.${APP_VERSION}`;
+  }
   
   // ========================================
   // 데이터 저장 배열
@@ -1130,7 +1233,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 구분 선택에 따라 카테고리 업데이트
   function updateCategoryOptions() {
-    const typeRadios = form.querySelectorAll('input[name="type"]');
+    const form = document.getElementById('entry-form');
+    const typeRadios = form ? form.querySelectorAll('input[name="type"]') : document.querySelectorAll('input[name="type"]');
     const categorySelect = document.getElementById('entry-category-kind');
     const itemSelect = document.getElementById('entry-category-item');
     
@@ -1164,7 +1268,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 카테고리 선택 시 항목 드롭다운 업데이트
   function updateItemOptions() {
-    const typeRadios = form.querySelectorAll('input[name="type"]');
+    const form = document.getElementById('entry-form');
+    const typeRadios = form ? form.querySelectorAll('input[name="type"]') : document.querySelectorAll('input[name="type"]');
     const categorySelect = document.getElementById('entry-category-kind');
     const itemSelect = document.getElementById('entry-category-item');
     
@@ -1197,8 +1302,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // 구분 라디오 버튼 이벤트 리스너
-  const typeRadios = form.querySelectorAll('input[name="type"]');
-  if (typeRadios) {
+  const formForType = document.getElementById('entry-form');
+  const typeRadios = formForType ? formForType.querySelectorAll('input[name="type"]') : document.querySelectorAll('input[name="type"]');
+  if (typeRadios && typeRadios.length > 0) {
     typeRadios.forEach(radio => {
       radio.addEventListener('change', function() {
         updateCategoryOptions();
@@ -1207,7 +1313,10 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // 초기 카테고리 옵션 설정 (기본값: 지출)
-  updateCategoryOptions();
+  // DOM이 완전히 로드된 후 실행되도록 약간의 지연 추가
+  setTimeout(() => {
+    updateCategoryOptions();
+  }, 100);
   
   // 카테고리 선택 이벤트 리스너 (이미 위에서 설정됨)
 
