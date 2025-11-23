@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1763863893753,
+    "name": "KB 탄탄대로 올쇼핑",
+    "type": "credit",
+    "cardCompany": "KB카드"
+  },
+  {
+    "id": 1763863893754,
+    "name": "삼성 네이버 taptap",
+    "type": "credit",
+    "cardCompany": "삼성카드"
+  },
+  {
+    "id": 1763863893755,
+    "name": "삼성 베네핏",
+    "type": "credit",
+    "cardCompany": "삼성카드"
+  }
+]

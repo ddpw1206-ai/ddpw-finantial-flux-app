@@ -1,0 +1,204 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+body {
+  margin: 0;
+  background: #fff;
+  color: #1F2937;
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28px 48px 24px 48px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.header .title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header .user {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1F2937;
+  background: #F3F4F6;
+  padding: 7px 16px;
+  border-radius: 20px;
+}
+.header-btn {
+  background: #3B82F6;
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.header-btn:hover {
+  background: #2563eb;
+}
+
+/* Navigation */
+.nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+  gap: 4px;
+  padding: 0 48px;
+}
+.nav-tab {
+  appearance: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #6B7280;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 14px 28px;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  position: relative;
+}
+.nav-tab:hover {
+  color: #111827;
+  background: #F9FAFB;
+}
+.nav-tab.active {
+  background: transparent;
+  color: #111827;
+  font-weight: 600;
+  border-bottom: 2px solid #3B82F6;
+  z-index: 1;
+}
+
+/* Month Select Bar */
+.month-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 28px 48px 24px 48px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  gap: 32px;
+  color: #111827;
+}
+.month-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #3B82F6;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.month-btn:active {
+  background: #F3F4F6;
+}
+
+/* Main Content */
+.main-content {
+  padding: 40px 48px 80px 48px;
+  background: #F9FAFB;
+  min-height: 360px;
+  font-size: 1.07rem;
+  color: #1F2937;
+  border-radius: 0;
+  max-width: 1920px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.version {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #6B7280;
+  margin-left: 8px;
+  letter-spacing: 0.5px;
+}
+
+/* Floating Button */
+.fab {
+  position: fixed;
+  right: 30px;
+  bottom: 32px;
+  width: 60px;
+  height: 60px;
+  background: #3B82F6;
+  color: #fff;
+  border: none;
+  outline: none;
+  border-radius: 50%;
+  font-size: 2.45rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 24px rgba(59,130,246,0.23);
+  cursor: pointer;
+  z-index: 99;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.fab:active {
+  background: #2563eb;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.19);
+}
+
+/* 1080p 이상 화면 최적화 */
+@media (min-width: 1920px) {
+  .main-content {
+    max-width: 1600px;
+    padding: 48px 64px 96px 64px;
+  }
+  .header {
+    padding: 32px 64px 28px 64px;
+  }
+  .nav {
+    padding: 0 64px;
+  }
+  .month-bar {
+    padding: 32px 64px 28px 64px;
+  }
+}
+
+@media (max-width: 600px) {
+  .header, .main-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .main-content {
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 24px;
+  }
+  .fab {
+    right: 16px;
+    bottom: 18px;
+  }
+  .header .title {
+    font-size: 1.4rem;
+  }
+  .version {
+    font-size: 0.75rem;
+  }
+}
+

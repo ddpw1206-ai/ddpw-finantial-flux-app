@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1763861412484,
+    "name": "KB국민-98",
+    "type": "bank",
+    "initialBalance": 2000,
+    "currentBalance": 5402000
+  },
+  {
+    "id": 1763861426045,
+    "name": "KB국민-파우963",
+    "type": "bank",
+    "initialBalance": 5000,
+    "currentBalance": 5000
+  }
+]
