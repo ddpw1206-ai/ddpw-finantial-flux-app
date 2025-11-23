@@ -150,17 +150,22 @@
     }
 
     /* FAB Container */
-    #fab-container {
+    .fab-container {
       position: fixed;
       right: 30px;
       bottom: 32px;
       z-index: 999;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      gap: 16px;
     }
     
-    /* Floating Button */
-    .fab {
-      width: 64px;
-      height: 64px;
+    /* 메인 FAB 버튼 */
+    .fab-main {
+      position: relative;
+      width: 60px;
+      height: 60px;
       background: #3B82F6;
       color: #fff;
       border: none;
@@ -171,90 +176,153 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 24px rgba(59,130,246,0.23);
+      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.3);
       cursor: pointer;
-      transition: all 0.3s;
-      line-height: 1;
-    }
-    .fab:hover {
-      background: #2563eb;
-      box-shadow: 0 8px 28px rgba(59,130,246,0.3);
-      transform: scale(1.05);
-    }
-    .fab:active {
-      background: #2563eb;
-      box-shadow: 0 4px 14px rgba(59,130,246,0.19);
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      z-index: 1001;
     }
     
-    /* FAB Submenu */
-    #fab-submenu {
-      display: none;
-      position: absolute;
-      bottom: 80px;
-      right: 0;
-      flex-direction: column;
-      gap: 12px;
-      align-items: flex-end;
-      animation: fabSubmenuFadeIn 0.3s ease-out;
+    .fab-main:hover {
+      background: #2563eb;
+      box-shadow: 0 8px 28px rgba(59, 130, 246, 0.4);
+      transform: scale(1.05);
     }
-    #fab-submenu.show {
+    
+    .fab-main.active {
+      background: #2563eb;
+      transform: rotate(45deg);
+    }
+    
+    .fab-main .fab-icon {
+      transition: transform 0.3s ease;
+    }
+    
+    /* 하위 FAB 버튼 메뉴 */
+    .fab-menu {
       display: flex;
+      flex-direction: column-reverse;
+      gap: 12px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      pointer-events: none;
     }
-    @keyframes fabSubmenuFadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    
+    .fab-menu.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: all;
     }
-    .fab-sub-btn {
-      width: 56px;
-      height: 56px;
+    
+    /* 하위 FAB 버튼 */
+    .fab-sub {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      background: #FFFFFF;
+      color: #3B82F6;
+      border: 2px solid #3B82F6;
+      outline: none;
       border-radius: 50%;
-      color: #fff;
-      border: none;
       font-size: 1.5rem;
-      cursor: pointer;
-      transition: all 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .fab-sub-btn:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-    }
-    #fab-sub-dashboard {
+    
+    .fab-sub:hover {
       background: #3B82F6;
+      color: #FFFFFF;
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
     }
-    #fab-sub-dashboard:hover {
-      background: #2563eb;
-      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    
+    /* 각 하위 버튼 색상 커스터마이징 */
+    #fab-dashboard {
+      border-color: #3B82F6;
+      color: #3B82F6;
     }
-    #fab-sub-accounts {
+    #fab-dashboard:hover {
+      background: #3B82F6;
+      color: #FFFFFF;
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+    }
+    
+    #fab-accounts {
+      border-color: #10B981;
+      color: #10B981;
+    }
+    #fab-accounts:hover {
       background: #10B981;
+      color: #FFFFFF;
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
     }
-    #fab-sub-accounts:hover {
-      background: #059669;
-      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+    
+    #fab-payments {
+      border-color: #8B5CF6;
+      color: #8B5CF6;
     }
-    #fab-sub-cards {
+    #fab-payments:hover {
       background: #8B5CF6;
+      color: #FFFFFF;
+      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
     }
-    #fab-sub-cards:hover {
-      background: #7C3AED;
-      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
+    
+    #fab-saving {
+      border-color: #F59E0B;
+      color: #F59E0B;
     }
-    #fab-sub-saving {
+    #fab-saving:hover {
       background: #F59E0B;
+      color: #FFFFFF;
+      box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
     }
-    #fab-sub-saving:hover {
-      background: #D97706;
-      box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
+    
+    /* 툴팁 */
+    .fab-sub::before {
+      content: attr(data-tooltip);
+      position: absolute;
+      right: 60px;
+      background: #1F2937;
+      color: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      pointer-events: none;
+      font-weight: 500;
+    }
+    
+    .fab-sub:hover::before {
+      opacity: 1;
+      visibility: visible;
+      right: 65px;
+    }
+    
+    /* 모바일 대응 */
+    @media (max-width: 600px) {
+      .fab-container {
+        right: 16px;
+        bottom: 18px;
+      }
+      
+      .fab-main {
+        width: 56px;
+        height: 56px;
+      }
+      
+      .fab-sub {
+        width: 46px;
+        height: 46px;
+      }
     }
 
     /* 1080p 이상 화면 최적화 */
@@ -765,21 +833,28 @@
     </div>  
 </main>
 
-  <!-- FAB 버튼 및 서브 메뉴 -->
-  <div id="fab-container">
-    <!-- 서브 메뉴 버튼들 -->
-    <div id="fab-submenu">
-      <!-- 월별현황 -->
-      <button class="fab-sub-btn" id="fab-sub-dashboard" title="월별현황 신규 등록">📊</button>
-      <!-- 계좌 관리 -->
-      <button class="fab-sub-btn" id="fab-sub-accounts" title="계좌 관리 입출금 내역 등록">🏦</button>
-      <!-- 결제수단 관리 -->
-      <button class="fab-sub-btn" id="fab-sub-cards" title="결제수단 관리 결제 수단 등록">💳</button>
-      <!-- 저축관리 -->
-      <button class="fab-sub-btn" id="fab-sub-saving" title="저축관리 (준비 중)" style="opacity: 0.6;">💰</button>
-    </div>
+  <!-- FAB 확장 메뉴 -->
+  <div class="fab-container" id="fab-container">
     <!-- 메인 FAB 버튼 -->
-    <button class="fab" id="fab-btn" title="입력 추가">+</button>
+    <button class="fab fab-main" id="fab-main" title="메뉴">
+      <span class="fab-icon">+</span>
+    </button>
+    
+    <!-- 하위 버튼들 (기본값 숨김) -->
+    <div class="fab-menu" id="fab-menu">
+      <button class="fab fab-sub" id="fab-dashboard" data-tab="dashboard" data-tooltip="월별 현황 등록">
+        <span class="fab-icon">📊</span>
+      </button>
+      <button class="fab fab-sub" id="fab-accounts" data-tab="accounts" data-tooltip="입출금 등록">
+        <span class="fab-icon">🏦</span>
+      </button>
+      <button class="fab fab-sub" id="fab-payments" data-tab="cards" data-tooltip="결제수단 등록">
+        <span class="fab-icon">💳</span>
+      </button>
+      <button class="fab fab-sub" id="fab-saving" data-tab="saving" data-tooltip="저축 등록">
+        <span class="fab-icon">🐷</span>
+      </button>
+    </div>
   </div>
   <style>
     #modal-overlay {
@@ -1750,106 +1825,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // ========================================
   // 1. 탭 전환 기능 (상단 메인 탭)
   // ========================================
-  const tabButtons = document.querySelectorAll('.nav-tab');
-  const mainContent = document.getElementById('main-content');
-  const dashboardContent = document.getElementById('dashboard-content');
-  
-  // 현재 활성 탭 추적 변수
-  let currentActiveTab = 'dashboard';
-  
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
-      // 탭 활성화
-      tabButtons.forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      
-      const key = this.getAttribute('data-tab');
-      // 현재 활성 탭 업데이트
-      currentActiveTab = key;
-      // FAB 버튼 툴팁 업데이트
-      updateFabTooltip();
-      
-      if (key === 'dashboard') {
-        // 월별현황: 대시보드 표시
-        if (dashboardContent) {
-          dashboardContent.style.display = 'block';
-        }
-        // 다른 콘텐츠 숨김
-        const otherContent = document.getElementById('other-tab-content');
-        if (otherContent) {
-          otherContent.style.display = 'none';
-        }
-        // FAB 버튼 표시 (월별현황에서만)
-        if (fabBtn) {
-          fabBtn.style.display = 'flex';
-        }
-      } else {
-        // 다른 탭: 대시보드 숨김
-        if (dashboardContent) {
-          dashboardContent.style.display = 'none';
-        }
-        
-        // 다른 탭 콘텐츠 표시
-        let otherContent = document.getElementById('other-tab-content');
-        if (!otherContent) {
-          otherContent = document.createElement('div');
-          otherContent.id = 'other-tab-content';
-          otherContent.style.padding = '20px';
-          mainContent.appendChild(otherContent);
-        }
-        
-        const contents = {
-          accounts: '', // 계좌 관리 탭은 별도 함수로 렌더링
-          cards: '', // 카드 관리 탭은 별도 함수로 렌더링
-          stats: '통계 탭 - 그래프와 분석이 여기 표시됩니다',
-          saving: '저축관리 탭 - 저축 목표가 여기 표시됩니다',
-          settings: `
-            <div style="padding: 20px;">
-              <h2 style="margin-bottom: 20px;">데이터 관리</h2>
-              <div class="backup-controls" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <button id="backup-btn" class="header-btn">💾 백업</button>
-                <button id="restore-btn" class="header-btn">📥 복원</button>
-                <input type="file" id="restore-file" accept=".json" style="display: none;">
-              </div>
-              <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                <h3 style="margin-bottom: 10px;">Google Sheets 연동 설정</h3>
-                <p style="color: #6B7280; font-size: 0.9rem; margin-bottom: 15px;">
-                  Google Sheets와 동기화하려면 아래 정보를 입력하세요.
-                </p>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <input type="text" id="google-api-key" placeholder="API 키" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
-                  <input type="text" id="google-client-id" placeholder="클라이언트 ID" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
-                  <input type="text" id="google-spreadsheet-id" placeholder="스프레드시트 ID" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
-                  <button id="save-google-config" class="header-btn" style="width: fit-content;">설정 저장</button>
-                </div>
-              </div>
-            </div>
-          `
-        };
-        if (key === 'accounts') {
-          renderAccountsTab(otherContent);
-        } else if (key === 'cards') {
-          renderCardsManagementTab(otherContent);
-        } else if (key === 'settings') {
-          otherContent.innerHTML = contents[key] || '';
-        } else {
-          otherContent.textContent = contents[key] || '';
-        }
-        otherContent.style.display = 'block';
-        
-        // FAB 버튼 표시/숨김 처리
-        if (fabBtn) {
-          if (key === 'accounts' || key === 'saving') {
-            // 계좌 관리, 저축관리 탭에서는 FAB 버튼 표시
-            fabBtn.style.display = 'flex';
-          } else {
-            // 다른 탭에서는 숨김
-            fabBtn.style.display = 'none';
-          }
-        }
-      }
-    });
-  });
+  // 주의: 탭 전환 기능은 app.js로 이동되었습니다.
+  // 이 코드는 중복 제거를 위해 주석 처리되었습니다.
 
   // ========================================
   // 2. 월 선택 기능

@@ -18,30 +18,30 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 탭 전환 이벤트 (완전 독립 렌더링)
   const tabButtons = document.querySelectorAll('.nav-tab');
+  
   tabButtons.forEach(btn => {
     btn.addEventListener('click', function() {
-      console.log('탭 클릭:', this.getAttribute('data-tab'));
-      
-      // 모든 탭 비활성화
+      // 1. active 클래스 제거
       tabButtons.forEach(b => b.classList.remove('active'));
-      // 클릭한 탭 활성화
       this.classList.add('active');
       
       const tabKey = this.getAttribute('data-tab');
       currentActiveTab = tabKey;
       
-      // mainContent 완전히 비우기 (중복 방지)
+      // 2. mainContent 완전히 비우기
       const mainContent = document.getElementById('main-content');
       if (mainContent) {
         mainContent.innerHTML = '';
       }
+      
+      console.log('탭 전환:', tabKey);
       
       // FAB 버튼 상태 업데이트
       if (typeof window.updateFabButton === 'function') {
         window.updateFabButton();
       }
       
-      // 탭별 독립적인 렌더링 함수 호출
+      // 3. 탭별 독립적인 렌더링 함수 호출
       if (tabKey === 'dashboard') {
         if (typeof initDashboard === 'function') {
           initDashboard();
@@ -105,176 +105,104 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // FAB 버튼 및 서브 메뉴
-  const fabBtn = document.getElementById('fab-btn');
+  // FAB 메뉴 토글
+  const fabMain = document.getElementById('fab-main');
   const fabContainer = document.getElementById('fab-container');
-  const fabSubmenu = document.getElementById('fab-submenu');
-  let fabSubmenuOpen = false;
+  const fabMenu = document.getElementById('fab-menu');
+  let fabMenuOpen = false;
   
   // FAB 버튼 표시/숨김 업데이트 함수
   window.updateFabButton = function() {
     if (!fabContainer) return;
     
     if (currentActiveTab === 'dashboard' || currentActiveTab === 'accounts' || currentActiveTab === 'cards' || currentActiveTab === 'saving') {
-      fabContainer.style.display = 'block';
+      fabContainer.style.display = 'flex';
     } else {
       fabContainer.style.display = 'none';
     }
     
-    // 서브 메뉴 닫기
-    if (fabSubmenu) {
-      fabSubmenu.classList.remove('show');
-      fabSubmenuOpen = false;
+    // 메뉴 닫기
+    if (fabMenu && fabMenuOpen) {
+      fabMenuOpen = false;
+      fabMain.classList.remove('active');
+      fabMenu.classList.remove('active');
     }
   };
   
-  // FAB 버튼 클릭/호버 이벤트
-  if (fabBtn && fabSubmenu) {
-    // 메인 FAB 버튼 클릭/호버
-    fabBtn.addEventListener('click', function(e) {
+  if (fabMain && fabMenu) {
+    // 메인 FAB 클릭 시 메뉴 토글
+    fabMain.addEventListener('click', function(e) {
       e.stopPropagation();
-      toggleFabSubmenu();
-    });
-    
-    // FAB 버튼 호버 시 서브 메뉴 표시
-    fabBtn.addEventListener('mouseenter', function() {
-      if (!fabSubmenuOpen && fabSubmenu) {
-        fabSubmenu.classList.add('show');
-        fabSubmenuOpen = true;
+      fabMenuOpen = !fabMenuOpen;
+      
+      if (fabMenuOpen) {
+        fabMain.classList.add('active');
+        fabMenu.classList.add('active');
+        console.log('FAB 메뉴 열림, fabMenuOpen:', fabMenuOpen);
+      } else {
+        fabMain.classList.remove('active');
+        fabMenu.classList.remove('active');
+        console.log('FAB 메뉴 닫힘, fabMenuOpen:', fabMenuOpen);
       }
     });
     
-    // FAB 컨테이너에서 마우스가 벗어날 때 서브 메뉴 닫기 (약간의 지연)
-    let fabHoverTimeout;
-    if (fabContainer) {
-      fabContainer.addEventListener('mouseleave', function() {
-        fabHoverTimeout = setTimeout(() => {
-          if (fabSubmenu && fabSubmenuOpen) {
-            fabSubmenu.classList.remove('show');
-            fabSubmenuOpen = false;
-          }
-        }, 300); // 300ms 지연
-      });
-      
-      fabContainer.addEventListener('mouseenter', function() {
-        if (fabHoverTimeout) {
-          clearTimeout(fabHoverTimeout);
-        }
-      });
-    }
+    // 외부 클릭 시 메뉴 닫기
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.fab-container') && fabMenuOpen) {
+        fabMenuOpen = false;
+        fabMain.classList.remove('active');
+        fabMenu.classList.remove('active');
+        console.log('외부 클릭으로 FAB 메뉴 닫힘');
+      }
+    });
     
-    // 서브 메뉴 버튼들
-    const fabSubDashboard = document.getElementById('fab-sub-dashboard');
-    const fabSubAccounts = document.getElementById('fab-sub-accounts');
-    const fabSubCards = document.getElementById('fab-sub-cards');
-    const fabSubSaving = document.getElementById('fab-sub-saving');
-    
-    // 월별현황 신규 등록
-    if (fabSubDashboard) {
-      fabSubDashboard.addEventListener('click', function(e) {
+    // 하위 FAB 버튼 클릭 이벤트 (이벤트 위임 사용)
+    if (fabMenu) {
+      fabMenu.addEventListener('click', function(e) {
+        const target = e.target.closest('.fab-sub');
+        if (!target) return;
+        
         e.stopPropagation();
-        // 월별현황 탭으로 이동
-        switchToTab('dashboard', () => {
-          // 탭 이동 후 모달 열기
-          setTimeout(() => {
+        
+        const targetTab = target.getAttribute('data-tab');
+        console.log('FAB 버튼 클릭:', targetTab);
+        
+        // 1. 메뉴 닫기
+        fabMenuOpen = false;
+        fabMain.classList.remove('active');
+        fabMenu.classList.remove('active');
+        
+        // 2. 해당 탭으로 전환
+        const tabButton = document.querySelector(`.nav-tab[data-tab="${targetTab}"]`);
+        if (tabButton) {
+          // 탭 버튼 클릭 이벤트 트리거 (기존 로직 재사용)
+          tabButton.click();
+        }
+        
+        // 3. 해당 탭의 모달 열기 (300ms 딜레이 - 탭 렌더링 완료 대기)
+        setTimeout(() => {
+          if (targetTab === 'dashboard') {
             if (typeof window.openTransactionModal === 'function') {
               window.openTransactionModal();
             } else if (typeof window.openModal === 'function') {
               window.openModal(false);
             }
-          }, 100);
-        });
-        toggleFabSubmenu();
-      });
-    }
-    
-    // 계좌 관리 입출금 내역 등록
-    if (fabSubAccounts) {
-      fabSubAccounts.addEventListener('click', function(e) {
-        e.stopPropagation();
-        // 계좌 관리 탭으로 이동
-        switchToTab('accounts', () => {
-          // 탭 이동 후 모달 열기
-          setTimeout(() => {
+          } else if (targetTab === 'accounts') {
             if (typeof window.openAccountTransactionModal === 'function') {
               window.openAccountTransactionModal();
             }
-          }, 100);
-        });
-        toggleFabSubmenu();
-      });
-    }
-    
-    // 결제수단 관리 결제 수단 등록
-    if (fabSubCards) {
-      fabSubCards.addEventListener('click', function(e) {
-        e.stopPropagation();
-        // 결제수단 관리 탭으로 이동
-        switchToTab('cards', () => {
-          // 탭 이동 후 모달 열기
-          setTimeout(() => {
+          } else if (targetTab === 'cards') {
             if (typeof window.openPaymentMethodModal === 'function') {
               window.openPaymentMethodModal();
             } else if (typeof window.openAccountModal === 'function') {
               window.openAccountModal(false);
             }
-          }, 100);
-        });
-        toggleFabSubmenu();
+          } else if (targetTab === 'saving') {
+            alert('저축 등록 기능은 추후 구현 예정입니다.');
+          }
+        }, 300);
       });
     }
-    
-    // 저축관리
-    if (fabSubSaving) {
-      fabSubSaving.addEventListener('click', function(e) {
-        e.stopPropagation();
-        // 저축관리 탭으로 이동
-        switchToTab('saving', () => {
-          alert('저축 등록 기능 준비 중');
-        });
-        toggleFabSubmenu();
-      });
-    }
-    
-    // 서브 메뉴 토글 함수
-    function toggleFabSubmenu() {
-      if (!fabSubmenu) return;
-      
-      if (fabSubmenuOpen) {
-        fabSubmenu.classList.remove('show');
-        fabSubmenuOpen = false;
-      } else {
-        fabSubmenu.classList.add('show');
-        fabSubmenuOpen = true;
-      }
-    }
-    
-    // 탭 전환 함수
-    function switchToTab(tabKey, callback) {
-      console.log('탭 전환:', tabKey);
-      const tabButton = document.querySelector(`.nav-tab[data-tab="${tabKey}"]`);
-      if (tabButton) {
-        // 탭 버튼 클릭으로 전환
-        tabButton.click();
-        // 콜백 실행 (탭 전환 후 모달 열기)
-        if (callback) {
-          // 탭 전환이 완료될 때까지 충분한 시간 대기
-          setTimeout(callback, 200);
-        }
-      } else {
-        console.error('탭 버튼을 찾을 수 없습니다:', tabKey);
-      }
-    }
-    
-    // 외부 클릭 시 서브 메뉴 닫기
-    document.addEventListener('click', function(e) {
-      if (fabContainer && !fabContainer.contains(e.target)) {
-        if (fabSubmenu) {
-          fabSubmenu.classList.remove('show');
-          fabSubmenuOpen = false;
-        }
-      }
-    });
   }
   
   // 월 텍스트 초기화
