@@ -8,6 +8,10 @@
   <script src="https://apis.google.com/js/api.js"></script>
   <!-- SheetJS for Excel parsing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <!-- 여기에 CSS 연결 추가 -->
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/modal.css">
 </head>
 <body>
   <style>
@@ -1656,27 +1660,37 @@
 
   <script>
 // ========================================
-// 버전 정보
+// 주의: 이 인라인 스크립트는 레거시 코드입니다.
+// 대부분의 로직은 외부 JS 파일로 이동되었습니다.
+// config.js, data-manager.js, app.js 등을 참조하세요.
 // ========================================
-const APP_VERSION = '0.0.2';
 
 // ========================================
 // DOMContentLoaded - 페이지 로드 후 실행
 // ========================================
+// 주의: app.js에도 DOMContentLoaded가 있습니다.
+// 중복 실행을 방지하기 위해 이 부분은 최소화되었습니다.
 document.addEventListener('DOMContentLoaded', function() {
-  // 버전 표시 업데이트
-  const versionElement = document.querySelector('.version');
-  if (versionElement) {
-    versionElement.textContent = `V.${APP_VERSION}`;
-  }
+  // 버전 표시는 app.js에서 처리됩니다.
+  // config.js의 APP_VERSION을 사용합니다.
   
   // ========================================
-  // 데이터 저장 배열
+  // 데이터 저장 배열 (레거시 - config.js 사용 권장)
   // ========================================
-  let transactionData = [];
-  let accountData = [];
-  let merchantHistory = []; // 자주 쓰는 사용처 목록
-  let cardData = []; // 카드 목록 (결제수단과 동일하게 사용)
+  // 주의: 이 변수들은 config.js에도 정의되어 있습니다.
+  // 외부 JS 파일이 로드되면 config.js의 값이 사용됩니다.
+  if (typeof transactionData === 'undefined') {
+    var transactionData = [];
+  }
+  if (typeof accountData === 'undefined') {
+    var accountData = [];
+  }
+  if (typeof merchantHistory === 'undefined') {
+    var merchantHistory = []; // 자주 쓰는 사용처 목록
+  }
+  if (typeof cardData === 'undefined') {
+    var cardData = []; // 카드 목록 (결제수단과 동일하게 사용)
+  }
   
   const savedData = localStorage.getItem('budgetData');
   if (savedData) {
@@ -1707,14 +1721,18 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.setItem('cardData', JSON.stringify(cardData));
   }
   
-  // 카드 데이터 저장 함수
-  function saveCardData() {
-    localStorage.setItem('cardData', JSON.stringify(cardData));
+  // 카드 데이터 저장 함수 (레거시 - data-manager.js 사용 권장)
+  if (typeof saveCardData === 'undefined') {
+    window.saveCardData = function() {
+      localStorage.setItem('cardData', JSON.stringify(cardData));
+    };
   }
   
-  // 자주 쓰는 사용처 저장 함수
-  function saveMerchantHistory() {
-    localStorage.setItem('merchantHistory', JSON.stringify(merchantHistory));
+  // 자주 쓰는 사용처 저장 함수 (레거시)
+  if (typeof saveMerchantHistory === 'undefined') {
+    window.saveMerchantHistory = function() {
+      localStorage.setItem('merchantHistory', JSON.stringify(merchantHistory));
+    };
   }
   
   // 자주 쓰는 사용처 추가 함수
@@ -2038,9 +2056,11 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ========================================
-  // 5. 카테고리별 항목 매핑 (지출용)
+  // 5. 카테고리별 항목 매핑 (지출용) - 레거시
+  // 주의: config.js에도 동일한 정의가 있습니다.
   // ========================================
-  const expenseCategoryItems = {
+  if (typeof expenseCategoryItems === 'undefined') {
+    window.expenseCategoryItems = {
     '주거': ['관리비', '수도세', '도시가스', '수리/청소', '기타', '통신비'],
     '식비': ['식재료', '부식/간식', '외식', '카페', '배달/포장', '주류'],
     '패션·뷰티': ['의류', '잡화', '신발', '화장품', '미용/시술', '세탁'],
@@ -2060,7 +2080,8 @@ document.addEventListener('DOMContentLoaded', function() {
     '급여': ['주급여(파우)', '주급여(둠둠)', '상여(파우)', '상여(둠둠)', '복지(파우)', '복지(둠둠)'],
     '부수입': ['투자수익', '현금수입', '전문가비', '중고판매'],
     '기타수익': ['국세환급', '일반이체', '전월이월', '기타현금', '청구할인', '이자소득']
-  };
+    };
+  }
 
   // 구분 선택에 따라 카테고리 업데이트
   function updateCategoryOptions() {
@@ -6252,6 +6273,17 @@ window.deleteTransaction = function(id) {
 });
 </script>
 
-    
+   <!-- JS 연결 (body 끝 직전!) -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/data-manager.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/accounts.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/saving.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/app.js"></script> 
 </body>
 </html>
