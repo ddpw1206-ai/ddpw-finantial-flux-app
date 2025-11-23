@@ -34,6 +34,16 @@ document.addEventListener('DOMContentLoaded', function() {
       
       console.log('탭 전환:', tabKey);
       
+      // 연/월 표시 제어 (dashboard와 accounts만 표시)
+      const monthBar = document.querySelector('.month-bar');
+      if (monthBar) {
+        if (tabKey === 'dashboard' || tabKey === 'accounts') {
+          monthBar.style.display = 'flex';
+        } else {
+          monthBar.style.display = 'none';
+        }
+      }
+      
       // FAB 버튼 상태 업데이트
       if (typeof window.updateFabButton === 'function') {
         window.updateFabButton();
@@ -80,8 +90,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // 월 선택 버튼
+  // 월 선택 버튼 (dashboard와 accounts 탭에서만 동작)
   document.getElementById('prev-month')?.addEventListener('click', function() {
+    // dashboard 또는 accounts 탭에서만 동작
+    if (window.currentActiveTab !== 'dashboard' && window.currentActiveTab !== 'accounts') {
+      return;
+    }
+    
     curMonth--;
     if (curMonth < 1) {
       curMonth = 12;
@@ -92,13 +107,31 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 대시보드가 열려있으면 테이블도 업데이트
     if (window.currentActiveTab === 'dashboard') {
-      renderTable();
-      renderCardTable('all');
-      renderBankTable();
+      if (typeof renderTable === 'function') {
+        renderTable();
+      }
+      if (typeof renderCardTable === 'function') {
+        renderCardTable('all');
+      }
+      if (typeof renderBankTable === 'function') {
+        renderBankTable();
+      }
+    } else if (window.currentActiveTab === 'accounts') {
+      // 계좌 관리 탭인 경우 계좌 테이블 갱신
+      if (typeof renderAccountTransactionTable === 'function') {
+        const accountSelect = document.getElementById('account-filter-select');
+        const selectedAccount = accountSelect ? accountSelect.value : 'all';
+        renderAccountTransactionTable(selectedAccount);
+      }
     }
   });
   
   document.getElementById('next-month')?.addEventListener('click', function() {
+    // dashboard 또는 accounts 탭에서만 동작
+    if (window.currentActiveTab !== 'dashboard' && window.currentActiveTab !== 'accounts') {
+      return;
+    }
+    
     curMonth++;
     if (curMonth > 12) {
       curMonth = 1;
@@ -109,9 +142,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 대시보드가 열려있으면 테이블도 업데이트
     if (window.currentActiveTab === 'dashboard') {
-      renderTable();
-      renderCardTable('all');
-      renderBankTable();
+      if (typeof renderTable === 'function') {
+        renderTable();
+      }
+      if (typeof renderCardTable === 'function') {
+        renderCardTable('all');
+      }
+      if (typeof renderBankTable === 'function') {
+        renderBankTable();
+      }
+    } else if (window.currentActiveTab === 'accounts') {
+      // 계좌 관리 탭인 경우 계좌 테이블 갱신
+      if (typeof renderAccountTransactionTable === 'function') {
+        const accountSelect = document.getElementById('account-filter-select');
+        const selectedAccount = accountSelect ? accountSelect.value : 'all';
+        renderAccountTransactionTable(selectedAccount);
+      }
     }
   });
   
@@ -247,6 +293,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 초기 탭 로드
   initDashboard();
+  
+  // 초기 연/월 표시 설정 (dashboard는 표시)
+  const monthBar = document.querySelector('.month-bar');
+  if (monthBar && window.currentActiveTab === 'dashboard') {
+    monthBar.style.display = 'flex';
+  }
   
   console.log('앱 초기화 완료');
 });

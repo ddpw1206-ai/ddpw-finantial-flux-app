@@ -51,7 +51,12 @@ window.renderAccountsTab = function(container) {
         font-weight: 700;
         color: #111827;
       }
-      .add-account-btn {
+      .accounts-header-buttons {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .add-account-btn, .add-transaction-btn {
         background: #EF4444;
         color: #fff;
         border: none;
@@ -62,8 +67,8 @@ window.renderAccountsTab = function(container) {
         cursor: pointer;
         transition: background 0.2s;
       }
-      .add-account-btn:hover {
-        background: #2563eb;
+      .add-account-btn:hover, .add-transaction-btn:hover {
+        background: #DC2626;
       }
       .accounts-grid {
         display: grid;
@@ -178,7 +183,10 @@ window.renderAccountsTab = function(container) {
     </style>
     <div class="accounts-header">
       <h2 class="accounts-title">계좌 관리</h2>
-      <button class="add-account-btn" id="add-account-btn">+ 계좌 추가</button>
+      <div class="accounts-header-buttons">
+        <button class="add-transaction-btn" id="add-transaction-btn">💰 입출금 내역 등록</button>
+        <button class="add-account-btn" id="add-account-btn">+ 계좌 추가</button>
+      </div>
     </div>
     <div class="accounts-grid" id="accounts-grid">
       ${accountData.length === 0 ? '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6B7280;">등록된 계좌가 없습니다. 계좌를 추가해주세요.</div>' : ''}
@@ -197,7 +205,7 @@ window.renderAccountsTab = function(container) {
     </div>
   `;
   
-  // 계좌 카드 렌더링
+  // 계좌 카드 렌더링 (잔액 재계산 후)
   const accountsGrid = container.querySelector('#accounts-grid');
   if (accountsGrid && accountData.length > 0) {
     accountsGrid.innerHTML = '';
@@ -205,8 +213,10 @@ window.renderAccountsTab = function(container) {
       const card = document.createElement('div');
       card.className = 'account-card';
       
+      // 잔액 재확인 (calculateAccountBalances가 호출되었지만, 다시 한 번 확인)
       if (account.type === 'bank') {
         // 통장 계좌
+        const currentBalance = account.currentBalance !== undefined ? account.currentBalance : (account.initialBalance || 0);
         card.innerHTML = `
           <div class="account-header">
             <div>
@@ -218,7 +228,7 @@ window.renderAccountsTab = function(container) {
               <button class="account-action-btn" onclick="deleteAccount(${account.id})">삭제</button>
             </div>
           </div>
-          <div class="account-balance">${(account.currentBalance || 0).toLocaleString()}원</div>
+          <div class="account-balance">${currentBalance.toLocaleString()}원</div>
           <div class="account-info">초기 잔액: ${(account.initialBalance || 0).toLocaleString()}원</div>
         `;
       } else if (account.type === 'card') {
@@ -273,10 +283,29 @@ window.renderAccountsTab = function(container) {
   const addAccountBtn = container.querySelector('#add-account-btn');
   if (addAccountBtn) {
     addAccountBtn.addEventListener('click', () => {
-      if (typeof openAccountModal === 'function') {
-        openAccountModal();
+      if (typeof window.openAccountModal === 'function') {
+        window.openAccountModal(false);
       }
     });
+  }
+  
+  // 입출금 내역 등록 버튼 이벤트 (상단 및 하단)
+  const addTransactionBtn = container.querySelector('#add-transaction-btn');
+  const addTransactionBtnBottom = container.querySelector('#add-transaction-btn-bottom');
+  
+  const handleAddTransaction = () => {
+    if (typeof window.openAccountTransactionModal === 'function') {
+      window.openAccountTransactionModal();
+    } else {
+      console.error('openAccountTransactionModal 함수를 찾을 수 없습니다.');
+    }
+  };
+  
+  if (addTransactionBtn) {
+    addTransactionBtn.addEventListener('click', handleAddTransaction);
+  }
+  if (addTransactionBtnBottom) {
+    addTransactionBtnBottom.addEventListener('click', handleAddTransaction);
   }
   
   // 계좌 필터 옵션 업데이트 및 계좌별 입출금 내역 렌더링
@@ -416,12 +445,51 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
   });
   
   // 초기 잔액 설정
+  // calculateAccountBalances()로 계산된 currentBalance에서 현재 월의 거래를 역순으로 빼서 초기값 계산
   let runningBalance = 0;
   if (selectedAccountData) {
     if (selectedAccountData.type === 'bank') {
-      runningBalance = selectedAccountData.initialBalance || 0;
+      // 통장: currentBalance에서 현재 월의 거래를 역순으로 빼서 초기값 계산
+      runningBalance = selectedAccountData.currentBalance || selectedAccountData.initialBalance || 0;
+      
+      // 현재 월의 거래를 역순으로 처리하여 초기값 계산
+      const currentMonthTransactions = sortedData.filter(t => {
+        const tDate = new Date(t.date);
+        return (t.paymentMethod === 'transfer' || t.paymentMethod === 'cash') &&
+               t.paymentDetail === selectedAccountData.name &&
+               tDate.getFullYear() === curYear &&
+               tDate.getMonth() + 1 === curMonth;
+      });
+      
+      // 역순으로 빼서 초기값 계산
+      currentMonthTransactions.forEach(t => {
+        if (t.type === 'income') {
+          runningBalance -= t.amount;
+        } else if (t.type === 'expense') {
+          runningBalance += t.amount;
+        }
+      });
     } else if (selectedAccountData.type === 'card') {
-      runningBalance = selectedAccountData.creditLimit || 0;
+      // 카드: creditLimit에서 currentBalance를 빼서 가용 잔액 계산, 현재 월 거래 역순 처리
+      const creditLimit = selectedAccountData.creditLimit || 0;
+      const usedAmount = selectedAccountData.currentBalance || 0;
+      runningBalance = creditLimit - usedAmount;
+      
+      // 현재 월의 카드 거래를 역순으로 처리
+      const currentMonthTransactions = sortedData.filter(t => {
+        const tDate = new Date(t.date);
+        return t.paymentMethod === 'credit' &&
+               t.paymentDetail === selectedAccountData.name &&
+               tDate.getFullYear() === curYear &&
+               tDate.getMonth() + 1 === curMonth;
+      });
+      
+      // 역순으로 더해서 초기값 계산
+      currentMonthTransactions.forEach(t => {
+        if (t.type === 'expense') {
+          runningBalance += t.amount;
+        }
+      });
     }
   }
   

@@ -895,22 +895,49 @@ window.deleteTransaction = function(id) {
       if (typeof saveData === 'function') {
         saveData();
       }
-      // 계좌 잔액 자동 업데이트
+      // 계좌 잔액 자동 업데이트 (삭제된 내역 반영)
       if (typeof calculateAccountBalances === 'function') {
         calculateAccountBalances();
       }
-      if (typeof renderTable === 'function') {
-        renderTable();
+      
+      // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
+      const currentTab = window.currentActiveTab || 'dashboard';
+      
+      if (currentTab === 'dashboard') {
+        if (typeof renderTable === 'function') {
+          renderTable();
+        }
+        if (typeof renderCardTable === 'function') {
+          renderCardTable('all');
+        }
+        if (typeof renderBankTable === 'function') {
+          renderBankTable();
+        }
+      } else if (currentTab === 'accounts') {
+        // 계좌 관리 탭인 경우 계좌 테이블 갱신
+        if (typeof renderAccountTransactionTable === 'function') {
+          const accountSelect = document.getElementById('account-filter-select');
+          const selectedAccount = accountSelect ? accountSelect.value : 'all';
+          renderAccountTransactionTable(selectedAccount);
+        }
+        // 계좌 목록도 갱신 (잔액 반영을 위해)
+        const accountsContainer = document.getElementById('accounts-container');
+        if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+          window.renderAccountsTab(accountsContainer);
+        }
+      } else if (currentTab === 'cards') {
+        // 결제수단 관리 탭인 경우 카드 목록 갱신
+        const paymentMethodsContainer = document.getElementById('payment-methods-container');
+        if (paymentMethodsContainer && typeof window.renderPaymentMethodsTab === 'function') {
+          window.renderPaymentMethodsTab(paymentMethodsContainer);
+        }
       }
-      if (typeof renderCardTable === 'function') {
-        renderCardTable('all');
-      }
-      if (typeof renderBankTable === 'function') {
-        renderBankTable();
-      }
+      
+      // 대시보드는 항상 업데이트
       if (typeof updateDashboard === 'function') {
         updateDashboard();
       }
+      
       alert('삭제되었습니다!');
       console.log('삭제 완료 - ID:', id);
     } else {
@@ -2002,6 +2029,11 @@ if (accountTransactionForm) {
       saveData();
     }
     
+    // 계좌 잔액 자동 재계산 (입출금 내역 반영)
+    if (typeof calculateAccountBalances === 'function') {
+      calculateAccountBalances();
+    }
+    
     // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
     const currentTab = window.currentActiveTab || 'dashboard';
     
@@ -2012,10 +2044,14 @@ if (accountTransactionForm) {
         const selectedAccount = accountSelect ? accountSelect.value : 'all';
         renderAccountTransactionTable(selectedAccount);
       }
-      // 계좌 목록도 갱신
+      // 계좌 목록도 갱신 (잔액 반영을 위해)
+      // accounts-container가 없으면 main-content를 직접 사용
       const accountsContainer = document.getElementById('accounts-container');
+      const mainContent = document.getElementById('main-content');
       if (accountsContainer && typeof window.renderAccountsTab === 'function') {
         window.renderAccountsTab(accountsContainer);
+      } else if (mainContent && typeof window.renderAccountsTab === 'function') {
+        window.renderAccountsTab(mainContent);
       }
     }
     
@@ -2087,18 +2123,46 @@ if (accountTransactionCardForm) {
       saveData();
     }
     
+    // 계좌 잔액 자동 재계산 (카드 대금 반영)
+    if (typeof calculateAccountBalances === 'function') {
+      calculateAccountBalances();
+    }
+    
+    // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
+    const currentTab = window.currentActiveTab || 'dashboard';
+    
     // 계좌 입출금 관리 탭 갱신
-    if (typeof renderAccountTransactionTable === 'function') {
-      renderAccountTransactionTable('all');
+    if (currentTab === 'accounts') {
+      if (typeof renderAccountTransactionTable === 'function') {
+        const accountSelect = document.getElementById('account-filter-select');
+        const selectedAccount = accountSelect ? accountSelect.value : 'all';
+        renderAccountTransactionTable(selectedAccount);
+      }
+      // 계좌 목록도 갱신 (잔액 반영을 위해)
+      // accounts-container가 없으면 main-content를 직접 사용
+      const accountsContainer = document.getElementById('accounts-container');
+      const mainContent = document.getElementById('main-content');
+      if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+        window.renderAccountsTab(accountsContainer);
+      } else if (mainContent && typeof window.renderAccountsTab === 'function') {
+        window.renderAccountsTab(mainContent);
+      }
     }
     
     // 월별 현황 탭도 갱신
-    if (typeof renderTable === 'function') {
-      renderTable();
+    if (currentTab === 'dashboard') {
+      if (typeof renderTable === 'function') {
+        renderTable();
+      }
+      if (typeof renderCardTable === 'function') {
+        renderCardTable('all');
+      }
+      if (typeof renderBankTable === 'function') {
+        renderBankTable();
+      }
     }
-    if (typeof renderBankTable === 'function') {
-      renderBankTable();
-    }
+    
+    // 대시보드는 항상 업데이트
     if (typeof updateDashboard === 'function') {
       updateDashboard();
     }

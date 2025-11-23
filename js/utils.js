@@ -81,6 +81,11 @@ function calculateAccountBalances() {
   
   // 각 거래를 처리하여 계좌 잔액 업데이트
   sortedTransactions.forEach(transaction => {
+    // transfer 또는 cash 거래만 처리 (직접 입출금 거래)
+    if (transaction.paymentMethod !== 'transfer' && transaction.paymentMethod !== 'cash') {
+      return;
+    }
+    
     const accountName = transaction.paymentDetail || '';
     
     // 해당 계좌 찾기

@@ -298,9 +298,11 @@ function renderPaymentMethodsList() {
 // 결제수단 추가 모달 열기 (전역으로 노출)
 // ========================================
 window.openPaymentMethodModal = function() {
-  // 계좌 추가 모달 열기 (기존 계좌 추가 모달 재사용)
-  if (typeof window.openAccountModal === 'function') {
-    window.openAccountModal(false);
+  // 결제수단 추가 모달 열기 (카드 관리 모달 사용)
+  if (typeof window.openCardManageModal === 'function') {
+    window.openCardManageModal(false);
+  } else {
+    console.error('openCardManageModal 함수를 찾을 수 없습니다.');
   }
 };
 
