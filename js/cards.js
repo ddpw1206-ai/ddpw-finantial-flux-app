@@ -18,7 +18,7 @@ function initCards() {
   paymentMethodsContainer.id = 'payment-methods-container';
   mainContent.appendChild(paymentMethodsContainer);
   
-  renderPaymentMethodsTab(paymentMethodsContainer);
+  window.renderPaymentMethodsTab(paymentMethodsContainer);
   
   console.log('결제수단 관리 탭 렌더링 완료');
 }
@@ -26,7 +26,19 @@ function initCards() {
 // ========================================
 // 결제수단 관리 탭 렌더링
 // ========================================
-function renderPaymentMethodsTab(container) {
+window.renderPaymentMethodsTab = function(container) {
+  // container가 없으면 main-content를 찾아서 사용
+  if (!container) {
+    container = document.getElementById('main-content');
+  }
+  if (!container) {
+    console.error('renderPaymentMethodsTab: container를 찾을 수 없습니다.');
+    return;
+  }
+  
+  // container 완전히 비우기 (안전성 보장)
+  container.innerHTML = '';
+  
   container.innerHTML = `
     <style>
       .cards-header {
@@ -41,7 +53,7 @@ function renderPaymentMethodsTab(container) {
         color: #111827;
       }
       .add-card-btn {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
         border: none;
         padding: 10px 20px;
@@ -145,11 +157,11 @@ function renderPaymentMethodsTab(container) {
         background: #FFFFFF;
       }
       .card-edit-btn {
-        border-color: #3B82F6;
-        color: #3B82F6;
+        border-color: #EF4444;
+        color: #EF4444;
       }
       .card-edit-btn:hover {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
       }
       .card-delete-btn {
@@ -317,7 +329,7 @@ function renderCardList() {
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button type="button" onclick="editCard(${card.id})" style="padding: 6px 12px; border: 1px solid #3B82F6; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #3B82F6; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3B82F6'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#3B82F6'">수정</button>
+        <button type="button" onclick="editCard(${card.id})" style="padding: 6px 12px; border: 1px solid #EF4444; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #EF4444; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#EF4444'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#EF4444'">수정</button>
         <button type="button" onclick="deleteCard(${card.id})" style="padding: 6px 12px; border: 1px solid #DC2626; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #DC2626; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#DC2626'">삭제</button>
       </div>
     `;
@@ -411,7 +423,7 @@ function renderCardListInModal() {
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button type="button" onclick="editCard(${card.id})" style="padding: 6px 12px; border: 1px solid #3B82F6; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #3B82F6; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3B82F6'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#3B82F6'">수정</button>
+        <button type="button" onclick="editCard(${card.id})" style="padding: 6px 12px; border: 1px solid #EF4444; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #EF4444; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#EF4444'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#EF4444'">수정</button>
         <button type="button" onclick="deleteCard(${card.id})" style="padding: 6px 12px; border: 1px solid #DC2626; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #DC2626; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#DC2626'">삭제</button>
       </div>
     `;

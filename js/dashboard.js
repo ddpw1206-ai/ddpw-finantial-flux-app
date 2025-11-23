@@ -6,10 +6,15 @@
 let currentSearchKeyword = '';
 let currentSortType = 'date-desc';
 
-function initDashboard() {
-  console.log('대시보드 초기화');
+// ========================================
+// 대시보드 렌더링 함수 (mainContent를 파라미터로 받음)
+// ========================================
+window.renderDashboard = function(mainContent) {
+  console.log('대시보드 렌더링');
   
-  const mainContent = document.getElementById('main-content');
+  if (!mainContent) {
+    mainContent = document.getElementById('main-content');
+  }
   if (!mainContent) return;
   
   // mainContent 완전히 비우기 (중복 방지)
@@ -49,7 +54,7 @@ function initDashboard() {
       }
       .sub-tab-btn.active {
         color: #111827;
-        border-bottom: 2px solid #3B82F6;
+        border-bottom: 2px solid #EF4444;
         font-weight: 600;
       }
 
@@ -94,8 +99,8 @@ function initDashboard() {
       }
       .income { color: #14BD5A; }
       .expense { color: #FA4747; }
-      .asset { color: #2563EB; }
-      .budget { color: #2563EB; }
+      .asset { color: #DC2626; }
+      .budget { color: #DC2626; }
 
       .progress-bar-bg {
         background: #E5E7EB;
@@ -105,7 +110,7 @@ function initDashboard() {
         overflow: hidden;
       }
       .progress-bar-fill {
-        background: #3B82F6;
+        background: #EF4444;
         height: 100%;
         width: 73%;
         border-radius: 8px 0 0 8px;
@@ -154,8 +159,8 @@ function initDashboard() {
         color: #111827;
       }
       #search-input:focus {
-        border-color: #3B82F6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #EF4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
       }
       .search-btn, .search-clear-btn {
         padding: 12px 20px;
@@ -168,12 +173,12 @@ function initDashboard() {
         white-space: nowrap;
       }
       .search-btn {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
       }
       .search-btn:hover {
         background: #2563eb;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
       }
       .search-clear-btn {
         background: #F3F4F6;
@@ -212,8 +217,8 @@ function initDashboard() {
         transition: all 0.2s ease;
       }
       #sort-select:focus {
-        border-color: #3B82F6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #EF4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
       }
     </style>
     
@@ -334,6 +339,16 @@ function initDashboard() {
   renderCardTable('all');
   renderBankTable();
   updateDashboard();
+}
+
+// ========================================
+// 대시보드 초기화 함수 (호환성 유지)
+// ========================================
+function initDashboard() {
+  const mainContent = document.getElementById('main-content');
+  if (mainContent) {
+    window.renderDashboard(mainContent);
+  }
 }
 
 // 카드 필터 옵션 업데이트

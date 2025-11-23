@@ -16,13 +16,25 @@ function initStats() {
   statsContainer.id = 'stats-container';
   mainContent.appendChild(statsContainer);
   
-  renderStatsTab(statsContainer);
+  window.renderStatsTab(statsContainer);
 }
 
 // ========================================
 // 통계 탭 렌더링
 // ========================================
-function renderStatsTab(container) {
+window.renderStatsTab = function(container) {
+  // container가 없으면 main-content를 찾아서 사용
+  if (!container) {
+    container = document.getElementById('main-content');
+  }
+  if (!container) {
+    console.error('renderStatsTab: container를 찾을 수 없습니다.');
+    return;
+  }
+  
+  // container 완전히 비우기 (안전성 보장)
+  container.innerHTML = '';
+  
   container.innerHTML = `
     <div style="padding: 20px;">
       <h2 style="margin-bottom: 20px;">📊 통계</h2>

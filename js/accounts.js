@@ -16,13 +16,25 @@ function initAccounts() {
   accountsContainer.id = 'accounts-container';
   mainContent.appendChild(accountsContainer);
   
-  renderAccountsTab(accountsContainer);
+  window.renderAccountsTab(accountsContainer);
 }
 
 // ========================================
 // 계좌 관리 탭 렌더링 (rollback.html에서 복원)
 // ========================================
-function renderAccountsTab(container) {
+window.renderAccountsTab = function(container) {
+  // container가 없으면 main-content를 찾아서 사용
+  if (!container) {
+    container = document.getElementById('main-content');
+  }
+  if (!container) {
+    console.error('renderAccountsTab: container를 찾을 수 없습니다.');
+    return;
+  }
+  
+  // container 완전히 비우기 (안전성 보장)
+  container.innerHTML = '';
+  
   // 잔액 재계산
   calculateAccountBalances();
   
@@ -40,7 +52,7 @@ function renderAccountsTab(container) {
         color: #111827;
       }
       .add-account-btn {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
         border: none;
         padding: 10px 20px;
@@ -106,14 +118,14 @@ function renderAccountsTab(container) {
         transition: all 0.2s;
       }
       .account-action-btn:hover {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
-        border-color: #3B82F6;
+        border-color: #EF4444;
       }
       .account-balance {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #2563EB;
+        color: #DC2626;
         margin-bottom: 12px;
       }
       .account-info {
@@ -147,7 +159,7 @@ function renderAccountsTab(container) {
         margin-top: 8px;
       }
       .card-usage-fill {
-        background: #3B82F6;
+        background: #EF4444;
         height: 100%;
         border-radius: 8px;
         transition: width 0.4s;
@@ -472,7 +484,7 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
       }
       
       // 잔액 색상 설정
-      const balanceColor = runningBalance >= 0 ? '#2563EB' : '#DC2626';
+      const balanceColor = runningBalance >= 0 ? '#DC2626' : '#DC2626';
       const balanceStr = `${runningBalance.toLocaleString()}원`;
       
       const paymentMethodText = getPaymentMethodText(entry);

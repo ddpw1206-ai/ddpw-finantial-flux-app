@@ -48,7 +48,7 @@
       border-radius: 20px;
     }
     .header-btn {
-      background: #3B82F6;
+      background: #EF4444;
       color: #fff;
       border: none;
       padding: 7px 14px;
@@ -59,7 +59,7 @@
       transition: background 0.2s;
     }
     .header-btn:hover {
-      background: #2563eb;
+      background: #DC2626;
     }
 
     /* Navigation */
@@ -96,7 +96,7 @@
       background: transparent;
       color: #111827;
       font-weight: 600;
-      border-bottom: 2px solid #3B82F6;
+      border-bottom: 2px solid #EF4444;
       z-index: 1;
     }
 
@@ -117,7 +117,7 @@
       background: none;
       border: none;
       font-size: 1.2rem;
-      color: #3B82F6;
+      color: #EF4444;
       cursor: pointer;
       padding: 5px 10px;
       border-radius: 4px;
@@ -166,7 +166,7 @@
       position: relative;
       width: 60px;
       height: 60px;
-      background: #3B82F6;
+      background: #EF4444;
       color: #fff;
       border: none;
       outline: none;
@@ -176,20 +176,20 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 6px 24px rgba(239, 68, 68, 0.3);
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
       z-index: 1001;
     }
     
     .fab-main:hover {
-      background: #2563eb;
-      box-shadow: 0 8px 28px rgba(59, 130, 246, 0.4);
+      background: #DC2626;
+      box-shadow: 0 8px 28px rgba(239, 68, 68, 0.4);
       transform: scale(1.05);
     }
     
     .fab-main.active {
-      background: #2563eb;
+      background: #DC2626;
       transform: rotate(45deg);
     }
     
@@ -222,8 +222,8 @@
       width: 50px;
       height: 50px;
       background: #FFFFFF;
-      color: #3B82F6;
-      border: 2px solid #3B82F6;
+      color: #EF4444;
+      border: 2px solid #EF4444;
       outline: none;
       border-radius: 50%;
       font-size: 1.5rem;
@@ -236,21 +236,21 @@
     }
     
     .fab-sub:hover {
-      background: #3B82F6;
+      background: #EF4444;
       color: #FFFFFF;
       transform: scale(1.1);
-      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
     }
     
     /* 각 하위 버튼 색상 커스터마이징 */
     #fab-dashboard {
-      border-color: #3B82F6;
-      color: #3B82F6;
+      border-color: #EF4444;
+      color: #EF4444;
     }
     #fab-dashboard:hover {
-      background: #3B82F6;
+      background: #EF4444;
       color: #FFFFFF;
-      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
     }
     
     #fab-accounts {
@@ -366,7 +366,7 @@
   </style>
 
   <div class="header">
-    <div class="title">💰 DDPW Moneybook Flux <span class="version">V.000</span></div>
+    <div class="title">💰 DDPW Moneybook Flux <span class="version">V.0.0.0</span></div>
     <div style="display: flex; align-items: center; gap: 12px;">
       <div id="google-auth-status" style="font-size: 0.9rem; color: #6B7280;"></div>
       <button id="google-login-btn" class="header-btn" style="display: none;">🔐 Google 로그인</button>
@@ -420,7 +420,7 @@
       }
       .sub-tab-btn.active {
         color: #111827;
-        border-bottom: 2px solid #3B82F6;
+        border-bottom: 2px solid #EF4444;
         font-weight: 600;
       }
 
@@ -465,8 +465,8 @@
       }
       .income { color: #14BD5A; }
       .expense { color: #FA4747; }
-      .asset { color: #2563EB; }
-      .budget { color: #2563EB; }
+      .asset { color: #DC2626; }
+      .budget { color: #DC2626; }
 
       .progress-bar-bg {
         background: #E5E7EB;
@@ -476,7 +476,7 @@
         overflow: hidden;
       }
       .progress-bar-fill {
-        background: #3B82F6;
+        background: #EF4444;
         height: 100%;
         width: 73%;
         border-radius: 8px 0 0 8px;
@@ -525,8 +525,8 @@
         color: #111827;
       }
       #search-input:focus {
-        border-color: #3B82F6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #EF4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
       }
       .search-btn, .search-clear-btn {
         padding: 12px 20px;
@@ -539,12 +539,12 @@
         white-space: nowrap;
       }
       .search-btn {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
       }
       .search-btn:hover {
-        background: #2563eb;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        background: #DC2626;
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
       }
       .search-clear-btn {
         background: #F3F4F6;
@@ -583,8 +583,8 @@
         transition: all 0.2s ease;
       }
       #sort-select:focus {
-        border-color: #3B82F6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #EF4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
       }
      </style>
         <!-- 검색바 -->
@@ -713,9 +713,9 @@
                 font-weight: 500;
             }
             .expense-table .btn-action:hover {
-                background: #3B82F6;
+                background: #EF4444;
                 color: #FFFFFF;
-                border-color: #3B82F6;
+                border-color: #EF4444;
             }
             @media (max-width: 600px) {
                 .expense-table-container {
@@ -922,9 +922,9 @@
       background: #F3F4F6;
     }
     .entry-tab-btn.active {
-      color: #3B82F6;
+      color: #EF4444;
       font-weight: 600;
-      border-bottom-color: #3B82F6;
+      border-bottom-color: #EF4444;
       background: #FFFFFF;
     }
     .entry-tab-content {
@@ -992,8 +992,8 @@
     .modal-form input:focus,
     .modal-form select:focus,
     .modal-form textarea:focus {
-      border-color: #3B82F6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: #EF4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
     }
     .modal-form textarea {
       min-height: 56px;
@@ -1207,7 +1207,7 @@
             <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 1rem;">📄 청구서 파일 일괄 등록하기</label>
             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
               <input type="file" id="entry-statement-file" accept=".xlsx,.xls" style="display: none;">
-              <button type="button" id="upload-entry-statement-btn" style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #3B82F6; color: #fff; transition: all 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3B82F6'">파일 선택</button>
+              <button type="button" id="upload-entry-statement-btn" style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">파일 선택</button>
               <span id="entry-file-info" style="font-size: 0.9rem; color: #6B7280;"></span>
             </div>
             <div style="font-size: 0.85rem; color: #6B7280; padding: 12px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
@@ -1272,7 +1272,7 @@
       
       <!-- 탭 버튼 -->
       <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid #E5E7EB;">
-        <button type="button" class="entry-tab-btn active" data-tab="general" style="padding: 12px 20px; border: none; background: transparent; color: #3B82F6; font-weight: 600; border-bottom: 2px solid #3B82F6; cursor: pointer;">일반 입출금 등록</button>
+        <button type="button" class="entry-tab-btn active" data-tab="general" style="padding: 12px 20px; border: none; background: transparent; color: #EF4444; font-weight: 600; border-bottom: 2px solid #EF4444; cursor: pointer;">일반 입출금 등록</button>
         <button type="button" class="entry-tab-btn" data-tab="card-statement" style="padding: 12px 20px; border: none; background: transparent; color: #6B7280; font-weight: 500; border-bottom: 2px solid transparent; cursor: pointer;">카드 명세서 등록</button>
       </div>
       
@@ -1469,7 +1469,7 @@
         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB;">
           <div style="display: flex; gap: 8px;">
             <input type="text" id="merchant-add-input" placeholder="새 사용처 입력" style="flex: 1; padding: 10px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem;">
-            <button type="button" id="merchant-add-btn" style="padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #3B82F6; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3B82F6'">추가</button>
+            <button type="button" id="merchant-add-btn" style="padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">추가</button>
           </div>
         </div>
       </div>
@@ -1658,7 +1658,7 @@
 // ========================================
 // 버전 정보
 // ========================================
-const APP_VERSION = '000';
+const APP_VERSION = '0.0.2';
 
 // ========================================
 // DOMContentLoaded - 페이지 로드 후 실행
@@ -2455,7 +2455,7 @@ function renderAccountsTab(container) {
         color: #111827;
       }
       .add-account-btn {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
         border: none;
         padding: 10px 20px;
@@ -2466,7 +2466,7 @@ function renderAccountsTab(container) {
         transition: background 0.2s;
       }
       .add-account-btn:hover {
-        background: #2563eb;
+        background: #DC2626;
       }
       .accounts-grid {
         display: grid;
@@ -2521,14 +2521,14 @@ function renderAccountsTab(container) {
         transition: all 0.2s;
       }
       .account-action-btn:hover {
-        background: #3B82F6;
+        background: #EF4444;
         color: #fff;
-        border-color: #3B82F6;
+        border-color: #EF4444;
       }
       .account-balance {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #2563EB;
+        color: #DC2626;
         margin-bottom: 12px;
       }
       .account-info {
@@ -2562,7 +2562,7 @@ function renderAccountsTab(container) {
         margin-top: 8px;
       }
       .card-usage-fill {
-        background: #3B82F6;
+        background: #EF4444;
         height: 100%;
         border-radius: 8px;
         transition: width 0.4s;
@@ -2591,7 +2591,7 @@ function renderAccountsTab(container) {
     <div style="margin-top: 48px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h3 style="font-size: 1.25rem; font-weight: 600; color: #111827; margin: 0;">📋 계좌별 입출금 내역</h3>
-        <button id="register-card-payment-btn" style="padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #3B82F6; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3B82F6'">💰 입출금 내역 등록</button>
+        <button id="register-card-payment-btn" style="padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">💰 입출금 내역 등록</button>
       </div>
       <div style="margin-bottom: 24px;">
         <label for="account-filter-select" style="font-size: 0.95rem; font-weight: 500; color: #374151; margin-right: 12px;">계좌 선택:</label>
@@ -2856,7 +2856,7 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
       }
       
       // 잔액 색상 설정
-      const balanceColor = runningBalance >= 0 ? '#2563EB' : '#DC2626';
+      const balanceColor = runningBalance >= 0 ? '#DC2626' : '#DC2626';
       const balanceStr = `${runningBalance.toLocaleString()}원`;
       
       const paymentMethodText = getPaymentMethodText(entry);
@@ -2919,7 +2919,7 @@ function renderCardList() {
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button type="button" onclick="editCard(${card.id})" style="padding: 6px 12px; border: 1px solid #3B82F6; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #3B82F6; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3B82F6'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#3B82F6'">수정</button>
+        <button type="button" onclick="editCard(${card.id})" style="padding: 6px 12px; border: 1px solid #EF4444; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #EF4444; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#EF4444'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#EF4444'">수정</button>
         <button type="button" onclick="deleteCard(${card.id})" style="padding: 6px 12px; border: 1px solid #DC2626; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #DC2626; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#DC2626'">삭제</button>
       </div>
     `;
@@ -5517,7 +5517,7 @@ window.deleteTransaction = function(id) {
             ${result.summary.billingPeriod.start ? `<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ${result.summary.billingPeriod.start} ~ ${result.summary.billingPeriod.end}</div>` : ''}
             ${result.summary.paymentDate ? `<div style="margin-bottom: 8px;"><strong>결제일:</strong> ${result.summary.paymentDate}</div>` : ''}
             <div style="margin-top: 12px;">
-              <button type="button" id="add-transactions-btn" style="padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: #3B82F6; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3B82F6'">월별 현황 거래내역에 일괄 추가</button>
+              <button type="button" id="add-transactions-btn" style="padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">월별 현황 거래내역에 일괄 추가</button>
             </div>
           `;
           
@@ -5935,7 +5935,7 @@ window.deleteTransaction = function(id) {
             ${result.summary.finalAmount ? `<div style="margin-bottom: 8px;"><strong>청구 금액:</strong> ${result.summary.finalAmount.toLocaleString()}원</div>` : ''}
             ${result.summary.billingPeriod.start ? `<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ${result.summary.billingPeriod.start} ~ ${result.summary.billingPeriod.end || ''}</div>` : ''}
             <div style="margin-top: 12px;">
-              <button type="button" id="entry-add-transactions-btn" style="padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: #3B82F6; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3B82F6'">월별 현황 거래내역에 일괄 추가</button>
+              <button type="button" id="entry-add-transactions-btn" style="padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">월별 현황 거래내역에 일괄 추가</button>
             </div>
           `;
           

@@ -26,13 +26,11 @@ document.addEventListener('DOMContentLoaded', function() {
       this.classList.add('active');
       
       const tabKey = this.getAttribute('data-tab');
-      currentActiveTab = tabKey;
+      window.currentActiveTab = tabKey;
       
       // 2. mainContent 완전히 비우기
       const mainContent = document.getElementById('main-content');
-      if (mainContent) {
-        mainContent.innerHTML = '';
-      }
+      mainContent.innerHTML = '';
       
       console.log('탭 전환:', tabKey);
       
@@ -41,30 +39,42 @@ document.addEventListener('DOMContentLoaded', function() {
         window.updateFabButton();
       }
       
-      // 3. 탭별 독립적인 렌더링 함수 호출
+      // 3. 탭별 독립적인 렌더링 함수 호출 (window 객체를 통해 호출)
       if (tabKey === 'dashboard') {
-        if (typeof initDashboard === 'function') {
-          initDashboard();
+        if (typeof window.renderDashboard === 'function') {
+          window.renderDashboard(mainContent);
+        } else {
+          console.error('renderDashboard 함수를 찾을 수 없습니다.');
         }
       } else if (tabKey === 'accounts') {
-        if (typeof initAccounts === 'function') {
-          initAccounts();
+        if (typeof window.renderAccountsTab === 'function') {
+          window.renderAccountsTab(mainContent);
+        } else {
+          console.error('renderAccountsTab 함수를 찾을 수 없습니다.');
         }
       } else if (tabKey === 'cards') {
-        if (typeof initCards === 'function') {
-          initCards();
-        }
-      } else if (tabKey === 'stats') {
-        if (typeof initStats === 'function') {
-          initStats();
+        if (typeof window.renderPaymentMethodsTab === 'function') {
+          window.renderPaymentMethodsTab(mainContent);
+        } else {
+          console.error('renderPaymentMethodsTab 함수를 찾을 수 없습니다.');
         }
       } else if (tabKey === 'saving') {
-        if (typeof initSaving === 'function') {
-          initSaving();
+        if (typeof window.renderSavingTab === 'function') {
+          window.renderSavingTab(mainContent);
+        } else {
+          console.error('renderSavingTab 함수를 찾을 수 없습니다.');
+        }
+      } else if (tabKey === 'stats') {
+        if (typeof window.renderStatsTab === 'function') {
+          window.renderStatsTab(mainContent);
+        } else {
+          console.error('renderStatsTab 함수를 찾을 수 없습니다.');
         }
       } else if (tabKey === 'settings') {
-        if (typeof initSettings === 'function') {
-          initSettings();
+        if (typeof window.renderSettingsTab === 'function') {
+          window.renderSettingsTab(mainContent);
+        } else {
+          console.error('renderSettingsTab 함수를 찾을 수 없습니다.');
         }
       }
     });
@@ -81,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDashboard();
     
     // 대시보드가 열려있으면 테이블도 업데이트
-    if (currentActiveTab === 'dashboard') {
+    if (window.currentActiveTab === 'dashboard') {
       renderTable();
       renderCardTable('all');
       renderBankTable();
@@ -98,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDashboard();
     
     // 대시보드가 열려있으면 테이블도 업데이트
-    if (currentActiveTab === 'dashboard') {
+    if (window.currentActiveTab === 'dashboard') {
       renderTable();
       renderCardTable('all');
       renderBankTable();
@@ -115,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.updateFabButton = function() {
     if (!fabContainer) return;
     
-    if (currentActiveTab === 'dashboard' || currentActiveTab === 'accounts' || currentActiveTab === 'cards' || currentActiveTab === 'saving') {
+    if (window.currentActiveTab === 'dashboard' || window.currentActiveTab === 'accounts' || window.currentActiveTab === 'cards' || window.currentActiveTab === 'saving') {
       fabContainer.style.display = 'flex';
     } else {
       fabContainer.style.display = 'none';
@@ -177,30 +187,44 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tabButton) {
           // 탭 버튼 클릭 이벤트 트리거 (기존 로직 재사용)
           tabButton.click();
+          
+          // 3. 해당 탭의 모달 열기 (탭 렌더링 완료 대기)
+          // requestAnimationFrame을 사용하여 DOM 업데이트 완료 후 모달 열기
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              // 추가로 짧은 딜레이를 두어 모든 이벤트 리스너가 등록되도록 함
+              setTimeout(() => {
+                if (targetTab === 'dashboard') {
+                  if (typeof window.openModal === 'function') {
+                    window.openModal(false);
+                  } else if (typeof window.openTransactionModal === 'function') {
+                    window.openTransactionModal();
+                  } else {
+                    console.error('대시보드 모달 열기 함수를 찾을 수 없습니다.');
+                  }
+                } else if (targetTab === 'accounts') {
+                  if (typeof window.openAccountTransactionModal === 'function') {
+                    window.openAccountTransactionModal();
+                  } else {
+                    console.error('계좌 관리 모달 열기 함수를 찾을 수 없습니다.');
+                  }
+                } else if (targetTab === 'cards') {
+                  if (typeof window.openPaymentMethodModal === 'function') {
+                    window.openPaymentMethodModal();
+                  } else if (typeof window.openAccountModal === 'function') {
+                    window.openAccountModal(false);
+                  } else {
+                    console.error('결제수단 관리 모달 열기 함수를 찾을 수 없습니다.');
+                  }
+                } else if (targetTab === 'saving') {
+                  alert('저축 등록 기능은 추후 구현 예정입니다.');
+                }
+              }, 100);
+            });
+          });
+        } else {
+          console.error(`탭 버튼을 찾을 수 없습니다: ${targetTab}`);
         }
-        
-        // 3. 해당 탭의 모달 열기 (300ms 딜레이 - 탭 렌더링 완료 대기)
-        setTimeout(() => {
-          if (targetTab === 'dashboard') {
-            if (typeof window.openTransactionModal === 'function') {
-              window.openTransactionModal();
-            } else if (typeof window.openModal === 'function') {
-              window.openModal(false);
-            }
-          } else if (targetTab === 'accounts') {
-            if (typeof window.openAccountTransactionModal === 'function') {
-              window.openAccountTransactionModal();
-            }
-          } else if (targetTab === 'cards') {
-            if (typeof window.openPaymentMethodModal === 'function') {
-              window.openPaymentMethodModal();
-            } else if (typeof window.openAccountModal === 'function') {
-              window.openAccountModal(false);
-            }
-          } else if (targetTab === 'saving') {
-            alert('저축 등록 기능은 추후 구현 예정입니다.');
-          }
-        }, 300);
       });
     }
   }

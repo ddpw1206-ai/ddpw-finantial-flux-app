@@ -25,7 +25,7 @@
 }
 .sub-tab-btn.active {
   color: #111827;
-  border-bottom: 2px solid #3B82F6;
+  border-bottom: 2px solid #EF4444;
   font-weight: 600;
 }
 
@@ -70,8 +70,8 @@
 }
 .income { color: #14BD5A; }
 .expense { color: #FA4747; }
-.asset { color: #2563EB; }
-.budget { color: #2563EB; }
+.asset { color: #DC2626; }
+.budget { color: #DC2626; }
 
 .progress-bar-bg {
   background: #E5E7EB;
@@ -81,7 +81,7 @@
   overflow: hidden;
 }
 .progress-bar-fill {
-  background: #3B82F6;
+  background: #EF4444;
   height: 100%;
   width: 73%;
   border-radius: 8px 0 0 8px;
@@ -130,8 +130,8 @@
   color: #111827;
 }
 #search-input:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 .search-btn, .search-clear-btn {
   padding: 12px 20px;
@@ -144,12 +144,12 @@
   white-space: nowrap;
 }
 .search-btn {
-  background: #3B82F6;
+  background: #EF4444;
   color: #fff;
 }
 .search-btn:hover {
-  background: #2563eb;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+  background: #DC2626;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
 }
 .search-clear-btn {
   background: #F3F4F6;
@@ -188,8 +188,8 @@
   transition: all 0.2s ease;
 }
 #sort-select:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 /* 테이블 스타일 */
@@ -260,9 +260,9 @@
   font-weight: 500;
 }
 .expense-table .btn-action:hover {
-  background: #3B82F6;
+  background: #EF4444;
   color: #FFFFFF;
-  border-color: #3B82F6;
+  border-color: #EF4444;
 }
 @media (max-width: 600px) {
   .expense-table-container {

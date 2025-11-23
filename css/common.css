@@ -35,7 +35,7 @@ body {
   border-radius: 20px;
 }
 .header-btn {
-  background: #3B82F6;
+  background: #EF4444;
   color: #fff;
   border: none;
   padding: 7px 14px;
@@ -46,7 +46,7 @@ body {
   transition: background 0.2s;
 }
 .header-btn:hover {
-  background: #2563eb;
+  background: #DC2626;
 }
 
 /* Navigation */
@@ -83,7 +83,7 @@ body {
   background: transparent;
   color: #111827;
   font-weight: 600;
-  border-bottom: 2px solid #3B82F6;
+  border-bottom: 2px solid #EF4444;
   z-index: 1;
 }
 
@@ -104,7 +104,7 @@ body {
   background: none;
   border: none;
   font-size: 1.2rem;
-  color: #3B82F6;
+  color: #EF4444;
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 4px;
@@ -143,7 +143,7 @@ body {
   bottom: 32px;
   width: 60px;
   height: 60px;
-  background: #3B82F6;
+  background: #EF4444;
   color: #fff;
   border: none;
   outline: none;
@@ -153,14 +153,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 24px rgba(59,130,246,0.23);
+  box-shadow: 0 6px 24px rgba(239,68,68,0.23);
   cursor: pointer;
   z-index: 99;
   transition: background 0.2s, box-shadow 0.2s;
 }
 .fab:active {
-  background: #2563eb;
-  box-shadow: 0 4px 14px rgba(59,130,246,0.19);
+  background: #DC2626;
+  box-shadow: 0 4px 14px rgba(239,68,68,0.19);
 }
 
 /* 1080p 이상 화면 최적화 */

@@ -1,12 +1,12 @@
 // ========================================
 // 앱 설정
 // ========================================
-const APP_VERSION = '001';
+const APP_VERSION = '0.0.2';
 
 // ========================================
 // 전역 상태 변수
 // ========================================
-let currentActiveTab = 'dashboard';
+window.currentActiveTab = 'dashboard';
 let curYear = new Date().getFullYear();
 let curMonth = new Date().getMonth() + 1;
 let editingId = null;

@@ -63,9 +63,9 @@
   background: #F3F4F6;
 }
 .entry-tab-btn.active {
-  color: #3B82F6;
+  color: #EF4444;
   font-weight: 600;
-  border-bottom-color: #3B82F6;
+  border-bottom-color: #EF4444;
   background: #FFFFFF;
 }
 .entry-tab-content {
@@ -133,8 +133,8 @@
 .modal-form input:focus,
 .modal-form select:focus,
 .modal-form textarea:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 .modal-form textarea {
   min-height: 56px;

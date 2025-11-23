@@ -16,13 +16,25 @@ function initSettings() {
   settingsContainer.id = 'settings-container';
   mainContent.appendChild(settingsContainer);
   
-  renderSettingsTab(settingsContainer);
+  window.renderSettingsTab(settingsContainer);
 }
 
 // ========================================
 // 설정 탭 렌더링
 // ========================================
-function renderSettingsTab(container) {
+window.renderSettingsTab = function(container) {
+  // container가 없으면 main-content를 찾아서 사용
+  if (!container) {
+    container = document.getElementById('main-content');
+  }
+  if (!container) {
+    console.error('renderSettingsTab: container를 찾을 수 없습니다.');
+    return;
+  }
+  
+  // container 완전히 비우기 (안전성 보장)
+  container.innerHTML = '';
+  
   container.innerHTML = `
     <div style="padding: 20px;">
       <h2 style="margin-bottom: 20px;">⚙️ 설정</h2>

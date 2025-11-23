@@ -1463,9 +1463,9 @@ window.openAccountTransactionModal = function() {
     const generalTabBtn = accountTransactionModalOverlay.querySelector('.entry-tab-btn[data-tab="general"]');
     if (generalTabBtn) {
       generalTabBtn.classList.add('active');
-      generalTabBtn.style.color = '#3B82F6';
+      generalTabBtn.style.color = '#EF4444';
       generalTabBtn.style.fontWeight = '600';
-      generalTabBtn.style.borderBottomColor = '#3B82F6';
+      generalTabBtn.style.borderBottomColor = '#EF4444';
     }
     
     // 카테고리 옵션 초기화
@@ -1626,9 +1626,9 @@ if (accountTransactionModalOverlay) {
       
       // 클릭한 탭 버튼 활성화
       e.target.classList.add('active');
-      e.target.style.color = '#3B82F6';
+      e.target.style.color = '#EF4444';
       e.target.style.fontWeight = '600';
-      e.target.style.borderBottomColor = '#3B82F6';
+      e.target.style.borderBottomColor = '#EF4444';
       
       // 모든 탭 콘텐츠 숨김
       tabContents.forEach(content => {
