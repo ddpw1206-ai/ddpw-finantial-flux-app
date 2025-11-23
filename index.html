@@ -372,6 +372,8 @@
   <div class="header">
     <div class="title">💰 DDPW Moneybook Flux <span class="version">V.0.0.0</span></div>
     <div style="display: flex; align-items: center; gap: 12px;">
+      <button id="save-data-btn" class="header-btn" style="background: #10B981;">💾 저장</button>
+      <button id="load-data-btn" class="header-btn" style="background: #3B82F6;">🔄 불러오기</button>
       <div id="google-auth-status" style="font-size: 0.9rem; color: #6B7280;"></div>
       <button id="google-login-btn" class="header-btn" style="display: none;">🔐 Google 로그인</button>
       <button id="google-logout-btn" class="header-btn" style="display: none;">🚪 로그아웃</button>
@@ -1413,6 +1415,18 @@
         <div>
           <label for="account-name">계좌명</label>
           <input id="account-name" name="name" type="text" placeholder="예: KB국민-98" required>
+        </div>
+        
+        <div>
+          <label>소유자</label>
+          <div class="row-radio">
+            <label>
+              <input type="radio" name="account-owner" value="둠둠" checked required> 둠둠
+            </label>
+            <label>
+              <input type="radio" name="account-owner" value="파우" required> 파우
+            </label>
+          </div>
         </div>
         
         <div>
@@ -6212,22 +6226,72 @@ window.deleteTransaction = function(id) {
     }
   });
   
-  // 탭 전환 기능
+  // 탭 전환 기능 (모달 내부 탭 전환) - 개선된 버전
   document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('entry-tab-btn')) {
-      const tabName = e.target.getAttribute('data-tab');
-      const tabButtons = document.querySelectorAll('.entry-tab-btn');
-      const tabContents = document.querySelectorAll('.entry-tab-content');
+    // 모달 내부의 entry-tab-btn 클릭 처리
+    if (e.target.classList.contains('entry-tab-btn') || e.target.closest('.entry-tab-btn')) {
+      const tabBtn = e.target.classList.contains('entry-tab-btn') ? e.target : e.target.closest('.entry-tab-btn');
+      if (!tabBtn) {
+        console.warn('탭 버튼을 찾을 수 없습니다.');
+        return;
+      }
       
-      // 모든 탭 버튼과 콘텐츠에서 active 클래스 제거
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      tabContents.forEach(content => content.classList.remove('active'));
+      const tabName = tabBtn.getAttribute('data-tab');
+      if (!tabName) {
+        console.warn('탭 이름(data-tab)을 찾을 수 없습니다.');
+        return;
+      }
+      
+      console.log('탭 버튼 클릭:', tabName);
+      
+      // 해당 모달 오버레이 찾기
+      const modalOverlay = tabBtn.closest('#modal-overlay') || tabBtn.closest('#account-transaction-modal-overlay');
+      if (!modalOverlay) {
+        console.warn('모달 오버레이를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 해당 모달 내의 탭 버튼과 콘텐츠만 처리
+      const tabButtons = modalOverlay.querySelectorAll('.entry-tab-btn');
+      const tabContents = modalOverlay.querySelectorAll('.entry-tab-content');
+      
+      console.log('탭 버튼 개수:', tabButtons.length, '탭 콘텐츠 개수:', tabContents.length);
+      
+      // 모든 탭 버튼과 콘텐츠에서 active 클래스 제거 및 스타일 초기화
+      tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.color = '#6B7280';
+        btn.style.fontWeight = '500';
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.borderBottom = '2px solid transparent';
+      });
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
+      });
       
       // 선택한 탭 활성화
-      e.target.classList.add('active');
-      const targetContent = document.getElementById(`entry-tab-${tabName}`);
+      tabBtn.classList.add('active');
+      tabBtn.style.color = '#EF4444';
+      tabBtn.style.fontWeight = '600';
+      tabBtn.style.borderBottomColor = '#EF4444';
+      tabBtn.style.borderBottom = '2px solid #EF4444';
+      
+      // 탭 콘텐츠 찾기 (여러 가능한 ID 패턴 시도)
+      let targetContent = modalOverlay.querySelector(`#entry-tab-${tabName}`);
+      if (!targetContent) {
+        targetContent = modalOverlay.querySelector(`#account-transaction-tab-${tabName}`);
+      }
+      
       if (targetContent) {
         targetContent.classList.add('active');
+        targetContent.style.display = 'block';
+        console.log('탭 전환 성공:', tabName, '콘텐츠 표시됨');
+      } else {
+        console.error('탭 콘텐츠를 찾을 수 없습니다:', `entry-tab-${tabName} 또는 account-transaction-tab-${tabName}`);
+        // 디버깅: 모든 entry-tab-content 요소 출력
+        const allTabContents = modalOverlay.querySelectorAll('.entry-tab-content');
+        console.log('모달 내 모든 탭 콘텐츠:', Array.from(allTabContents).map(c => c.id));
       }
     }
     

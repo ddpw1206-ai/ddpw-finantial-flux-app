@@ -20,7 +20,7 @@ let accountData = [];
 let merchantHistory = [];
 let cardData = [];
 let cardParsingTemplates = {};
-let dataFolderHandle = null;
+// dataFolderHandle은 data-manager.js에서 정의됨
 let lastModifiedTime = {};
 
 // ========================================

@@ -51,6 +51,45 @@ window.openModal = function(isEdit = false) {
   if (modalOverlay) {
     modalOverlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    
+    // 탭 초기화 (수동 입력 탭 활성화)
+    const tabButtons = modalOverlay.querySelectorAll('.entry-tab-btn');
+    const tabContents = modalOverlay.querySelectorAll('.entry-tab-content');
+    
+    // 모든 탭 버튼과 콘텐츠 초기화
+    tabButtons.forEach(btn => {
+      btn.classList.remove('active');
+      btn.style.color = '#6B7280';
+      btn.style.fontWeight = '500';
+      btn.style.borderBottomColor = 'transparent';
+      btn.style.borderBottom = '2px solid transparent';
+    });
+    tabContents.forEach(content => {
+      content.classList.remove('active');
+      content.style.display = 'none';
+    });
+    
+    // 수동 입력 탭 활성화
+    const manualTabBtn = modalOverlay.querySelector('.entry-tab-btn[data-tab="manual"]');
+    const manualTabContent = document.getElementById('entry-tab-manual');
+    const autoTabContent = document.getElementById('entry-tab-auto');
+    
+    if (manualTabBtn) {
+      manualTabBtn.classList.add('active');
+      manualTabBtn.style.color = '#EF4444';
+      manualTabBtn.style.fontWeight = '600';
+      manualTabBtn.style.borderBottomColor = '#EF4444';
+      manualTabBtn.style.borderBottom = '2px solid #EF4444';
+    }
+    if (manualTabContent) {
+      manualTabContent.classList.add('active');
+      manualTabContent.style.display = 'block';
+    }
+    if (autoTabContent) {
+      autoTabContent.classList.remove('active');
+      autoTabContent.style.display = 'none';
+    }
+    
     if (!isEdit && form) {
       // 신규 입력 모드: 폼 초기화
       form.reset();
@@ -63,6 +102,10 @@ window.openModal = function(isEdit = false) {
       if (typeof window.updateItemOptions === 'function') {
         window.updateItemOptions();
       }
+      // 결제수단 옵션 업데이트 (최신 cardData 반영)
+      if (typeof window.updatePaymentOptions === 'function') {
+        window.updatePaymentOptions();
+      }
       if (methodSelect && typeof window.updatePaymentFields === 'function') {
         window.updatePaymentFields();
       }
@@ -70,6 +113,8 @@ window.openModal = function(isEdit = false) {
         modalTitle.textContent = '📝 내역 입력';
       }
     }
+    
+    console.log('모달 열림 - 탭 초기화 완료');
   }
 }
 
@@ -268,54 +313,97 @@ function initCardMaps() {
 // 결제수단별 하위 옵션 표시 및 업데이트 (전역으로 노출)
 // ========================================
 window.updatePaymentOptions = function() {
-  // 신용카드 옵션 업데이트 (기존 방식 유지)
+  console.log('결제수단 옵션 업데이트 시작');
+  
+  // cardData와 accountData 최신 상태 확인
+  const currentCardData = typeof cardData !== 'undefined' && Array.isArray(cardData) ? cardData : [];
+  const currentAccountData = typeof accountData !== 'undefined' && Array.isArray(accountData) ? accountData : [];
+  
+  console.log('현재 cardData 개수:', currentCardData.length);
+  console.log('현재 accountData 개수:', currentAccountData.length);
+  
+  // 신용카드 옵션 업데이트
   const creditSelect = document.getElementById('credit-card-select') || document.querySelector('select[name="credit-card"]');
   if (creditSelect) {
     creditSelect.innerHTML = '<option value="">--선택--</option>';
-    if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
-      cardData.filter(c => c.type === 'credit').forEach(card => {
-        const option = document.createElement('option');
-        option.value = card.name;
-        option.textContent = card.name;
-        creditSelect.appendChild(option);
-      });
-    } else if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
-      accountData.filter(acc => acc.type === 'card' && acc.creditLimit).forEach(account => {
+    
+    // cardData에서 신용카드 필터링
+    const creditCards = currentCardData.filter(c => c.type === 'credit');
+    creditCards.forEach(card => {
+      const option = document.createElement('option');
+      option.value = card.name;
+      option.textContent = card.name;
+      creditSelect.appendChild(option);
+    });
+    
+    // accountData에서도 신용카드 찾기 (creditLimit이 있는 카드)
+    if (creditCards.length === 0) {
+      currentAccountData.filter(acc => acc.type === 'card' && acc.creditLimit).forEach(account => {
         const option = document.createElement('option');
         option.value = account.name;
         option.textContent = account.name;
         creditSelect.appendChild(option);
       });
     }
+    
+    console.log('신용카드 옵션 업데이트 완료:', creditSelect.options.length - 1, '개');
   }
   
-  // 체크카드 옵션 업데이트 (기존 방식 유지)
+  // 체크카드 옵션 업데이트
   const debitSelect = document.getElementById('debit-card-select') || document.querySelector('select[name="debit-card"]');
   if (debitSelect) {
     debitSelect.innerHTML = '<option value="">--선택--</option>';
-    if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
-      accountData.filter(acc => acc.type === 'card' && !acc.creditLimit).forEach(account => {
+    
+    // cardData에서 체크카드 필터링
+    const debitCards = currentCardData.filter(c => c.type === 'debit');
+    debitCards.forEach(card => {
+      const option = document.createElement('option');
+      option.value = card.name;
+      option.textContent = card.name;
+      debitSelect.appendChild(option);
+    });
+    
+    // accountData에서도 체크카드 찾기 (creditLimit이 없는 카드)
+    if (debitCards.length === 0) {
+      currentAccountData.filter(acc => acc.type === 'card' && !acc.creditLimit).forEach(account => {
         const option = document.createElement('option');
         option.value = account.name;
         option.textContent = account.name;
         debitSelect.appendChild(option);
       });
     }
+    
+    console.log('체크카드 옵션 업데이트 완료:', debitSelect.options.length - 1, '개');
   }
   
   // 계좌이체 옵션 업데이트
   const transferSelect = document.getElementById('transfer-account-select') || document.querySelector('select[name="transfer-account"]');
   if (transferSelect) {
     transferSelect.innerHTML = '<option value="">--선택--</option>';
-    if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
-      accountData.filter(acc => acc.type === 'bank').forEach(account => {
-        const option = document.createElement('option');
-        option.value = account.name;
-        option.textContent = account.name;
-        transferSelect.appendChild(option);
-      });
-    }
+    currentAccountData.filter(acc => acc.type === 'bank').forEach(account => {
+      const option = document.createElement('option');
+      option.value = account.name;
+      option.textContent = account.name;
+      transferSelect.appendChild(option);
+    });
+    console.log('계좌이체 옵션 업데이트 완료:', transferSelect.options.length - 1, '개');
   }
+  
+  // 현금 계좌 옵션 업데이트
+  const cashSelect = document.getElementById('cash-account-select') || document.querySelector('select[name="cash-account"]');
+  if (cashSelect) {
+    cashSelect.innerHTML = '<option value="">--선택--</option>';
+    currentAccountData.filter(acc => acc.type === 'bank').forEach(account => {
+      const option = document.createElement('option');
+      option.value = account.name;
+      option.textContent = account.name;
+      cashSelect.appendChild(option);
+    });
+    console.log('현금 계좌 옵션 업데이트 완료:', cashSelect.options.length - 1, '개');
+  }
+  
+  console.log('결제수단 옵션 업데이트 완료');
+}
   
   // 현금 출금계좌 옵션 업데이트
   const cashSelect = document.getElementById('cash-account-select') || document.querySelector('select[name="cash-account"]');
@@ -695,6 +783,12 @@ if (form) {
           const accountsContainer = document.getElementById('accounts-container');
           if (accountsContainer && typeof window.renderAccountsTab === 'function') {
             window.renderAccountsTab(accountsContainer);
+          } else {
+            // accounts-container가 없으면 main-content에서 찾기
+            const mainContent = document.getElementById('main-content');
+            if (mainContent && typeof window.renderAccountsTab === 'function') {
+              window.renderAccountsTab(mainContent);
+            }
           }
         } else if (currentTab === 'cards') {
           // 결제수단 관리 탭인 경우 카드 목록 갱신
@@ -748,15 +842,47 @@ if (form) {
       if (typeof calculateAccountBalances === 'function') {
         calculateAccountBalances();
       }
-      if (typeof renderTable === 'function') {
-        renderTable();
+      
+      // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
+      const currentTab = window.currentActiveTab || 'dashboard';
+      
+      if (currentTab === 'dashboard') {
+        if (typeof renderTable === 'function') {
+          renderTable();
+        }
+        if (typeof renderCardTable === 'function') {
+          renderCardTable('all');
+        }
+        if (typeof renderBankTable === 'function') {
+          renderBankTable();
+        }
+      } else if (currentTab === 'accounts') {
+        // 계좌 관리 탭인 경우 계좌 테이블 갱신 (수입/지출 모두 반영)
+        if (typeof renderAccountTransactionTable === 'function') {
+          const accountSelect = document.getElementById('account-filter-select');
+          const selectedAccount = accountSelect ? accountSelect.value : 'all';
+          renderAccountTransactionTable(selectedAccount);
+        }
+        // 계좌 목록도 갱신
+        const accountsContainer = document.getElementById('accounts-container');
+        if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+          window.renderAccountsTab(accountsContainer);
+        } else {
+          // accounts-container가 없으면 main-content에서 찾기
+          const mainContent = document.getElementById('main-content');
+          if (mainContent && typeof window.renderAccountsTab === 'function') {
+            window.renderAccountsTab(mainContent);
+          }
+        }
+      } else if (currentTab === 'cards') {
+        // 결제수단 관리 탭인 경우 카드 목록 갱신
+        const paymentMethodsContainer = document.getElementById('payment-methods-container');
+        if (paymentMethodsContainer && typeof window.renderPaymentMethodsTab === 'function') {
+          window.renderPaymentMethodsTab(paymentMethodsContainer);
+        }
       }
-      if (typeof renderCardTable === 'function') {
-        renderCardTable('all');
-      }
-      if (typeof renderBankTable === 'function') {
-        renderBankTable();
-      }
+      
+      // 대시보드는 항상 업데이트
       if (typeof updateDashboard === 'function') {
         updateDashboard();
       }
@@ -1269,6 +1395,8 @@ if (accountForm) {
     e.preventDefault();
     
     const name = document.getElementById('account-name')?.value;
+    const ownerRadios = accountForm.querySelectorAll('input[name="account-owner"]');
+    const owner = Array.from(ownerRadios).find(radio => radio.checked)?.value;
     const typeRadios = accountForm.querySelectorAll('input[name="account-type"]');
     const type = Array.from(typeRadios).find(radio => radio.checked)?.value;
     const initialBalanceRaw = document.getElementById('account-initial-balance')?.value || '0';
@@ -1276,6 +1404,10 @@ if (accountForm) {
     
     if (!name) {
       alert('계좌명을 입력해주세요.');
+      return;
+    }
+    if (!owner) {
+      alert('소유자를 선택해주세요.');
       return;
     }
     if (!type) {
@@ -1289,6 +1421,7 @@ if (accountForm) {
       if (index > -1) {
         const account = accountData[index];
         account.name = name;
+        account.owner = owner;
         account.type = type;
         
         if (type === 'bank') {
@@ -1347,6 +1480,7 @@ if (accountForm) {
       const account = {
         id: now,
         name: name,
+        owner: owner,
         type: type,
         initialBalance: type === 'bank' ? initialBalance : undefined,
         currentBalance: type === 'bank' ? initialBalance : undefined
@@ -1414,6 +1548,7 @@ window.editAccount = function(id) {
   
   // 폼에 기존 데이터 채우기
   const nameInput = document.getElementById('account-name');
+  const ownerRadios = accountForm ? accountForm.querySelectorAll('input[name="account-owner"]') : [];
   const typeRadios = accountForm ? accountForm.querySelectorAll('input[name="account-type"]') : [];
   const initialBalanceInput = document.getElementById('account-initial-balance');
   const creditLimitInput = document.getElementById('account-credit-limit');
@@ -1421,6 +1556,14 @@ window.editAccount = function(id) {
   const linkedAccountSelect = document.getElementById('account-linked-account');
   
   if (nameInput) nameInput.value = account.name;
+  
+  // 소유자 라디오 버튼 설정
+  if (ownerRadios && ownerRadios.length > 0) {
+    ownerRadios.forEach(radio => {
+      radio.checked = (radio.value === (account.owner || '둠둠'));
+    });
+  }
+  
   if (typeRadios && typeRadios.length > 0) {
     typeRadios.forEach(radio => {
       radio.checked = (radio.value === account.type);

@@ -476,6 +476,14 @@ window.deleteCard = function(id) {
           renderPaymentMethodsTab(paymentMethodsContainer);
         }
       }
+      // 결제수단 옵션 업데이트 (신규 등록 폼에 즉시 반영)
+      if (typeof window.updatePaymentOptions === 'function') {
+        window.updatePaymentOptions();
+      }
+      // 카드 필터 옵션 업데이트 (월별현황 카드별 내역 드롭다운에 즉시 반영)
+      if (typeof updateCardFilterOptions === 'function') {
+        updateCardFilterOptions();
+      }
       if (typeof updateCardSelects === 'function') {
         updateCardSelects(); // 모든 카드 선택 드롭다운 업데이트
       }
@@ -538,6 +546,14 @@ function initCardManageForm() {
           renderPaymentMethodsTab(paymentMethodsContainer);
         }
       }
+      // 결제수단 옵션 업데이트 (신규 등록 폼에 즉시 반영)
+      if (typeof window.updatePaymentOptions === 'function') {
+        window.updatePaymentOptions();
+      }
+      // 카드 필터 옵션 업데이트 (월별현황 카드별 내역 드롭다운에 즉시 반영)
+      if (typeof updateCardFilterOptions === 'function') {
+        updateCardFilterOptions();
+      }
       if (typeof updateCardSelects === 'function') {
         updateCardSelects();
       }
@@ -565,6 +581,14 @@ function initCardManageForm() {
       if (paymentMethodsContainer && typeof renderPaymentMethodsTab === 'function') {
         renderPaymentMethodsTab(paymentMethodsContainer);
       }
+    }
+    // 결제수단 옵션 업데이트 (신규 등록 폼에 즉시 반영)
+    if (typeof window.updatePaymentOptions === 'function') {
+      window.updatePaymentOptions();
+    }
+    // 카드 필터 옵션 업데이트 (월별현황 카드별 내역 드롭다운에 즉시 반영)
+    if (typeof updateCardFilterOptions === 'function') {
+      updateCardFilterOptions();
     }
     if (typeof updateCardSelects === 'function') {
       updateCardSelects();

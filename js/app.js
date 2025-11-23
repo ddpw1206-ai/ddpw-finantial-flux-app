@@ -9,84 +9,139 @@ document.addEventListener('DOMContentLoaded', function() {
   const versionEl = document.querySelector('.version');
   if (versionEl) versionEl.textContent = `V.${APP_VERSION}`;
   
-  // 데이터 로드
+  // 데이터 로드 (localStorage에서 먼저 로드)
   loadData();
   loadAccountData();
   loadMerchantHistory();
   loadCardData();
   loadCardParsingTemplates();
   
-  // 탭 전환 이벤트 (완전 독립 렌더링)
+  // 자동 불러오기 로직 제거 (16번 QA: 수동 제어로 변경)
+  // initializeFolderData() 함수는 제거되었고, 사용자가 명시적으로 불러오기 버튼을 눌렀을 때만 동기화됩니다.
+  
+  // 탭 전환 이벤트 (완전 독립 렌더링, 오류 방지 강화)
   const tabButtons = document.querySelectorAll('.nav-tab');
   
+  // 탭 전환 핸들러 함수 (중복 등록 방지)
+  const handleTabSwitch = function(tabKey) {
+    // 1. 유효성 검사
+    if (!tabKey) {
+      console.error('탭 키가 없습니다.');
+      return;
+    }
+    
+    // 2. mainContent 확인
+    const mainContent = document.getElementById('main-content');
+    if (!mainContent) {
+      console.error('main-content 요소를 찾을 수 없습니다.');
+      return;
+    }
+    
+    // 3. 이전 탭의 모든 이벤트 리스너 정리 (필요시)
+    // mainContent의 모든 자식 요소 제거로 자동 정리됨
+    
+    // 4. mainContent 완전히 비우기
+    try {
+      mainContent.innerHTML = '';
+    } catch (error) {
+      console.error('mainContent 초기화 오류:', error);
+      return;
+    }
+    
+    console.log('탭 전환:', tabKey);
+    
+    // 5. 연/월 표시 제어 (dashboard와 accounts만 표시)
+    const monthBar = document.querySelector('.month-bar');
+    if (monthBar) {
+      if (tabKey === 'dashboard' || tabKey === 'accounts') {
+        monthBar.style.display = 'flex';
+      } else {
+        monthBar.style.display = 'none';
+      }
+    }
+    
+    // 6. FAB 버튼 상태 업데이트
+    if (typeof window.updateFabButton === 'function') {
+      try {
+        window.updateFabButton();
+      } catch (error) {
+        console.error('updateFabButton 오류:', error);
+      }
+    }
+    
+    // 7. 탭별 독립적인 렌더링 함수 호출 (window 객체를 통해 호출)
+    // requestAnimationFrame을 사용하여 DOM 업데이트 완료 후 렌더링
+    requestAnimationFrame(() => {
+      try {
+        if (tabKey === 'dashboard') {
+          if (typeof window.renderDashboard === 'function') {
+            window.renderDashboard(mainContent);
+          } else {
+            console.error('renderDashboard 함수를 찾을 수 없습니다.');
+          }
+        } else if (tabKey === 'accounts') {
+          if (typeof window.renderAccountsTab === 'function') {
+            window.renderAccountsTab(mainContent);
+          } else {
+            console.error('renderAccountsTab 함수를 찾을 수 없습니다.');
+          }
+        } else if (tabKey === 'cards') {
+          if (typeof window.renderPaymentMethodsTab === 'function') {
+            window.renderPaymentMethodsTab(mainContent);
+          } else {
+            console.error('renderPaymentMethodsTab 함수를 찾을 수 없습니다.');
+          }
+        } else if (tabKey === 'saving') {
+          if (typeof window.renderSavingTab === 'function') {
+            window.renderSavingTab(mainContent);
+          } else {
+            console.error('renderSavingTab 함수를 찾을 수 없습니다.');
+          }
+        } else if (tabKey === 'stats') {
+          if (typeof window.renderStatsTab === 'function') {
+            window.renderStatsTab(mainContent);
+          } else {
+            console.error('renderStatsTab 함수를 찾을 수 없습니다.');
+          }
+        } else if (tabKey === 'settings') {
+          if (typeof window.renderSettingsTab === 'function') {
+            window.renderSettingsTab(mainContent);
+          } else {
+            console.error('renderSettingsTab 함수를 찾을 수 없습니다.');
+          }
+        } else {
+          console.warn('알 수 없는 탭 키:', tabKey);
+        }
+      } catch (error) {
+        console.error('탭 렌더링 오류:', error);
+      }
+    });
+  };
+  
+  // 탭 버튼에 이벤트 리스너 등록 (중복 방지)
   tabButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
+    // 기존 이벤트 리스너 제거 (중복 방지)
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    newBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
       // 1. active 클래스 제거
       tabButtons.forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       
       const tabKey = this.getAttribute('data-tab');
+      if (!tabKey) {
+        console.error('탭 버튼에 data-tab 속성이 없습니다.');
+        return;
+      }
+      
       window.currentActiveTab = tabKey;
       
-      // 2. mainContent 완전히 비우기
-      const mainContent = document.getElementById('main-content');
-      mainContent.innerHTML = '';
-      
-      console.log('탭 전환:', tabKey);
-      
-      // 연/월 표시 제어 (dashboard와 accounts만 표시)
-      const monthBar = document.querySelector('.month-bar');
-      if (monthBar) {
-        if (tabKey === 'dashboard' || tabKey === 'accounts') {
-          monthBar.style.display = 'flex';
-        } else {
-          monthBar.style.display = 'none';
-        }
-      }
-      
-      // FAB 버튼 상태 업데이트
-      if (typeof window.updateFabButton === 'function') {
-        window.updateFabButton();
-      }
-      
-      // 3. 탭별 독립적인 렌더링 함수 호출 (window 객체를 통해 호출)
-      if (tabKey === 'dashboard') {
-        if (typeof window.renderDashboard === 'function') {
-          window.renderDashboard(mainContent);
-        } else {
-          console.error('renderDashboard 함수를 찾을 수 없습니다.');
-        }
-      } else if (tabKey === 'accounts') {
-        if (typeof window.renderAccountsTab === 'function') {
-          window.renderAccountsTab(mainContent);
-        } else {
-          console.error('renderAccountsTab 함수를 찾을 수 없습니다.');
-        }
-      } else if (tabKey === 'cards') {
-        if (typeof window.renderPaymentMethodsTab === 'function') {
-          window.renderPaymentMethodsTab(mainContent);
-        } else {
-          console.error('renderPaymentMethodsTab 함수를 찾을 수 없습니다.');
-        }
-      } else if (tabKey === 'saving') {
-        if (typeof window.renderSavingTab === 'function') {
-          window.renderSavingTab(mainContent);
-        } else {
-          console.error('renderSavingTab 함수를 찾을 수 없습니다.');
-        }
-      } else if (tabKey === 'stats') {
-        if (typeof window.renderStatsTab === 'function') {
-          window.renderStatsTab(mainContent);
-        } else {
-          console.error('renderStatsTab 함수를 찾을 수 없습니다.');
-        }
-      } else if (tabKey === 'settings') {
-        if (typeof window.renderSettingsTab === 'function') {
-          window.renderSettingsTab(mainContent);
-        } else {
-          console.error('renderSettingsTab 함수를 찾을 수 없습니다.');
-        }
-      }
+      // 탭 전환 핸들러 호출
+      handleTabSwitch(tabKey);
     });
   });
   
@@ -298,6 +353,81 @@ document.addEventListener('DOMContentLoaded', function() {
   const monthBar = document.querySelector('.month-bar');
   if (monthBar && window.currentActiveTab === 'dashboard') {
     monthBar.style.display = 'flex';
+  }
+  
+  // 저장/불러오기 버튼 이벤트 리스너 (16번 QA: 수동 제어)
+  const saveDataBtn = document.getElementById('save-data-btn');
+  const loadDataBtn = document.getElementById('load-data-btn');
+  
+  if (saveDataBtn) {
+    saveDataBtn.addEventListener('click', async function() {
+      const folderHandle = window.dataFolderHandle || dataFolderHandle;
+      if (!folderHandle) {
+        alert('먼저 설정에서 저장 폴더를 선택해주세요.');
+        return;
+      }
+      
+      // localStorage의 모든 데이터를 폴더에 저장
+      if (typeof window.saveDataToFolder === 'function') {
+        const success = await window.saveDataToFolder();
+        if (success) {
+          // localStorage에도 저장 (동기화)
+          if (typeof saveData === 'function') saveData();
+          if (typeof saveAccountData === 'function') saveAccountData();
+          if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
+          if (typeof saveCardData === 'function') saveCardData();
+          alert('데이터가 성공적으로 저장되었습니다.');
+        } else {
+          alert('데이터 저장에 실패했습니다.');
+        }
+      } else {
+        alert('저장 기능을 찾을 수 없습니다.');
+      }
+    });
+  }
+  
+  if (loadDataBtn) {
+    loadDataBtn.addEventListener('click', async function() {
+      const folderHandle = window.dataFolderHandle || dataFolderHandle;
+      if (!folderHandle) {
+        alert('먼저 설정에서 저장 폴더를 선택해주세요.');
+        return;
+      }
+      
+      const shouldLoad = confirm('폴더에서 최신 데이터를 불러오시겠습니까?\n\n현재 데이터가 사라질 수 있습니다.');
+      if (!shouldLoad) {
+        return;
+      }
+      
+      if (typeof window.loadDataFromFolder === 'function') {
+        const loaded = await window.loadDataFromFolder();
+        if (loaded) {
+          // 파일에서 로드한 후 localStorage에 저장
+          if (typeof saveData === 'function') saveData();
+          if (typeof saveAccountData === 'function') saveAccountData();
+          if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
+          if (typeof saveCardData === 'function') saveCardData();
+          
+          // UI 갱신
+          if (typeof updateDashboard === 'function') updateDashboard();
+          const mainContent = document.getElementById('main-content');
+          if (mainContent) {
+            if (window.currentActiveTab === 'dashboard' && typeof window.renderDashboard === 'function') {
+              window.renderDashboard(mainContent);
+            } else if (window.currentActiveTab === 'accounts' && typeof window.renderAccountsTab === 'function') {
+              window.renderAccountsTab(mainContent);
+            } else if (window.currentActiveTab === 'cards' && typeof window.renderPaymentMethodsTab === 'function') {
+              window.renderPaymentMethodsTab(mainContent);
+            }
+          }
+          alert('데이터를 불러왔습니다.');
+        } else {
+          alert('불러올 데이터가 없습니다.');
+        }
+      } else {
+        alert('불러오기 기능을 찾을 수 없습니다.');
+      }
+    });
   }
   
   console.log('앱 초기화 완료');

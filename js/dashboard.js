@@ -222,27 +222,31 @@ window.renderDashboard = function(mainContent) {
       }
     </style>
     
-    <!-- 검색바 -->
-    <div class="search-bar">
-      <input type="text" id="search-input" placeholder="항목명 또는 카테고리 검색...">
-      <button id="search-btn" class="search-btn">🔍 검색</button>
-      <button id="search-clear" class="search-clear-btn">✕ 초기화</button>
-    </div>
-
-    <!-- 신규 등록 버튼 -->
-    <div style="margin-bottom: 24px;">
-      <button id="new-entry-btn" class="search-btn" style="width: auto; min-width: 120px;">📝 신규 등록</button>
-    </div>
-
-    <!-- 정렬 컨트롤 -->
-    <div class="sort-controls">
-      <label>정렬:</label>
-      <select id="sort-select">
-        <option value="date-desc">날짜 최신순</option>
-        <option value="date-asc">날짜 오래된순</option>
-        <option value="amount-desc">금액 높은순</option>
-        <option value="amount-asc">금액 낮은순</option>
-      </select>
+    <!-- 검색 및 액션 바 (통합) -->
+    <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; padding: 20px; background: #FFFFFF; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); border: 1px solid #E5E7EB;">
+      <!-- 상단: 신규 등록 버튼 -->
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="new-entry-btn" class="search-btn" style="min-width: 140px; padding: 12px 24px; font-size: 1rem; font-weight: 600;">📝 신규 등록</button>
+      </div>
+      
+      <!-- 하단: 검색바와 정렬 -->
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="search-input" placeholder="항목명 또는 카테고리 검색..." style="flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; outline: none; transition: all 0.2s ease; background: #FFFFFF; color: #111827;">
+        <button id="search-btn" class="search-btn" style="padding: 12px 20px; white-space: nowrap;">🔍 검색</button>
+        <button id="search-clear" class="search-clear-btn" style="padding: 12px 16px; white-space: nowrap;">✕ 초기화</button>
+        
+        <!-- 정렬 컨트롤 -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+          <label style="font-size: 0.9rem; font-weight: 500; color: #374151; white-space: nowrap;">정렬:</label>
+          <select id="sort-select" style="padding: 10px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; outline: none; cursor: pointer; background: #FFFFFF; color: #111827; transition: all 0.2s ease; min-width: 140px;">
+            <option value="date-desc">날짜 최신순</option>
+            <option value="date-asc">날짜 오래된순</option>
+            <option value="amount-desc">금액 높은순</option>
+            <option value="amount-asc">금액 낮은순</option>
+            <option value="category">카테고리순</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- 하위 탭: 전체 소비 / 카드별 내역 / 통장 입출금 -->
@@ -354,20 +358,48 @@ function initDashboard() {
 // 카드 필터 옵션 업데이트
 function updateCardFilterOptions() {
   const select = document.getElementById('card-filter-select');
-  if (!select) return;
+  if (!select) {
+    console.warn('카드 필터 select 요소를 찾을 수 없습니다.');
+    return;
+  }
   
   // 기존 옵션 제거 (첫 번째 옵션 제외)
   while (select.children.length > 1) {
     select.removeChild(select.lastChild);
   }
   
-  // accountData에서 카드 계좌만 필터링
-  accountData.filter(acc => acc.type === 'card').forEach(account => {
-    const option = document.createElement('option');
-    option.value = account.name;
-    option.textContent = account.name;
-    select.appendChild(option);
-  });
+  console.log('카드 필터 옵션 업데이트 시작');
+  console.log('cardData 개수:', typeof cardData !== 'undefined' && Array.isArray(cardData) ? cardData.length : 0);
+  console.log('accountData 개수:', typeof accountData !== 'undefined' && Array.isArray(accountData) ? accountData.length : 0);
+  
+  // cardData에서 카드 목록 추가 (우선순위 1)
+  if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+    cardData.forEach(card => {
+      const option = document.createElement('option');
+      option.value = card.name;
+      option.textContent = card.name;
+      select.appendChild(option);
+    });
+    console.log('cardData에서', cardData.length, '개 카드 추가됨');
+  }
+  
+  // accountData에서 카드 계좌만 필터링 (cardData에 없는 경우 보완)
+  if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+    const cardAccounts = accountData.filter(acc => acc.type === 'card');
+    cardAccounts.forEach(account => {
+      // 이미 추가된 카드인지 확인 (중복 방지)
+      const existingOption = Array.from(select.options).find(opt => opt.value === account.name);
+      if (!existingOption) {
+        const option = document.createElement('option');
+        option.value = account.name;
+        option.textContent = account.name;
+        select.appendChild(option);
+      }
+    });
+    console.log('accountData에서', cardAccounts.length, '개 카드 계좌 확인됨');
+  }
+  
+  console.log('카드 필터 옵션 업데이트 완료:', select.options.length - 1, '개 카드');
 }
 
 // 서브탭 초기화
