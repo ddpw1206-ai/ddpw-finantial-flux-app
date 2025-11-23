@@ -36,20 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
         mainContent.innerHTML = '';
       }
       
-      // FAB 버튼 표시/숨김
-      const fabBtn = document.getElementById('fab-btn');
-      if (fabBtn) {
-        if (tabKey === 'dashboard' || tabKey === 'accounts' || tabKey === 'saving') {
-          // 월별현황, 계좌 관리, 저축관리 탭에서는 FAB 버튼 표시
-          fabBtn.style.display = 'flex';
-        } else {
-          // 다른 탭에서는 숨김
-          fabBtn.style.display = 'none';
-        }
-        // FAB 버튼 툴팁 업데이트
-        if (typeof window.updateFabTooltip === 'function') {
-          window.updateFabTooltip();
-        }
+      // FAB 버튼 상태 업데이트
+      if (typeof window.updateFabButton === 'function') {
+        window.updateFabButton();
       }
       
       // 탭별 독립적인 렌더링 함수 호출
@@ -116,58 +105,176 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // FAB 버튼 (rollback.html에서 복원)
+  // FAB 버튼 및 서브 메뉴
   const fabBtn = document.getElementById('fab-btn');
+  const fabContainer = document.getElementById('fab-container');
+  const fabSubmenu = document.getElementById('fab-submenu');
+  let fabSubmenuOpen = false;
   
-  // FAB 버튼 툴팁 업데이트 함수 (전역으로 노출)
-  window.updateFabTooltip = function() {
-    if (!fabBtn) return;
+  // FAB 버튼 표시/숨김 업데이트 함수
+  window.updateFabButton = function() {
+    if (!fabContainer) return;
     
-    if (currentActiveTab === 'accounts') {
-      fabBtn.title = '계좌 입출금 내역 추가';
+    if (currentActiveTab === 'dashboard' || currentActiveTab === 'accounts' || currentActiveTab === 'cards' || currentActiveTab === 'saving') {
+      fabContainer.style.display = 'block';
     } else {
-      fabBtn.title = '거래 내역 입력';
+      fabContainer.style.display = 'none';
+    }
+    
+    // 서브 메뉴 닫기
+    if (fabSubmenu) {
+      fabSubmenu.classList.remove('show');
+      fabSubmenuOpen = false;
     }
   };
   
-  if (fabBtn) {
-    fabBtn.addEventListener('click', function() {
-      const modalTitle = document.querySelector('.modal-title');
-      const methodSelect = document.getElementById('entry-method');
-      
-      if (currentActiveTab === 'accounts') {
-        // 계좌 관리 탭: 계좌 입출금 내역 추가 모달 열기
-        if (modalTitle) {
-          modalTitle.textContent = '💰 계좌 입출금 내역 추가';
-        }
-        if (typeof openModal === 'function') {
-          openModal(false);
-        }
-        // 결제수단을 계좌이체로 설정
-        if (methodSelect) {
-          methodSelect.value = 'transfer';
-          if (typeof updatePaymentFields === 'function') {
-            updatePaymentFields();
-          }
-        }
-      } else if (currentActiveTab === 'dashboard') {
-        // 월별현황: 내역 입력 모달 열기
-        if (typeof openModal === 'function') {
-          openModal(false);
-        }
-      } else if (currentActiveTab === 'saving') {
-        // 저축관리: 저축 목표 추가 (추후 구현)
-        alert('저축 목표 추가 기능은 추후 구현 예정입니다.');
-      } else {
-        // 기타 탭: 기본 내역 입력 모달 열기
-        if (typeof openModal === 'function') {
-          openModal(false);
-        }
+  // FAB 버튼 클릭/호버 이벤트
+  if (fabBtn && fabSubmenu) {
+    // 메인 FAB 버튼 클릭/호버
+    fabBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleFabSubmenu();
+    });
+    
+    // FAB 버튼 호버 시 서브 메뉴 표시
+    fabBtn.addEventListener('mouseenter', function() {
+      if (!fabSubmenuOpen && fabSubmenu) {
+        fabSubmenu.classList.add('show');
+        fabSubmenuOpen = true;
       }
     });
     
-    // 초기 FAB 툴팁 설정
-    window.updateFabTooltip();
+    // FAB 컨테이너에서 마우스가 벗어날 때 서브 메뉴 닫기 (약간의 지연)
+    let fabHoverTimeout;
+    if (fabContainer) {
+      fabContainer.addEventListener('mouseleave', function() {
+        fabHoverTimeout = setTimeout(() => {
+          if (fabSubmenu && fabSubmenuOpen) {
+            fabSubmenu.classList.remove('show');
+            fabSubmenuOpen = false;
+          }
+        }, 300); // 300ms 지연
+      });
+      
+      fabContainer.addEventListener('mouseenter', function() {
+        if (fabHoverTimeout) {
+          clearTimeout(fabHoverTimeout);
+        }
+      });
+    }
+    
+    // 서브 메뉴 버튼들
+    const fabSubDashboard = document.getElementById('fab-sub-dashboard');
+    const fabSubAccounts = document.getElementById('fab-sub-accounts');
+    const fabSubCards = document.getElementById('fab-sub-cards');
+    const fabSubSaving = document.getElementById('fab-sub-saving');
+    
+    // 월별현황 신규 등록
+    if (fabSubDashboard) {
+      fabSubDashboard.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // 월별현황 탭으로 이동
+        switchToTab('dashboard', () => {
+          // 탭 이동 후 모달 열기
+          setTimeout(() => {
+            if (typeof window.openTransactionModal === 'function') {
+              window.openTransactionModal();
+            } else if (typeof window.openModal === 'function') {
+              window.openModal(false);
+            }
+          }, 100);
+        });
+        toggleFabSubmenu();
+      });
+    }
+    
+    // 계좌 관리 입출금 내역 등록
+    if (fabSubAccounts) {
+      fabSubAccounts.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // 계좌 관리 탭으로 이동
+        switchToTab('accounts', () => {
+          // 탭 이동 후 모달 열기
+          setTimeout(() => {
+            if (typeof window.openAccountTransactionModal === 'function') {
+              window.openAccountTransactionModal();
+            }
+          }, 100);
+        });
+        toggleFabSubmenu();
+      });
+    }
+    
+    // 결제수단 관리 결제 수단 등록
+    if (fabSubCards) {
+      fabSubCards.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // 결제수단 관리 탭으로 이동
+        switchToTab('cards', () => {
+          // 탭 이동 후 모달 열기
+          setTimeout(() => {
+            if (typeof window.openPaymentMethodModal === 'function') {
+              window.openPaymentMethodModal();
+            } else if (typeof window.openAccountModal === 'function') {
+              window.openAccountModal(false);
+            }
+          }, 100);
+        });
+        toggleFabSubmenu();
+      });
+    }
+    
+    // 저축관리
+    if (fabSubSaving) {
+      fabSubSaving.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // 저축관리 탭으로 이동
+        switchToTab('saving', () => {
+          alert('저축 등록 기능 준비 중');
+        });
+        toggleFabSubmenu();
+      });
+    }
+    
+    // 서브 메뉴 토글 함수
+    function toggleFabSubmenu() {
+      if (!fabSubmenu) return;
+      
+      if (fabSubmenuOpen) {
+        fabSubmenu.classList.remove('show');
+        fabSubmenuOpen = false;
+      } else {
+        fabSubmenu.classList.add('show');
+        fabSubmenuOpen = true;
+      }
+    }
+    
+    // 탭 전환 함수
+    function switchToTab(tabKey, callback) {
+      console.log('탭 전환:', tabKey);
+      const tabButton = document.querySelector(`.nav-tab[data-tab="${tabKey}"]`);
+      if (tabButton) {
+        // 탭 버튼 클릭으로 전환
+        tabButton.click();
+        // 콜백 실행 (탭 전환 후 모달 열기)
+        if (callback) {
+          // 탭 전환이 완료될 때까지 충분한 시간 대기
+          setTimeout(callback, 200);
+        }
+      } else {
+        console.error('탭 버튼을 찾을 수 없습니다:', tabKey);
+      }
+    }
+    
+    // 외부 클릭 시 서브 메뉴 닫기
+    document.addEventListener('click', function(e) {
+      if (fabContainer && !fabContainer.contains(e.target)) {
+        if (fabSubmenu) {
+          fabSubmenu.classList.remove('show');
+          fabSubmenuOpen = false;
+        }
+      }
+    });
   }
   
   // 월 텍스트 초기화

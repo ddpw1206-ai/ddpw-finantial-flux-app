@@ -1205,10 +1205,18 @@ if (accountForm) {
         }
         
         // 계좌 관리 탭이 열려있으면 다시 렌더링
-        const accountsContainer = document.getElementById('accounts-container');
-        if (accountsContainer) {
-          if (typeof renderAccountsTab === 'function') {
+        if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'accounts') {
+          const accountsContainer = document.getElementById('accounts-container');
+          if (accountsContainer && typeof renderAccountsTab === 'function') {
             renderAccountsTab(accountsContainer);
+          }
+        }
+        
+        // 결제수단 관리 탭이 열려있으면 다시 렌더링
+        if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'cards') {
+          const paymentMethodsContainer = document.getElementById('payment-methods-container');
+          if (paymentMethodsContainer && typeof renderPaymentMethodsTab === 'function') {
+            renderPaymentMethodsTab(paymentMethodsContainer);
           }
         }
         
@@ -1252,10 +1260,18 @@ if (accountForm) {
       }
       
       // 계좌 관리 탭이 열려있으면 다시 렌더링
-      const accountsContainer = document.getElementById('accounts-container');
-      if (accountsContainer) {
-        if (typeof renderAccountsTab === 'function') {
+      if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'accounts') {
+        const accountsContainer = document.getElementById('accounts-container');
+        if (accountsContainer && typeof renderAccountsTab === 'function') {
           renderAccountsTab(accountsContainer);
+        }
+      }
+      
+      // 결제수단 관리 탭이 열려있으면 다시 렌더링
+      if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'cards') {
+        const paymentMethodsContainer = document.getElementById('payment-methods-container');
+        if (paymentMethodsContainer && typeof renderPaymentMethodsTab === 'function') {
+          renderPaymentMethodsTab(paymentMethodsContainer);
         }
       }
       
@@ -1335,10 +1351,18 @@ window.deleteAccount = function(id) {
       }
       
       // 계좌 관리 탭이 열려있으면 다시 렌더링
-      const accountsContainer = document.getElementById('accounts-container');
-      if (accountsContainer) {
-        if (typeof renderAccountsTab === 'function') {
+      if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'accounts') {
+        const accountsContainer = document.getElementById('accounts-container');
+        if (accountsContainer && typeof renderAccountsTab === 'function') {
           renderAccountsTab(accountsContainer);
+        }
+      }
+      
+      // 결제수단 관리 탭이 열려있으면 다시 렌더링
+      if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'cards') {
+        const paymentMethodsContainer = document.getElementById('payment-methods-container');
+        if (paymentMethodsContainer && typeof renderPaymentMethodsTab === 'function') {
+          renderPaymentMethodsTab(paymentMethodsContainer);
         }
       }
       
@@ -1393,6 +1417,498 @@ if (accountCreditLimitInput) {
 // 카드 매핑 초기화 (데이터 로드 후 호출)
 if (typeof window.initCardMaps === 'undefined') {
   window.initCardMaps = initCardMaps;
+}
+
+// ========================================
+// 계좌 입출금 내역 등록 모달 함수들
+// ========================================
+const accountTransactionModalOverlay = document.getElementById('account-transaction-modal-overlay');
+const accountTransactionModalClose = document.getElementById('account-transaction-modal-close');
+const accountTransactionModalCancel = document.getElementById('account-transaction-modal-cancel');
+const accountTransactionCardModalCancel = document.getElementById('account-transaction-card-modal-cancel');
+const accountTransactionForm = document.getElementById('account-transaction-form');
+const accountTransactionCardForm = document.getElementById('account-transaction-card-form');
+
+// 계좌 입출금 내역 등록 모달 열기 (전역으로 노출)
+window.openAccountTransactionModal = function() {
+  if (accountTransactionModalOverlay) {
+    accountTransactionModalOverlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // 오늘 날짜로 설정
+    const today = new Date();
+    const dateInput = document.getElementById('account-transaction-date');
+    if (dateInput) {
+      dateInput.value = today.toISOString().split('T')[0];
+    }
+    
+    // 계좌 선택 드롭다운 업데이트
+    updateAccountTransactionAccountOptions();
+    
+    // 일반 입출금 등록 탭 활성화
+    const generalTab = document.getElementById('account-transaction-tab-general');
+    const cardStatementTab = document.getElementById('account-transaction-tab-card-statement');
+    const tabBtns = accountTransactionModalOverlay.querySelectorAll('.entry-tab-btn');
+    
+    if (generalTab) generalTab.style.display = 'block';
+    if (cardStatementTab) cardStatementTab.style.display = 'none';
+    
+    tabBtns.forEach(btn => {
+      btn.classList.remove('active');
+      btn.style.color = '#6B7280';
+      btn.style.fontWeight = '500';
+      btn.style.borderBottomColor = 'transparent';
+    });
+    
+    const generalTabBtn = accountTransactionModalOverlay.querySelector('.entry-tab-btn[data-tab="general"]');
+    if (generalTabBtn) {
+      generalTabBtn.classList.add('active');
+      generalTabBtn.style.color = '#3B82F6';
+      generalTabBtn.style.fontWeight = '600';
+      generalTabBtn.style.borderBottomColor = '#3B82F6';
+    }
+    
+    // 카테고리 옵션 초기화
+    if (typeof window.updateAccountTransactionCategoryOptions === 'function') {
+      window.updateAccountTransactionCategoryOptions();
+    }
+    
+    // 금액 입력 필드에 천 단위 콤마 자동 포맷팅
+    const amountInput = document.getElementById('account-transaction-amount');
+    if (amountInput) {
+      // 기존 이벤트 리스너 제거 후 재추가
+      const newAmountInput = amountInput.cloneNode(true);
+      amountInput.parentNode.replaceChild(newAmountInput, amountInput);
+      
+      newAmountInput.addEventListener('input', function(e) {
+        const value = e.target.value.replace(/,/g, '');
+        const cursorPosition = e.target.selectionStart;
+        const numbers = removeCommas(value);
+        const formatted = formatNumberWithCommas(numbers);
+        e.target.value = formatted;
+        const addedCommas = (formatted.match(/,/g) || []).length - (value.match(/,/g) || []).length;
+        const newCursorPosition = cursorPosition + addedCommas;
+        e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+      });
+    }
+  }
+};
+
+// 계좌 입출금 내역 등록 모달 닫기
+window.closeAccountTransactionModal = function() {
+  if (accountTransactionModalOverlay) {
+    accountTransactionModalOverlay.style.display = 'none';
+    document.body.style.overflow = '';
+    
+    if (accountTransactionForm) {
+      accountTransactionForm.reset();
+    }
+    if (accountTransactionCardForm) {
+      accountTransactionCardForm.reset();
+    }
+  }
+};
+
+// 계좌 선택 드롭다운 업데이트
+function updateAccountTransactionAccountOptions() {
+  const accountSelect = document.getElementById('account-transaction-account');
+  if (!accountSelect) return;
+  
+  accountSelect.innerHTML = '<option value="">--선택--</option>';
+  
+  if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+    accountData.filter(acc => acc.type === 'bank').forEach(account => {
+      const option = document.createElement('option');
+      option.value = account.name;
+      option.textContent = account.name;
+      accountSelect.appendChild(option);
+    });
+  }
+}
+
+// 카드 선택 드롭다운 업데이트
+function updateAccountTransactionCardOptions() {
+  const cardSelect = document.getElementById('account-transaction-card-select');
+  if (!cardSelect) return;
+  
+  cardSelect.innerHTML = '<option value="">--선택--</option>';
+  
+  if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+    accountData.filter(acc => acc.type === 'card' && acc.creditLimit).forEach(card => {
+      const option = document.createElement('option');
+      option.value = card.name;
+      option.textContent = card.name;
+      cardSelect.appendChild(option);
+    });
+  }
+}
+
+// 카드 선택 시 결제 계좌 및 금액 자동 계산
+function updateCardPaymentInfo(selectedCardName) {
+  const paymentAccountInput = document.getElementById('account-transaction-payment-account');
+  const amountInput = document.getElementById('account-transaction-card-amount');
+  const dateInput = document.getElementById('account-transaction-card-date');
+  
+  if (!selectedCardName || !paymentAccountInput || !amountInput) return;
+  
+  // 선택된 카드 정보 찾기
+  const selectedCard = accountData.find(acc => acc.name === selectedCardName && acc.type === 'card');
+  if (!selectedCard) {
+    paymentAccountInput.value = '';
+    amountInput.value = '0';
+    return;
+  }
+  
+  // 결제 계좌 표시
+  paymentAccountInput.value = selectedCard.linkedAccount || '';
+  
+  // 해당 월 카드 사용 총액 계산
+  if (dateInput && dateInput.value) {
+    const selectedDate = new Date(dateInput.value);
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth() + 1;
+    
+    if (typeof transactionData !== 'undefined' && Array.isArray(transactionData)) {
+      const cardTransactions = transactionData.filter(t => {
+        const tDate = new Date(t.date);
+        return tDate.getFullYear() === year &&
+               tDate.getMonth() + 1 === month &&
+               t.paymentMethod === 'credit' &&
+               t.paymentDetail === selectedCardName;
+      });
+      
+      const totalAmount = cardTransactions.reduce((sum, t) => sum + t.amount, 0);
+      amountInput.value = formatNumberWithCommas(String(totalAmount));
+    } else {
+      amountInput.value = '0';
+    }
+  } else {
+    amountInput.value = '0';
+  }
+}
+
+// 계좌 입출금 내역 등록 모달 이벤트 리스너
+if (accountTransactionModalClose) {
+  accountTransactionModalClose.addEventListener('click', closeAccountTransactionModal);
+}
+
+if (accountTransactionModalCancel) {
+  accountTransactionModalCancel.addEventListener('click', closeAccountTransactionModal);
+}
+
+if (accountTransactionCardModalCancel) {
+  accountTransactionCardModalCancel.addEventListener('click', closeAccountTransactionModal);
+}
+
+if (accountTransactionModalOverlay) {
+  accountTransactionModalOverlay.addEventListener('click', function(e) {
+    if (e.target === accountTransactionModalOverlay) {
+      closeAccountTransactionModal();
+    }
+  });
+}
+
+// 탭 전환 이벤트
+if (accountTransactionModalOverlay) {
+  accountTransactionModalOverlay.addEventListener('click', function(e) {
+    if (e.target.classList.contains('entry-tab-btn')) {
+      const tabName = e.target.getAttribute('data-tab');
+      const tabButtons = accountTransactionModalOverlay.querySelectorAll('.entry-tab-btn');
+      const tabContents = accountTransactionModalOverlay.querySelectorAll('.entry-tab-content');
+      
+      // 모든 탭 버튼 비활성화
+      tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.color = '#6B7280';
+        btn.style.fontWeight = '500';
+        btn.style.borderBottomColor = 'transparent';
+      });
+      
+      // 클릭한 탭 버튼 활성화
+      e.target.classList.add('active');
+      e.target.style.color = '#3B82F6';
+      e.target.style.fontWeight = '600';
+      e.target.style.borderBottomColor = '#3B82F6';
+      
+      // 모든 탭 콘텐츠 숨김
+      tabContents.forEach(content => {
+        content.style.display = 'none';
+      });
+      
+      // 선택한 탭 콘텐츠 표시
+      if (tabName === 'general') {
+        const generalTab = document.getElementById('account-transaction-tab-general');
+        if (generalTab) {
+          generalTab.style.display = 'block';
+          // 카테고리 옵션 초기화
+          if (typeof window.updateAccountTransactionCategoryOptions === 'function') {
+            window.updateAccountTransactionCategoryOptions();
+          }
+        }
+      } else if (tabName === 'card-statement') {
+        const cardStatementTab = document.getElementById('account-transaction-tab-card-statement');
+        if (cardStatementTab) {
+          cardStatementTab.style.display = 'block';
+          // 카드 선택 드롭다운 업데이트
+          updateAccountTransactionCardOptions();
+          // 오늘 날짜로 설정
+          const today = new Date();
+          const dateInput = document.getElementById('account-transaction-card-date');
+          if (dateInput) {
+            dateInput.value = today.toISOString().split('T')[0];
+          }
+        }
+      }
+    }
+  });
+}
+
+// 카드 선택 시 정보 업데이트
+if (accountTransactionModalOverlay) {
+  accountTransactionModalOverlay.addEventListener('change', function(e) {
+    if (e.target.id === 'account-transaction-card-select') {
+      updateCardPaymentInfo(e.target.value);
+    }
+    if (e.target.id === 'account-transaction-card-date') {
+      const cardSelect = document.getElementById('account-transaction-card-select');
+      if (cardSelect && cardSelect.value) {
+        updateCardPaymentInfo(cardSelect.value);
+      }
+    }
+  });
+}
+
+// 계좌 입출금 내역 등록 - 카테고리 옵션 업데이트 함수
+window.updateAccountTransactionCategoryOptions = function() {
+  const form = document.getElementById('account-transaction-form');
+  if (!form) return;
+  
+  const typeRadios = form.querySelectorAll('input[name="account-transaction-type"]');
+  const categorySelect = document.getElementById('account-transaction-category-kind');
+  const itemSelect = document.getElementById('account-transaction-category-item');
+  
+  if (!typeRadios || !categorySelect || !itemSelect) return;
+  
+  const selectedType = Array.from(typeRadios).find(radio => radio.checked)?.value;
+  
+  // 카테고리 드롭다운 초기화
+  categorySelect.innerHTML = '<option value="">--선택--</option>';
+  // 항목 드롭다운도 초기화
+  itemSelect.innerHTML = '<option value="">카테고리를 먼저 선택하세요</option>';
+  
+  if (selectedType === 'expense') {
+    // 지출용 카테고리 추가
+    if (typeof expenseCategoryItems !== 'undefined') {
+      Object.keys(expenseCategoryItems).forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      });
+    }
+  } else if (selectedType === 'income') {
+    // 수입용 카테고리 추가
+    if (typeof incomeCategoryItems !== 'undefined') {
+      Object.keys(incomeCategoryItems).forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      });
+    }
+  }
+};
+
+// 계좌 입출금 내역 등록 - 항목 옵션 업데이트 함수
+window.updateAccountTransactionItemOptions = function() {
+  const form = document.getElementById('account-transaction-form');
+  if (!form) return;
+  
+  const typeRadios = form.querySelectorAll('input[name="account-transaction-type"]');
+  const categorySelect = document.getElementById('account-transaction-category-kind');
+  const itemSelect = document.getElementById('account-transaction-category-item');
+  
+  if (!typeRadios || !categorySelect || !itemSelect) return;
+  
+  const selectedType = Array.from(typeRadios).find(radio => radio.checked)?.value;
+  const selectedCategory = categorySelect.value;
+  
+  // 항목 드롭다운 초기화
+  itemSelect.innerHTML = '<option value="">--선택--</option>';
+  
+  let categoryItems = {};
+  if (selectedType === 'expense') {
+    categoryItems = typeof expenseCategoryItems !== 'undefined' ? expenseCategoryItems : {};
+  } else if (selectedType === 'income') {
+    categoryItems = typeof incomeCategoryItems !== 'undefined' ? incomeCategoryItems : {};
+  }
+  
+  if (selectedCategory && categoryItems[selectedCategory]) {
+    // 선택된 카테고리에 해당하는 항목들 추가
+    categoryItems[selectedCategory].forEach(item => {
+      const option = document.createElement('option');
+      option.value = item;
+      option.textContent = item;
+      itemSelect.appendChild(option);
+    });
+  } else {
+    itemSelect.innerHTML = '<option value="">카테고리를 먼저 선택하세요</option>';
+  }
+};
+
+// 일반 입출금 등록 폼 제출
+if (accountTransactionForm) {
+  accountTransactionForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const date = document.getElementById('account-transaction-date')?.value;
+    const user = document.getElementById('account-transaction-user')?.value;
+    const typeRadios = accountTransactionForm.querySelectorAll('input[name="account-transaction-type"]');
+    const type = Array.from(typeRadios).find(radio => radio.checked)?.value;
+    const category = document.getElementById('account-transaction-category-kind')?.value;
+    const item = document.getElementById('account-transaction-category-item')?.value;
+    const paymentMethodRadios = accountTransactionForm.querySelectorAll('input[name="account-transaction-payment-method"]');
+    const paymentMethod = Array.from(paymentMethodRadios).find(radio => radio.checked)?.value || 'transfer';
+    const account = paymentMethod === 'transfer' ? (document.getElementById('account-transaction-account')?.value || '') : '';
+    const amountRaw = document.getElementById('account-transaction-amount')?.value || '';
+    const amount = Number(removeCommas(amountRaw)) || 0;
+    const memo = document.getElementById('account-transaction-memo')?.value || '';
+    
+    if (!date || !user || !type || !category || !item || !paymentMethod || !amountRaw || amount <= 0) {
+      alert('모든 필수 항목을 입력해주세요.');
+      return;
+    }
+    
+    if (paymentMethod === 'transfer' && !account) {
+      alert('계좌를 선택해주세요.');
+      return;
+    }
+    
+    // 중복 체크: 월별 현황 데이터와 교차 검증
+    const isDuplicate = transactionData.some(existing => {
+      return existing.date === date &&
+             existing.item === item &&
+             Math.abs(existing.amount - amount) < 1 && // 금액 차이 1원 미만
+             existing.paymentMethod === paymentMethod &&
+             existing.paymentDetail === (paymentMethod === 'cash' ? '현금' : account) &&
+             existing.type === type;
+    });
+    
+    if (isDuplicate) {
+      alert('이미 등록된 거래 내역입니다. 중복 등록을 방지했습니다.');
+      return;
+    }
+    
+    const now = Date.now();
+    const newEntry = {
+      id: now,
+      date: date,
+      user: user,
+      type: type,
+      item: item,
+      category: category,
+      amount: amount,
+      paymentMethod: paymentMethod,
+      paymentDetail: paymentMethod === 'cash' ? '현금' : account,
+      detail: memo,
+      status: '완료',
+      timestamp: now
+    };
+    
+    transactionData.push(newEntry);
+    
+    if (typeof saveData === 'function') {
+      saveData();
+    }
+    
+    // 계좌 입출금 관리 탭 갱신
+    if (typeof renderAccountTransactionTable === 'function') {
+      renderAccountTransactionTable('all');
+    }
+    
+    // 월별 현황 탭도 갱신 (열려있을 경우)
+    if (typeof renderTable === 'function') {
+      renderTable();
+    }
+    if (typeof renderCardTable === 'function') {
+      renderCardTable('all');
+    }
+    if (typeof renderBankTable === 'function') {
+      renderBankTable();
+    }
+    if (typeof updateDashboard === 'function') {
+      updateDashboard();
+    }
+    
+    alert('입출금 내역이 등록되었습니다!');
+    closeAccountTransactionModal();
+  });
+}
+
+// 카드 대금 등록 폼 제출
+if (accountTransactionCardForm) {
+  accountTransactionCardForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const date = document.getElementById('account-transaction-card-date')?.value;
+    const cardName = document.getElementById('account-transaction-card-select')?.value;
+    const paymentAccount = document.getElementById('account-transaction-payment-account')?.value;
+    const amountRaw = document.getElementById('account-transaction-card-amount')?.value || '';
+    const amount = Number(removeCommas(amountRaw)) || 0;
+    
+    if (!date || !cardName || !paymentAccount || amount <= 0) {
+      alert('모든 필수 항목을 입력해주세요.');
+      return;
+    }
+    
+    // 선택된 카드 정보 찾기
+    const selectedCard = accountData.find(acc => acc.name === cardName && acc.type === 'card');
+    if (!selectedCard) {
+      alert('선택한 카드를 찾을 수 없습니다.');
+      return;
+    }
+    
+    const now = Date.now();
+    const newEntry = {
+      id: now,
+      date: date,
+      user: '-',
+      type: 'expense',
+      item: `${selectedCard.name} 결제`,
+      category: '카드대금',
+      amount: amount,
+      paymentMethod: 'transfer',
+      paymentDetail: paymentAccount,
+      status: '✅완료',
+      timestamp: now,
+      isAutoGenerated: false // 수동 등록이므로 false
+    };
+    
+    transactionData.push(newEntry);
+    
+    if (typeof saveData === 'function') {
+      saveData();
+    }
+    
+    // 계좌 입출금 관리 탭 갱신
+    if (typeof renderAccountTransactionTable === 'function') {
+      renderAccountTransactionTable('all');
+    }
+    
+    // 월별 현황 탭도 갱신
+    if (typeof renderTable === 'function') {
+      renderTable();
+    }
+    if (typeof renderBankTable === 'function') {
+      renderBankTable();
+    }
+    if (typeof updateDashboard === 'function') {
+      updateDashboard();
+    }
+    
+    alert('카드 대금이 등록되었습니다!');
+    closeAccountTransactionModal();
+  });
 }
 
 console.log('modal.js 로드 완료');

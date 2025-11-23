@@ -8,13 +8,22 @@ function initSettings() {
   const mainContent = document.getElementById('main-content');
   if (!mainContent) return;
   
-  // 대시보드 콘텐츠 숨김
-  const dashboardContent = document.getElementById('dashboard-content');
-  if (dashboardContent) {
-    dashboardContent.style.display = 'none';
-  }
+  // mainContent 완전히 비우기 (중복 방지)
+  mainContent.innerHTML = '';
   
-  mainContent.innerHTML = `
+  // 설정 컨테이너 생성
+  const settingsContainer = document.createElement('div');
+  settingsContainer.id = 'settings-container';
+  mainContent.appendChild(settingsContainer);
+  
+  renderSettingsTab(settingsContainer);
+}
+
+// ========================================
+// 설정 탭 렌더링
+// ========================================
+function renderSettingsTab(container) {
+  container.innerHTML = `
     <div style="padding: 20px;">
       <h2 style="margin-bottom: 20px;">⚙️ 설정</h2>
       <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #E5E7EB;">
@@ -28,7 +37,7 @@ function initSettings() {
   `;
   
   // 백업 버튼
-  document.getElementById('backup-btn')?.addEventListener('click', function() {
+  container.querySelector('#backup-btn')?.addEventListener('click', function() {
     const data = {
       transactions: transactionData,
       accounts: accountData,
@@ -50,7 +59,7 @@ function initSettings() {
   });
   
   // 복원 버튼
-  document.getElementById('restore-btn')?.addEventListener('click', function() {
+  container.querySelector('#restore-btn')?.addEventListener('click', function() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';

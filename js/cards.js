@@ -1,11 +1,11 @@
 // ========================================
-// 카드 관리 탭 (독립화 및 카드 매핑 데이터 관리)
+// 결제수단 관리 탭 (독립화 및 카드 매핑 데이터 관리)
 // ========================================
 
 let editingCardId = null;
 
 function initCards() {
-  console.log('카드 관리 초기화');
+  console.log('결제수단 관리 초기화');
   
   const mainContent = document.getElementById('main-content');
   if (!mainContent) return;
@@ -13,18 +13,20 @@ function initCards() {
   // mainContent 완전히 비우기 (중복 방지)
   mainContent.innerHTML = '';
   
-  // 카드 관리 컨테이너 생성
-  const cardsContainer = document.createElement('div');
-  cardsContainer.id = 'cards-container';
-  mainContent.appendChild(cardsContainer);
+  // 결제수단 관리 컨테이너 생성
+  const paymentMethodsContainer = document.createElement('div');
+  paymentMethodsContainer.id = 'payment-methods-container';
+  mainContent.appendChild(paymentMethodsContainer);
   
-  renderCardsTab(cardsContainer);
+  renderPaymentMethodsTab(paymentMethodsContainer);
+  
+  console.log('결제수단 관리 탭 렌더링 완료');
 }
 
 // ========================================
-// 카드 관리 탭 렌더링
+// 결제수단 관리 탭 렌더링
 // ========================================
-function renderCardsTab(container) {
+function renderPaymentMethodsTab(container) {
   container.innerHTML = `
     <style>
       .cards-header {
@@ -52,10 +54,17 @@ function renderCardsTab(container) {
       .add-card-btn:hover {
         background: #2563eb;
       }
-      .cards-content {
-        display: flex;
-        flex-direction: column;
+      .payment-methods-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
         gap: 24px;
+      }
+      .payment-section {
+        background: #FFFFFF;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        border: 1px solid #E5E7EB;
       }
       .card-company-group {
         background: #FFFFFF;
@@ -171,45 +180,45 @@ function renderCardsTab(container) {
     </style>
     
     <div class="cards-header">
-      <h2 class="cards-title">💳 카드 관리</h2>
-      <button class="add-card-btn" id="add-card-btn">+ 카드 추가</button>
+      <h2 class="cards-title">💳 결제수단 관리</h2>
+      <button class="add-card-btn" id="add-payment-method-btn">+ 결제수단 추가</button>
     </div>
     
-    <div class="cards-content" id="cards-content">
-      <!-- 카드사별 카드 목록이 여기에 동적으로 추가됨 -->
+    <div class="payment-methods-grid" id="payment-methods-grid">
+      <!-- 카드사별 결제수단 목록이 여기에 동적으로 추가됨 -->
     </div>
   `;
   
-  // 카드 목록 렌더링
-  renderCardList();
+  // 결제수단 목록 렌더링 (cardData 기반)
+  renderPaymentMethodsList();
   
-  // 카드 추가 버튼 이벤트
-  const addCardBtn = container.querySelector('#add-card-btn');
-  if (addCardBtn) {
-    addCardBtn.addEventListener('click', () => {
-      if (typeof openCardManageModal === 'function') {
-        openCardManageModal(false);
+  // 결제수단 추가 버튼 이벤트
+  const addPaymentMethodBtn = container.querySelector('#add-payment-method-btn');
+  if (addPaymentMethodBtn) {
+    addPaymentMethodBtn.addEventListener('click', () => {
+      if (typeof window.openCardManageModal === 'function') {
+        window.openCardManageModal(false);
       }
     });
   }
 }
 
 // ========================================
-// 카드 목록 렌더링 (카드사별 그룹화)
+// 결제수단 목록 렌더링 (카드사별 그룹화, cardData 기반)
 // ========================================
-function renderCardList() {
-  const cardsContent = document.getElementById('cards-content');
-  if (!cardsContent) return;
+function renderPaymentMethodsList() {
+  const paymentMethodsGrid = document.getElementById('payment-methods-grid');
+  if (!paymentMethodsGrid) return;
   
-  // 완전히 새로 생성 (중복 방지)
-  cardsContent.innerHTML = '';
+  paymentMethodsGrid.innerHTML = '';
   
+  // cardData가 없거나 비어있으면
   if (!cardData || cardData.length === 0) {
-    cardsContent.innerHTML = `
-      <div class="empty-state">
+    paymentMethodsGrid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1;">
         <div class="empty-state-icon">💳</div>
-        <div class="empty-state-text">등록된 카드가 없습니다</div>
-        <div class="empty-state-hint">카드 추가 버튼을 클릭하여 카드를 등록해주세요.</div>
+        <div class="empty-state-text">등록된 결제수단이 없습니다</div>
+        <div class="empty-state-hint">결제수단 추가 버튼을 클릭하여 결제수단을 등록해주세요.</div>
       </div>
     `;
     return;
@@ -228,14 +237,14 @@ function renderCardList() {
   // 카드사별로 그룹 렌더링
   Object.keys(groupedByCompany).sort().forEach(company => {
     const companyGroup = document.createElement('div');
-    companyGroup.className = 'card-company-group';
+    companyGroup.className = 'payment-section';
     
     const cards = groupedByCompany[company];
     
     companyGroup.innerHTML = `
-      <div class="company-header">
-        <div class="company-name">${company}</div>
-        <button class="add-card-to-company-btn" data-company="${company}">+ 카드 추가</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #E5E7EB;">
+        <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; margin: 0;">${company}</h3>
+        <button class="add-card-to-company-btn" data-company="${company}" style="background: #F3F4F6; color: #374151; border: 1px solid #D1D5DB; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">+ 카드 추가</button>
       </div>
       <div class="card-list">
         ${cards.map(card => `
@@ -255,21 +264,65 @@ function renderCardList() {
       </div>
     `;
     
-    cardsContent.appendChild(companyGroup);
+    paymentMethodsGrid.appendChild(companyGroup);
   });
   
   // 카드사별 카드 추가 버튼 이벤트
-  const addCardToCompanyBtns = cardsContent.querySelectorAll('.add-card-to-company-btn');
+  const addCardToCompanyBtns = paymentMethodsGrid.querySelectorAll('.add-card-to-company-btn');
   addCardToCompanyBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       const company = this.getAttribute('data-company');
-      if (typeof openCardManageModal === 'function') {
-        openCardManageModal(false, null, false, company);
+      if (typeof window.openCardManageModal === 'function') {
+        window.openCardManageModal(false, null, false, company);
       }
     });
   });
   
-  console.log('카드 목록 렌더링 완료:', cardData.length, '개 카드');
+  console.log('결제수단 목록 렌더링 완료:', cardData.length, '개 카드');
+}
+
+
+// ========================================
+// 결제수단 추가 모달 열기 (전역으로 노출)
+// ========================================
+window.openPaymentMethodModal = function() {
+  // 계좌 추가 모달 열기 (기존 계좌 추가 모달 재사용)
+  if (typeof window.openAccountModal === 'function') {
+    window.openAccountModal(false);
+  }
+};
+
+// ========================================
+// 카드 목록 렌더링 (카드사별 그룹화) - 모달용
+// ========================================
+function renderCardList() {
+  const cardList = document.getElementById('card-list');
+  if (!cardList) return;
+  
+  cardList.innerHTML = '';
+  
+  if (!cardData || cardData.length === 0) {
+    cardList.innerHTML = '<div style="text-align: center; padding: 20px; color: #6B7280;">등록된 카드가 없습니다.</div>';
+    return;
+  }
+  
+  cardData.forEach(card => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;';
+    item.innerHTML = `
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #111827; margin-bottom: 4px;">${card.name}</div>
+        <div style="font-size: 0.85rem; color: #6B7280;">
+          ${card.type === 'credit' ? '신용카드' : '체크카드'} · ${card.cardCompany || '미지정'}
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" onclick="editCard(${card.id})" style="padding: 6px 12px; border: 1px solid #3B82F6; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #3B82F6; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3B82F6'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#3B82F6'">수정</button>
+        <button type="button" onclick="deleteCard(${card.id})" style="padding: 6px 12px; border: 1px solid #DC2626; border-radius: 6px; font-size: 0.85rem; background: #FFFFFF; color: #DC2626; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'; this.style.color='#fff'" onmouseout="this.style.background='#FFFFFF'; this.style.color='#DC2626'">삭제</button>
+      </div>
+    `;
+    cardList.appendChild(item);
+  });
 }
 
 // ========================================
@@ -402,6 +455,13 @@ window.deleteCard = function(id) {
         saveCardData();
       }
       renderCardList();
+      // 결제수단 관리 탭이 열려있으면 다시 렌더링
+      if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'cards') {
+        const paymentMethodsContainer = document.getElementById('payment-methods-container');
+        if (paymentMethodsContainer && typeof renderPaymentMethodsTab === 'function') {
+          renderPaymentMethodsTab(paymentMethodsContainer);
+        }
+      }
       if (typeof updateCardSelects === 'function') {
         updateCardSelects(); // 모든 카드 선택 드롭다운 업데이트
       }
@@ -455,35 +515,49 @@ function initCardManageForm() {
         if (typeof saveCardData === 'function') {
           saveCardData();
         }
-        renderCardList();
-        renderCardListInModal();
-        if (typeof updateCardSelects === 'function') {
-          updateCardSelects();
-        }
-        alert('수정되었습니다!');
-        closeCardManageModal();
-      }
-    } else {
-      // 신규 추가 모드
-      const now = Date.now();
-      const newCard = {
-        id: now,
-        name: name,
-        type: type,
-        cardCompany: cardCompany
-      };
-      cardData.push(newCard);
-      if (typeof saveCardData === 'function') {
-        saveCardData();
-      }
       renderCardList();
       renderCardListInModal();
+      // 결제수단 관리 탭이 열려있으면 다시 렌더링
+      if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'cards') {
+        const paymentMethodsContainer = document.getElementById('payment-methods-container');
+        if (paymentMethodsContainer && typeof renderPaymentMethodsTab === 'function') {
+          renderPaymentMethodsTab(paymentMethodsContainer);
+        }
+      }
       if (typeof updateCardSelects === 'function') {
         updateCardSelects();
       }
-      alert('카드가 추가되었습니다!');
+      alert('수정되었습니다!');
       closeCardManageModal();
     }
+  } else {
+    // 신규 추가 모드
+    const now = Date.now();
+    const newCard = {
+      id: now,
+      name: name,
+      type: type,
+      cardCompany: cardCompany
+    };
+    cardData.push(newCard);
+    if (typeof saveCardData === 'function') {
+      saveCardData();
+    }
+    renderCardList();
+    renderCardListInModal();
+    // 결제수단 관리 탭이 열려있으면 다시 렌더링
+    if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'cards') {
+      const paymentMethodsContainer = document.getElementById('payment-methods-container');
+      if (paymentMethodsContainer && typeof renderPaymentMethodsTab === 'function') {
+        renderPaymentMethodsTab(paymentMethodsContainer);
+      }
+    }
+    if (typeof updateCardSelects === 'function') {
+      updateCardSelects();
+    }
+    alert('카드가 추가되었습니다!');
+    closeCardManageModal();
+  }
   });
 }
 
@@ -524,3 +598,4 @@ if (document.readyState === 'loading') {
 }
 
 console.log('cards.js 로드 완료');
+
