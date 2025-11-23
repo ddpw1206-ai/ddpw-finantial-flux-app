@@ -226,6 +226,7 @@
 
   <nav class="nav" id="nav-tabs">
     <button class="nav-tab active" data-tab="dashboard">월별현황</button>
+    <button class="nav-tab" data-tab="accounts">계좌 관리</button>
     <button class="nav-tab" data-tab="stats">통계</button>
     <button class="nav-tab" data-tab="saving">저축관리</button>
     <button class="nav-tab" data-tab="settings">설정</button>
@@ -929,6 +930,63 @@
     </div>
   </div>
 
+  <!-- 계좌 추가/수정 모달 -->
+  <div id="account-modal-overlay" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div id="account-modal-content" style="background: #FFFFFF; border-radius: 16px; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.15); margin: auto; display: flex; flex-direction: column; padding: 40px 32px 32px 32px; position: relative; animation: modalFadeIn .2s; border: 1px solid #E5E7EB;">
+      <div class="modal-header">
+        <span class="modal-title" id="account-modal-title">📝 계좌 추가</span>
+        <button class="modal-close" type="button" id="account-modal-close-btn" aria-label="닫기">✕</button>
+      </div>
+      <form class="modal-form" id="account-form" autocomplete="off">
+        <div>
+          <label for="account-name">계좌명</label>
+          <input id="account-name" name="name" type="text" placeholder="예: KB국민-98" required>
+        </div>
+        
+        <div>
+          <label>계좌 유형</label>
+          <div class="row-radio">
+            <label>
+              <input type="radio" name="account-type" value="bank" checked required> 통장
+            </label>
+            <label>
+              <input type="radio" name="account-type" value="card" required> 카드
+            </label>
+          </div>
+        </div>
+        
+        <div id="bank-fields">
+          <div>
+            <label for="account-initial-balance">초기 잔액</label>
+            <input id="account-initial-balance" name="initialBalance" type="text" placeholder="금액 입력 (예: 1,000,000)" value="0">
+          </div>
+        </div>
+        
+        <div id="card-fields" style="display: none;">
+          <div>
+            <label for="account-credit-limit">신용 한도</label>
+            <input id="account-credit-limit" name="creditLimit" type="text" placeholder="금액 입력 (예: 5,000,000)" value="0">
+          </div>
+          <div>
+            <label for="account-payment-day">결제일</label>
+            <input id="account-payment-day" name="paymentDay" type="number" min="1" max="31" placeholder="매월 결제일 (1-31)">
+          </div>
+          <div>
+            <label for="account-linked-account">연결계좌</label>
+            <select id="account-linked-account" name="linkedAccount">
+              <option value="">선택 안함</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="modal-btn modal-btn-cancel" id="account-modal-cancel-btn">취소</button>
+          <button type="submit" class="modal-btn modal-btn-save">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
 // ========================================
 // 버전 정보
@@ -949,15 +1007,26 @@ document.addEventListener('DOMContentLoaded', function() {
   // 데이터 저장 배열
   // ========================================
   let transactionData = [];
+  let accountData = [];
   
   const savedData = localStorage.getItem('budgetData');
   if (savedData) {
     transactionData = JSON.parse(savedData);
   }
   
+  const savedAccountData = localStorage.getItem('accountData');
+  if (savedAccountData) {
+    accountData = JSON.parse(savedAccountData);
+  }
+  
   // 데이터 저장 함수
   function saveData() {
     localStorage.setItem('budgetData', JSON.stringify(transactionData));
+  }
+  
+  // 계좌 데이터 저장 함수
+  function saveAccountData() {
+    localStorage.setItem('accountData', JSON.stringify(accountData));
   }
   
   // ========================================
@@ -1001,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const contents = {
+          accounts: '', // 계좌 관리 탭은 별도 함수로 렌더링
           stats: '통계 탭 - 그래프와 분석이 여기 표시됩니다',
           saving: '저축관리 탭 - 저축 목표가 여기 표시됩니다',
           settings: `
@@ -1026,7 +1096,9 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           `
         };
-        if (key === 'settings') {
+        if (key === 'accounts') {
+          renderAccountsTab(otherContent);
+        } else if (key === 'settings') {
           otherContent.innerHTML = contents[key] || '';
         } else {
           otherContent.textContent = contents[key] || '';
@@ -1480,6 +1552,8 @@ document.addEventListener('DOMContentLoaded', function() {
             recurring: recurring
           };
           saveData();
+          // 계좌 잔액 자동 업데이트
+          calculateAccountBalances();
           renderTable();
           renderCardTable();
           renderBankTable();
@@ -1508,6 +1582,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         transactionData.push(entry);
         saveData();
+        // 계좌 잔액 자동 업데이트
+        calculateAccountBalances();
         renderTable();
         renderCardTable();
         renderBankTable();
@@ -1539,6 +1615,293 @@ function getPaymentMethodText(entry) {
 }
 
 // ========================================
+// 계좌 잔액 자동 계산 함수
+// ========================================
+function calculateAccountBalances() {
+  // 모든 계좌의 잔액을 초기화
+  accountData.forEach(account => {
+    if (account.type === 'bank') {
+      // 통장: 초기 잔액으로 초기화
+      account.currentBalance = account.initialBalance || 0;
+    } else if (account.type === 'card') {
+      // 카드: 사용액을 0으로 초기화 (한도는 유지)
+      account.currentBalance = 0;
+    }
+  });
+  
+  // 모든 거래 내역을 날짜순으로 정렬하여 처리
+  const sortedTransactions = [...transactionData].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    if (dateA.getTime() === dateB.getTime()) {
+      return (a.timestamp || 0) - (b.timestamp || 0);
+    }
+    return dateA.getTime() - dateB.getTime();
+  });
+  
+  // 각 거래를 처리하여 계좌 잔액 업데이트
+  sortedTransactions.forEach(transaction => {
+    const accountName = transaction.paymentDetail || '';
+    
+    // 해당 계좌 찾기
+    const account = accountData.find(acc => acc.name === accountName);
+    if (!account) return;
+    
+    if (account.type === 'bank') {
+      // 통장: 수입은 +, 지출은 -
+      if (transaction.type === 'income') {
+        account.currentBalance += transaction.amount;
+      } else if (transaction.type === 'expense') {
+        account.currentBalance -= transaction.amount;
+      }
+    } else if (account.type === 'card') {
+      // 카드: 지출만 사용액에 추가 (수입은 없음)
+      if (transaction.type === 'expense') {
+        account.currentBalance += transaction.amount;
+      }
+    }
+  });
+  
+  // 계산된 잔액 저장
+  saveAccountData();
+}
+
+// ========================================
+// 계좌 관리 탭 렌더링
+// ========================================
+function renderAccountsTab(container) {
+  // 잔액 재계산
+  calculateAccountBalances();
+  
+  container.innerHTML = `
+    <style>
+      .accounts-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+      }
+      .accounts-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+      }
+      .add-account-btn {
+        background: #3B82F6;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .add-account-btn:hover {
+        background: #2563eb;
+      }
+      .accounts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+      .account-card {
+        background: #FFFFFF;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        border: 1px solid #E5E7EB;
+        transition: all 0.2s ease;
+      }
+      .account-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+      }
+      .account-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+      .account-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 4px;
+      }
+      .account-type {
+        font-size: 0.85rem;
+        color: #6B7280;
+        padding: 4px 8px;
+        background: #F3F4F6;
+        border-radius: 4px;
+        display: inline-block;
+      }
+      .account-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .account-action-btn {
+        background: none;
+        border: 1px solid #D1D5DB;
+        color: #374151;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .account-action-btn:hover {
+        background: #3B82F6;
+        color: #fff;
+        border-color: #3B82F6;
+      }
+      .account-balance {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2563EB;
+        margin-bottom: 12px;
+      }
+      .account-info {
+        font-size: 0.9rem;
+        color: #6B7280;
+        margin-bottom: 8px;
+      }
+      .card-usage {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #E5E7EB;
+      }
+      .card-usage-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+      .card-usage-label {
+        color: #6B7280;
+      }
+      .card-usage-value {
+        font-weight: 600;
+        color: #111827;
+      }
+      .card-usage-bar {
+        background: #E5E7EB;
+        border-radius: 8px;
+        height: 8px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .card-usage-fill {
+        background: #3B82F6;
+        height: 100%;
+        border-radius: 8px;
+        transition: width 0.4s;
+      }
+      .card-usage-fill.warning {
+        background: #F59E0B;
+      }
+      .card-usage-fill.danger {
+        background: #EF4444;
+      }
+      @media (max-width: 600px) {
+        .accounts-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+    <div class="accounts-header">
+      <h2 class="accounts-title">계좌 관리</h2>
+      <button class="add-account-btn" id="add-account-btn">+ 계좌 추가</button>
+    </div>
+    <div class="accounts-grid" id="accounts-grid">
+      ${accountData.length === 0 ? '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6B7280;">등록된 계좌가 없습니다. 계좌를 추가해주세요.</div>' : ''}
+    </div>
+  `;
+  
+  // 계좌 카드 렌더링
+  const accountsGrid = container.querySelector('#accounts-grid');
+  if (accountsGrid && accountData.length > 0) {
+    accountsGrid.innerHTML = '';
+    accountData.forEach(account => {
+      const card = document.createElement('div');
+      card.className = 'account-card';
+      
+      if (account.type === 'bank') {
+        // 통장 계좌
+        card.innerHTML = `
+          <div class="account-header">
+            <div>
+              <div class="account-name">${account.name}</div>
+              <span class="account-type">통장</span>
+            </div>
+            <div class="account-actions">
+              <button class="account-action-btn" onclick="editAccount(${account.id})">수정</button>
+              <button class="account-action-btn" onclick="deleteAccount(${account.id})">삭제</button>
+            </div>
+          </div>
+          <div class="account-balance">${(account.currentBalance || 0).toLocaleString()}원</div>
+          <div class="account-info">초기 잔액: ${(account.initialBalance || 0).toLocaleString()}원</div>
+        `;
+      } else if (account.type === 'card') {
+        // 카드 계좌
+        const creditLimit = account.creditLimit || 0;
+        const usedAmount = account.currentBalance || 0; // 사용액
+        const availableAmount = creditLimit - usedAmount; // 가용 잔액
+        const usageRate = creditLimit > 0 ? (usedAmount / creditLimit) * 100 : 0;
+        
+        let usageBarClass = '';
+        if (usageRate >= 80) usageBarClass = 'danger';
+        else if (usageRate >= 60) usageBarClass = 'warning';
+        
+        card.innerHTML = `
+          <div class="account-header">
+            <div>
+              <div class="account-name">${account.name}</div>
+              <span class="account-type">카드</span>
+            </div>
+            <div class="account-actions">
+              <button class="account-action-btn" onclick="editAccount(${account.id})">수정</button>
+              <button class="account-action-btn" onclick="deleteAccount(${account.id})">삭제</button>
+            </div>
+          </div>
+          <div class="card-usage">
+            <div class="card-usage-item">
+              <span class="card-usage-label">사용액</span>
+              <span class="card-usage-value">${usedAmount.toLocaleString()}원</span>
+            </div>
+            <div class="card-usage-item">
+              <span class="card-usage-label">한도</span>
+              <span class="card-usage-value">${creditLimit.toLocaleString()}원</span>
+            </div>
+            <div class="card-usage-item">
+              <span class="card-usage-label">사용률</span>
+              <span class="card-usage-value">${Math.round(usageRate)}%</span>
+            </div>
+            <div class="card-usage-bar">
+              <div class="card-usage-fill ${usageBarClass}" style="width: ${Math.min(usageRate, 100)}%"></div>
+            </div>
+            ${account.paymentDay ? `<div class="account-info" style="margin-top: 12px;">결제일: 매월 ${account.paymentDay}일</div>` : ''}
+            ${account.linkedAccount ? `<div class="account-info">연결계좌: ${account.linkedAccount}</div>` : ''}
+          </div>
+        `;
+      }
+      
+      accountsGrid.appendChild(card);
+    });
+  }
+  
+  // 계좌 추가 버튼 이벤트
+  const addAccountBtn = container.querySelector('#add-account-btn');
+  if (addAccountBtn) {
+    addAccountBtn.addEventListener('click', () => {
+      openAccountModal();
+    });
+  }
+}
+
+// ========================================
 // 8. 대시보드 카드 실시간 계산
 // ========================================
 function updateDashboard() {
@@ -1560,6 +1923,19 @@ function updateDashboard() {
   // 순 자산 계산 (총 수입 - 총 지출)
   const netAsset = totalIncome - totalExpense;
   
+  // 총 자산 계산 (모든 계좌 잔액 합계)
+  calculateAccountBalances();
+  const totalAssets = accountData.reduce((sum, account) => {
+    if (account.type === 'bank') {
+      // 통장: 현재 잔액
+      return sum + (account.currentBalance || 0);
+    } else if (account.type === 'card') {
+      // 카드는 자산에 포함하지 않음 (부채이므로)
+      return sum;
+    }
+    return sum;
+  }, 0);
+  
   // 예산 달성률 계산 (예산: 3,000,000원)
   const budget = 3000000;
   const budgetRate = budget > 0 ? Math.min((totalExpense / budget) * 100, 100) : 0;
@@ -1579,11 +1955,10 @@ function updateDashboard() {
       expenseValue.textContent = `${totalExpense.toLocaleString()}원`;
     }
     
-    // 순 자산
+    // 순 자산 (총 자산 표시)
     const assetValue = dashCards[2].querySelector('.dash-value');
     if (assetValue) {
-      const sign = netAsset >= 0 ? '+' : '';
-      assetValue.textContent = `${sign}${netAsset.toLocaleString()}원`;
+      assetValue.textContent = `${totalAssets.toLocaleString()}원`;
     }
     
     // 예산 달성률
@@ -1982,6 +2357,8 @@ window.deleteTransaction = function(id) {
     if (index > -1) {
       transactionData.splice(index, 1);
       saveData();
+      // 계좌 잔액 자동 업데이트
+      calculateAccountBalances();
       renderTable();
       renderCardTable();
       renderBankTable();
@@ -2415,6 +2792,314 @@ window.deleteTransaction = function(id) {
       // writeToSheets();
     }
   };
+
+  // ========================================
+  // 계좌 관리 모달 함수들
+  // ========================================
+  let editingAccountId = null;
+  const accountModalOverlay = document.getElementById('account-modal-overlay');
+  const accountModalClose = document.getElementById('account-modal-close-btn');
+  const accountModalCancel = document.getElementById('account-modal-cancel-btn');
+  const accountForm = document.getElementById('account-form');
+  const accountModalTitle = document.getElementById('account-modal-title');
+  
+  function closeAccountModal() {
+    if (accountModalOverlay) {
+      accountModalOverlay.style.display = 'none';
+      document.body.style.overflow = '';
+      editingAccountId = null;
+      if (accountModalTitle) {
+        accountModalTitle.textContent = '📝 계좌 추가';
+      }
+      if (accountForm) {
+        accountForm.reset();
+        // 계좌 유형 기본값 설정
+        const typeRadios = accountForm.querySelectorAll('input[name="account-type"]');
+        if (typeRadios && typeRadios.length > 0) {
+          typeRadios[0].checked = true;
+          updateAccountTypeFields();
+        }
+      }
+    }
+  }
+  
+  function openAccountModal(isEdit = false) {
+    if (accountModalOverlay) {
+      accountModalOverlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (!isEdit && accountForm) {
+        accountForm.reset();
+        const typeRadios = accountForm.querySelectorAll('input[name="account-type"]');
+        if (typeRadios && typeRadios.length > 0) {
+          typeRadios[0].checked = true;
+          updateAccountTypeFields();
+        }
+        updateLinkedAccountOptions();
+        if (accountModalTitle) {
+          accountModalTitle.textContent = '📝 계좌 추가';
+        }
+      }
+    }
+  }
+  
+  function updateAccountTypeFields() {
+    const typeRadios = accountForm ? accountForm.querySelectorAll('input[name="account-type"]') : [];
+    const bankFields = document.getElementById('bank-fields');
+    const cardFields = document.getElementById('card-fields');
+    
+    if (typeRadios.length === 0) return;
+    
+    const selectedType = Array.from(typeRadios).find(radio => radio.checked)?.value;
+    
+    if (selectedType === 'bank') {
+      if (bankFields) bankFields.style.display = 'block';
+      if (cardFields) cardFields.style.display = 'none';
+    } else if (selectedType === 'card') {
+      if (bankFields) bankFields.style.display = 'none';
+      if (cardFields) cardFields.style.display = 'block';
+    }
+  }
+  
+  function updateLinkedAccountOptions() {
+    const linkedAccountSelect = document.getElementById('account-linked-account');
+    if (!linkedAccountSelect) return;
+    
+    // 기존 옵션 제거 (선택 안함 제외)
+    while (linkedAccountSelect.children.length > 1) {
+      linkedAccountSelect.removeChild(linkedAccountSelect.lastChild);
+    }
+    
+    // 통장 계좌만 연결계좌로 선택 가능
+    accountData.filter(acc => acc.type === 'bank').forEach(account => {
+      const option = document.createElement('option');
+      option.value = account.name;
+      option.textContent = account.name;
+      linkedAccountSelect.appendChild(option);
+    });
+  }
+  
+  // 계좌 유형 변경 이벤트
+  if (accountForm) {
+    const typeRadios = accountForm.querySelectorAll('input[name="account-type"]');
+    typeRadios.forEach(radio => {
+      radio.addEventListener('change', updateAccountTypeFields);
+    });
+  }
+  
+  // 계좌 모달 닫기 이벤트
+  if (accountModalClose) {
+    accountModalClose.addEventListener('click', closeAccountModal);
+  }
+  if (accountModalCancel) {
+    accountModalCancel.addEventListener('click', closeAccountModal);
+  }
+  if (accountModalOverlay) {
+    accountModalOverlay.addEventListener('click', function(e) {
+      if (e.target === accountModalOverlay) {
+        closeAccountModal();
+      }
+    });
+  }
+  
+  // 계좌 폼 제출
+  if (accountForm) {
+    accountForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('account-name')?.value;
+      const typeRadios = accountForm.querySelectorAll('input[name="account-type"]');
+      const type = Array.from(typeRadios).find(radio => radio.checked)?.value;
+      const initialBalanceRaw = document.getElementById('account-initial-balance')?.value || '0';
+      const initialBalance = Number(removeCommas(initialBalanceRaw)) || 0;
+      
+      if (!name) {
+        alert('계좌명을 입력해주세요.');
+        return;
+      }
+      if (!type) {
+        alert('계좌 유형을 선택해주세요.');
+        return;
+      }
+      
+      if (editingAccountId) {
+        // 수정 모드
+        const index = accountData.findIndex(acc => acc.id === editingAccountId);
+        if (index > -1) {
+          const account = accountData[index];
+          account.name = name;
+          account.type = type;
+          
+          if (type === 'bank') {
+            account.initialBalance = initialBalance;
+            account.currentBalance = initialBalance; // 초기화
+            delete account.creditLimit;
+            delete account.paymentDay;
+            delete account.linkedAccount;
+          } else if (type === 'card') {
+            const creditLimitRaw = document.getElementById('account-credit-limit')?.value || '0';
+            const creditLimit = Number(removeCommas(creditLimitRaw)) || 0;
+            const paymentDay = document.getElementById('account-payment-day')?.value;
+            const linkedAccount = document.getElementById('account-linked-account')?.value || '';
+            
+            account.creditLimit = creditLimit;
+            account.currentBalance = 0; // 카드는 사용액을 0으로 초기화
+            if (paymentDay) account.paymentDay = Number(paymentDay);
+            if (linkedAccount) account.linkedAccount = linkedAccount;
+            delete account.initialBalance;
+          }
+          
+          saveAccountData();
+          calculateAccountBalances();
+          
+          // 계좌 관리 탭이 열려있으면 다시 렌더링
+          const otherContent = document.getElementById('other-tab-content');
+          if (otherContent && otherContent.style.display !== 'none') {
+            renderAccountsTab(otherContent);
+          }
+          
+          updateDashboard();
+          alert('수정되었습니다!');
+          closeAccountModal();
+        }
+      } else {
+        // 신규 추가 모드
+        const now = Date.now();
+        const account = {
+          id: now,
+          name: name,
+          type: type,
+          initialBalance: type === 'bank' ? initialBalance : undefined,
+          currentBalance: type === 'bank' ? initialBalance : undefined
+        };
+        
+        if (type === 'card') {
+          const creditLimitRaw = document.getElementById('account-credit-limit')?.value || '0';
+          const creditLimit = Number(removeCommas(creditLimitRaw)) || 0;
+          const paymentDay = document.getElementById('account-payment-day')?.value;
+          const linkedAccount = document.getElementById('account-linked-account')?.value || '';
+          
+          account.creditLimit = creditLimit;
+          account.currentBalance = 0; // 카드는 사용액을 0으로 초기화
+          if (paymentDay) account.paymentDay = Number(paymentDay);
+          if (linkedAccount) account.linkedAccount = linkedAccount;
+        }
+        
+        accountData.push(account);
+        saveAccountData();
+        calculateAccountBalances();
+        
+        // 계좌 관리 탭이 열려있으면 다시 렌더링
+        const otherContent = document.getElementById('other-tab-content');
+        if (otherContent && otherContent.style.display !== 'none') {
+          renderAccountsTab(otherContent);
+        }
+        
+        updateDashboard();
+        alert('저장되었습니다!');
+        closeAccountModal();
+      }
+    });
+  }
+  
+  // 계좌 수정 함수
+  window.editAccount = function(id) {
+    const account = accountData.find(acc => acc.id === id);
+    if (!account) {
+      alert('해당 계좌를 찾을 수 없습니다.');
+      return;
+    }
+    
+    editingAccountId = id;
+    if (accountModalTitle) {
+      accountModalTitle.textContent = '📝 계좌 수정';
+    }
+    
+    // 폼에 기존 데이터 채우기
+    const nameInput = document.getElementById('account-name');
+    const typeRadios = accountForm.querySelectorAll('input[name="account-type"]');
+    const initialBalanceInput = document.getElementById('account-initial-balance');
+    const creditLimitInput = document.getElementById('account-credit-limit');
+    const paymentDayInput = document.getElementById('account-payment-day');
+    const linkedAccountSelect = document.getElementById('account-linked-account');
+    
+    if (nameInput) nameInput.value = account.name;
+    if (typeRadios) {
+      typeRadios.forEach(radio => {
+        radio.checked = (radio.value === account.type);
+      });
+      updateAccountTypeFields();
+    }
+    
+    if (account.type === 'bank') {
+      if (initialBalanceInput) {
+        initialBalanceInput.value = formatNumberWithCommas(String(account.initialBalance || 0));
+      }
+    } else if (account.type === 'card') {
+      if (creditLimitInput) {
+        creditLimitInput.value = formatNumberWithCommas(String(account.creditLimit || 0));
+      }
+      if (paymentDayInput) paymentDayInput.value = account.paymentDay || '';
+      if (linkedAccountSelect) {
+        updateLinkedAccountOptions();
+        linkedAccountSelect.value = account.linkedAccount || '';
+      }
+    }
+    
+    openAccountModal(true);
+  };
+  
+  // 계좌 삭제 함수
+  window.deleteAccount = function(id) {
+    if (confirm('정말 삭제하시겠습니까?')) {
+      const index = accountData.findIndex(acc => acc.id === id);
+      if (index > -1) {
+        accountData.splice(index, 1);
+        saveAccountData();
+        calculateAccountBalances();
+        
+        // 계좌 관리 탭이 열려있으면 다시 렌더링
+        const otherContent = document.getElementById('other-tab-content');
+        if (otherContent && otherContent.style.display !== 'none') {
+          renderAccountsTab(otherContent);
+        }
+        
+        updateDashboard();
+        alert('삭제되었습니다!');
+      } else {
+        alert('해당 계좌를 찾을 수 없습니다.');
+      }
+    }
+  };
+  
+  // 계좌 금액 입력 필드 포맷팅
+  const accountInitialBalanceInput = document.getElementById('account-initial-balance');
+  const accountCreditLimitInput = document.getElementById('account-credit-limit');
+  
+  if (accountInitialBalanceInput) {
+    accountInitialBalanceInput.addEventListener('input', function(e) {
+      const cursorPosition = e.target.selectionStart;
+      const value = e.target.value;
+      const numbers = removeCommas(value);
+      const formatted = formatNumberWithCommas(numbers);
+      e.target.value = formatted;
+      const addedCommas = (formatted.match(/,/g) || []).length - (value.match(/,/g) || []).length;
+      const newCursorPosition = cursorPosition + addedCommas;
+      e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+    });
+  }
+  
+  if (accountCreditLimitInput) {
+    accountCreditLimitInput.addEventListener('input', function(e) {
+      const cursorPosition = e.target.selectionStart;
+      const value = e.target.value;
+      const numbers = removeCommas(value);
+      const formatted = formatNumberWithCommas(numbers);
+      e.target.value = formatted;
+      const addedCommas = (formatted.match(/,/g) || []).length - (value.match(/,/g) || []).length;
+      const newCursorPosition = cursorPosition + addedCommas;
+      e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+    });
+  }
 
   // 초기 렌더링
   renderTable();
