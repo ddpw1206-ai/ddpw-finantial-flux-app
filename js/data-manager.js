@@ -8,7 +8,7 @@ function saveData() {
     console.log('거래 데이터 저장:', transactionData.length);
     
     // 폴더가 선택되어 있으면 파일에도 저장
-    const folderHandle = window.dataFolderHandle || dataFolderHandle;
+    const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
     if (folderHandle) {
       saveDataToFolder().catch(error => {
         console.error('파일 저장 실패, localStorage만 사용:', error);
@@ -26,7 +26,8 @@ function saveAccountData() {
     console.log('계좌 데이터 저장:', accountData.length);
     
     // 폴더가 선택되어 있으면 파일에도 저장
-    if (dataFolderHandle) {
+    const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
+    if (folderHandle) {
       saveDataToFolder().catch(error => {
         console.error('파일 저장 실패, localStorage만 사용:', error);
       });
@@ -43,7 +44,8 @@ function saveMerchantHistory() {
     console.log('사용처 히스토리 저장:', merchantHistory.length);
     
     // 폴더가 선택되어 있으면 파일에도 저장
-    if (dataFolderHandle) {
+    const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
+    if (folderHandle) {
       saveDataToFolder().catch(error => {
         console.error('파일 저장 실패, localStorage만 사용:', error);
       });
@@ -60,7 +62,8 @@ function saveCardData() {
     console.log('카드 데이터 저장:', cardData.length);
     
     // 폴더가 선택되어 있으면 파일에도 저장
-    if (dataFolderHandle) {
+    const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
+    if (folderHandle) {
       saveDataToFolder().catch(error => {
         console.error('파일 저장 실패, localStorage만 사용:', error);
       });
@@ -178,7 +181,7 @@ async function selectDataFolder() {
 // 폴더에 데이터 저장
 async function saveDataToFolder() {
   // config.js의 전역 변수 사용
-  const folderHandle = window.dataFolderHandle || dataFolderHandle;
+  const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
   if (!folderHandle) {
     // 폴더가 선택되지 않았으면 localStorage만 사용
     return false;
@@ -226,7 +229,7 @@ async function saveDataToFolder() {
 // 폴더에서 데이터 로드
 async function loadDataFromFolder() {
   // config.js의 전역 변수 사용
-  const folderHandle = window.dataFolderHandle || dataFolderHandle;
+  const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
   if (!folderHandle) {
     return false;
   }

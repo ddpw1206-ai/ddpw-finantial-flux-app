@@ -404,21 +404,6 @@ window.updatePaymentOptions = function() {
   
   console.log('결제수단 옵션 업데이트 완료');
 }
-  
-  // 현금 출금계좌 옵션 업데이트
-  const cashSelect = document.getElementById('cash-account-select') || document.querySelector('select[name="cash-account"]');
-  if (cashSelect) {
-    cashSelect.innerHTML = '<option value="">--선택--</option>';
-    if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
-      accountData.filter(acc => acc.type === 'bank').forEach(account => {
-        const option = document.createElement('option');
-        option.value = account.name;
-        option.textContent = account.name;
-        cashSelect.appendChild(option);
-      });
-    }
-  }
-}
 
 // 신용카드 카드사 선택 시 카드 목록 업데이트
 function updateCreditCardList(selectedCompany) {

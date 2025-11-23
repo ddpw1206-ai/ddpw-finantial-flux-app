@@ -558,6 +558,8 @@ function renderTable() {
             <th>담당자</th>
             <th>항목</th>
             <th>카테고리</th>
+            <th>사용처</th>
+            <th>세부내용</th>
             <th>금액</th>
             <th>결제수단</th>
             <th>상태</th>
@@ -594,7 +596,7 @@ function renderTable() {
   
   if (monthData.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="8" style="text-align:center; padding:40px;">등록된 내역이 없습니다</td>';
+    tr.innerHTML = '<td colspan="10" style="text-align:center; padding:40px;">등록된 내역이 없습니다</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -632,6 +634,8 @@ function renderTable() {
       <td>${entry.user || '-'}</td>
       <td>${entry.item || '-'}</td>
       <td>${entry.category || '-'}</td>
+      <td>${entry.merchant || '-'}</td>
+      <td>${entry.detail || '-'}</td>
       <td class="${amountClass}">${amountStr}</td>
       <td>${paymentMethodText}</td>
       <td>${entry.status || '⏳대기'}</td>
@@ -720,6 +724,8 @@ function renderCardTable(selectedCard = 'all') {
             <th>담당자</th>
             <th>항목</th>
             <th>카테고리</th>
+            <th>사용처</th>
+            <th>세부내용</th>
             <th>금액</th>
             <th>결제수단</th>
             <th>상태</th>
@@ -732,7 +738,7 @@ function renderCardTable(selectedCard = 'all') {
   if (cardData.length === 0) {
     tableHTML += `
       <tr>
-        <td colspan="8" style="text-align:center; padding:40px;">카드 내역이 없습니다</td>
+        <td colspan="10" style="text-align:center; padding:40px;">카드 내역이 없습니다</td>
       </tr>
     `;
   } else {
@@ -758,6 +764,8 @@ function renderCardTable(selectedCard = 'all') {
           <td>${entry.user || '-'}</td>
           <td>${entry.item || '-'}</td>
           <td>${entry.category || '-'}</td>
+          <td>${entry.merchant || '-'}</td>
+          <td>${entry.detail || '-'}</td>
           <td class="${amountClass}">${amountStr}</td>
           <td>${paymentMethodText}</td>
           <td>${entry.status || '⏳대기'}</td>
@@ -794,8 +802,38 @@ function renderBankTable() {
   const bankContent = document.getElementById('bank-content');
   if (!bankContent) return;
   
-  // 테이블 컨테이너 완전히 새로 생성 (중복 방지)
-  bankContent.innerHTML = '';
+  // 계좌 필터 드롭다운과 테이블 컨테이너 생성
+  bankContent.innerHTML = `
+    <!-- 계좌 필터 드롭다운 -->
+    <div style="margin-bottom: 24px;">
+      <label for="bank-account-filter-select" style="font-size: 0.95rem; font-weight: 500; color: #374151; margin-right: 12px;">계좌 선택:</label>
+      <select id="bank-account-filter-select" style="padding: 10px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; outline: none; cursor: pointer; background: #FFFFFF; color: #111827; transition: all 0.2s ease; min-width: 200px;">
+        <option value="all">전체 계좌</option>
+      </select>
+    </div>
+    <!-- 테이블 컨테이너 -->
+    <div id="bank-table-container"></div>
+  `;
+  
+  // 계좌 필터 옵션 업데이트
+  const bankAccountFilterSelect = bankContent.querySelector('#bank-account-filter-select');
+  if (bankAccountFilterSelect) {
+    bankAccountFilterSelect.innerHTML = '<option value="all">전체 계좌</option>';
+    if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+      accountData.filter(acc => acc.type === 'bank').forEach(account => {
+        const option = document.createElement('option');
+        option.value = account.name;
+        option.textContent = account.name;
+        bankAccountFilterSelect.appendChild(option);
+      });
+    }
+  }
+  
+  const bankTableContainer = bankContent.querySelector('#bank-table-container');
+  if (!bankTableContainer) return;
+  
+  // 선택된 계좌 값 가져오기
+  const selectedAccount = bankAccountFilterSelect ? bankAccountFilterSelect.value : 'all';
   
   // 통장 입출금: paymentMethod가 'transfer' 또는 'cash'인 직접 거래만
   let monthData = getCurrentMonthData();
@@ -815,6 +853,13 @@ function renderBankTable() {
   let bankData = monthData.filter(entry => 
     entry.paymentMethod === 'transfer' || entry.paymentMethod === 'cash'
   );
+  
+  // 선택된 계좌로 필터링
+  if (selectedAccount !== 'all') {
+    bankData = bankData.filter(entry => 
+      entry.paymentDetail && entry.paymentDetail.includes(selectedAccount)
+    );
+  }
   
   // 카드 결제 대금 자동이체 내역 추가 (item이 '카드대금'인 경우)
   const cardPayments = monthData.filter(entry => 
@@ -848,6 +893,8 @@ function renderBankTable() {
             <th>담당자</th>
             <th>항목</th>
             <th>카테고리</th>
+            <th>사용처</th>
+            <th>세부내용</th>
             <th>금액</th>
             <th>결제수단</th>
             <th>상태</th>
@@ -861,7 +908,7 @@ function renderBankTable() {
   if (bankData.length === 0 && cardPayments.length === 0) {
     tableHTML += `
       <tr>
-        <td colspan="8" style="text-align:center; padding:40px;">통장 입출금 내역이 없습니다</td>
+        <td colspan="10" style="text-align:center; padding:40px;">통장 입출금 내역이 없습니다</td>
       </tr>
     `;
   } else {
@@ -888,6 +935,8 @@ function renderBankTable() {
           <td>${entry.user || '-'}</td>
           <td>${entry.item || '-'}</td>
           <td>${entry.category || '-'}</td>
+          <td>${entry.merchant || '-'}</td>
+          <td>${entry.detail || '-'}</td>
           <td class="${amountClass}">${amountStr}</td>
           <td>${paymentMethodText}</td>
           <td>${entry.status || '⏳대기'}</td>
@@ -914,6 +963,8 @@ function renderBankTable() {
             <td>${entry.user || '-'}</td>
             <td>${entry.item || '-'}</td>
             <td>${entry.category || '-'}</td>
+            <td>${entry.merchant || '-'}</td>
+            <td>${entry.detail || '-'}</td>
             <td class="expense-out">${amountStr}</td>
             <td>${paymentMethodText}</td>
             <td>${entry.status || '✅완료'}</td>
@@ -933,7 +984,15 @@ function renderBankTable() {
     </div>
   `;
   
-  bankContent.innerHTML = tableHTML;
+  bankTableContainer.innerHTML = tableHTML;
+  
+  // 계좌 필터 change 이벤트 리스너 재등록
+  if (bankAccountFilterSelect) {
+    bankAccountFilterSelect.addEventListener('change', function() {
+      renderBankTable();
+    });
+  }
+  
   console.log('통장 입출금 테이블 렌더링 완료:', bankData.length, '개 직접 거래', cardPayments.length, '개 카드 결제 대금');
 }
 

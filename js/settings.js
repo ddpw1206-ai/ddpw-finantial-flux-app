@@ -116,39 +116,27 @@ window.renderSettingsTab = function(container) {
               }
               alert('데이터를 불러왔습니다.');
             } else {
-              alert('불러올 데이터가 없습니다.');
+              // 폴더에는 데이터가 없지만 선택은 완료됨
+              // 현재 localStorage 데이터를 폴더에 저장
+              if (typeof saveData === 'function') saveData();
+              if (typeof saveAccountData === 'function') saveAccountData();
+              if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
+              if (typeof saveCardData === 'function') saveCardData();
+              
+              alert('폴더가 선택되었습니다. 현재 데이터가 폴더에 저장되었습니다.');
             }
-          }
-        } else {
-          // 폴더만 지정하고 불러오지 않음
-          console.log('폴더만 선택되었습니다. 이후 헤더의 저장/불러오기 버튼을 사용하세요.');
-        }
-            if (window.currentActiveTab === 'accounts') {
-              const accountsContainer = document.getElementById('accounts-container');
-              if (accountsContainer && typeof window.renderAccountsTab === 'function') {
-                window.renderAccountsTab(accountsContainer);
-              }
-            }
-            
-            alert('폴더가 선택되었고 데이터를 불러왔습니다!');
           } else {
-            // 폴더에는 데이터가 없지만 선택은 완료됨
-            // 현재 localStorage 데이터를 폴더에 저장
+            // loadDataFromFolder 함수가 없는 경우에도 현재 데이터 저장
             if (typeof saveData === 'function') saveData();
             if (typeof saveAccountData === 'function') saveAccountData();
             if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
             if (typeof saveCardData === 'function') saveCardData();
             
-            alert('폴더가 선택되었습니다. 현재 데이터가 폴더에 저장되었습니다.');
+            alert('폴더가 선택되었습니다. 이제 데이터가 자동으로 파일에 저장됩니다.');
           }
         } else {
-          // loadDataFromFolder 함수가 없는 경우에도 현재 데이터 저장
-          if (typeof saveData === 'function') saveData();
-          if (typeof saveAccountData === 'function') saveAccountData();
-          if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
-          if (typeof saveCardData === 'function') saveCardData();
-          
-          alert('폴더가 선택되었습니다. 이제 데이터가 자동으로 파일에 저장됩니다.');
+          // 폴더만 지정하고 불러오지 않음
+          console.log('폴더만 선택되었습니다. 이후 헤더의 저장/불러오기 버튼을 사용하세요.');
         }
       } else {
         alert('폴더 선택이 취소되었습니다.');
