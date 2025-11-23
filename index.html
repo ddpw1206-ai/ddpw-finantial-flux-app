@@ -5588,13 +5588,51 @@ window.deleteTransaction = function(id) {
                 });
                 
                 // 데이터 저장
-                saveData();
+                if (typeof saveData === 'function') {
+                  saveData();
+                }
                 
-                // 모든 테이블 갱신
-                renderTable();
-                renderCardTable('all');
-                renderBankTable();
-                updateDashboard();
+                // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
+                const currentTab = window.currentActiveTab || 'dashboard';
+                
+                // 모든 테이블 갱신 (현재 탭이 dashboard인 경우)
+                if (currentTab === 'dashboard') {
+                  if (typeof renderTable === 'function') {
+                    renderTable();
+                  }
+                  if (typeof renderCardTable === 'function') {
+                    renderCardTable('all');
+                  }
+                  if (typeof renderBankTable === 'function') {
+                    renderBankTable();
+                  }
+                  if (typeof updateDashboard === 'function') {
+                    updateDashboard();
+                  }
+                } else if (currentTab === 'accounts') {
+                  // 계좌 관리 탭인 경우 계좌 테이블 갱신
+                  if (typeof renderAccountTransactionTable === 'function') {
+                    const accountSelect = document.getElementById('account-filter-select');
+                    const selectedAccount = accountSelect ? accountSelect.value : 'all';
+                    renderAccountTransactionTable(selectedAccount);
+                  }
+                  // 계좌 목록도 갱신
+                  const accountsContainer = document.getElementById('accounts-container');
+                  if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+                    window.renderAccountsTab(accountsContainer);
+                  }
+                } else if (currentTab === 'cards') {
+                  // 결제수단 관리 탭인 경우 카드 목록 갱신
+                  const paymentMethodsContainer = document.getElementById('payment-methods-container');
+                  if (paymentMethodsContainer && typeof window.renderPaymentMethodsTab === 'function') {
+                    window.renderPaymentMethodsTab(paymentMethodsContainer);
+                  }
+                }
+                
+                // 대시보드는 항상 업데이트 (다른 탭에서도 요약 정보가 필요할 수 있음)
+                if (typeof updateDashboard === 'function') {
+                  updateDashboard();
+                }
                 
                 // 현재 활성화된 하위 탭 확인 및 표시
                 const activeSubTab = document.querySelector('.sub-tab-btn.active');
@@ -6027,35 +6065,73 @@ window.deleteTransaction = function(id) {
                 });
                 
                 // 데이터 저장
-                saveData();
+                if (typeof saveData === 'function') {
+                  saveData();
+                }
                 
-                // 모든 테이블 갱신
-                renderTable();
-                renderCardTable('all');
-                renderBankTable();
-                updateDashboard();
+                // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
+                const currentTab = window.currentActiveTab || 'dashboard';
                 
-                // 현재 활성화된 하위 탭 확인 및 표시
-                const activeSubTab = document.querySelector('.sub-tab-btn.active');
-                if (activeSubTab) {
-                  const subtabKey = activeSubTab.getAttribute('data-subtab');
-                  const totalContent = document.getElementById('total-content');
-                  const cardContent = document.getElementById('card-content');
-                  const bankContent = document.getElementById('bank-content');
-                  
-                  // 모든 하위 탭 숨김
-                  if (totalContent) totalContent.style.display = 'none';
-                  if (cardContent) cardContent.style.display = 'none';
-                  if (bankContent) bankContent.style.display = 'none';
-                  
-                  // 활성화된 탭만 표시
-                  if (subtabKey === 'total' && totalContent) {
-                    totalContent.style.display = 'block';
-                  } else if (subtabKey === 'card' && cardContent) {
-                    cardContent.style.display = 'block';
-                  } else if (subtabKey === 'bank' && bankContent) {
-                    bankContent.style.display = 'block';
+                // 모든 테이블 갱신 (현재 탭이 dashboard인 경우)
+                if (currentTab === 'dashboard') {
+                  if (typeof renderTable === 'function') {
+                    renderTable();
                   }
+                  if (typeof renderCardTable === 'function') {
+                    renderCardTable('all');
+                  }
+                  if (typeof renderBankTable === 'function') {
+                    renderBankTable();
+                  }
+                  if (typeof updateDashboard === 'function') {
+                    updateDashboard();
+                  }
+                  
+                  // 현재 활성화된 하위 탭 확인 및 표시
+                  const activeSubTab = document.querySelector('.sub-tab-btn.active');
+                  if (activeSubTab) {
+                    const subtabKey = activeSubTab.getAttribute('data-subtab');
+                    const totalContent = document.getElementById('total-content');
+                    const cardContent = document.getElementById('card-content');
+                    const bankContent = document.getElementById('bank-content');
+                    
+                    // 모든 하위 탭 숨김
+                    if (totalContent) totalContent.style.display = 'none';
+                    if (cardContent) cardContent.style.display = 'none';
+                    if (bankContent) bankContent.style.display = 'none';
+                    
+                    // 활성화된 탭만 표시
+                    if (subtabKey === 'total' && totalContent) {
+                      totalContent.style.display = 'block';
+                    } else if (subtabKey === 'card' && cardContent) {
+                      cardContent.style.display = 'block';
+                    } else if (subtabKey === 'bank' && bankContent) {
+                      bankContent.style.display = 'block';
+                    }
+                  }
+                } else if (currentTab === 'accounts') {
+                  // 계좌 관리 탭인 경우 계좌 테이블 갱신
+                  if (typeof renderAccountTransactionTable === 'function') {
+                    const accountSelect = document.getElementById('account-filter-select');
+                    const selectedAccount = accountSelect ? accountSelect.value : 'all';
+                    renderAccountTransactionTable(selectedAccount);
+                  }
+                  // 계좌 목록도 갱신
+                  const accountsContainer = document.getElementById('accounts-container');
+                  if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+                    window.renderAccountsTab(accountsContainer);
+                  }
+                } else if (currentTab === 'cards') {
+                  // 결제수단 관리 탭인 경우 카드 목록 갱신
+                  const paymentMethodsContainer = document.getElementById('payment-methods-container');
+                  if (paymentMethodsContainer && typeof window.renderPaymentMethodsTab === 'function') {
+                    window.renderPaymentMethodsTab(paymentMethodsContainer);
+                  }
+                }
+                
+                // 대시보드는 항상 업데이트 (다른 탭에서도 요약 정보가 필요할 수 있음)
+                if (typeof updateDashboard === 'function') {
+                  updateDashboard();
                 }
                 
                 // console.log로 데이터 확인

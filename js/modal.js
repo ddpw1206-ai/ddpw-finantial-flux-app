@@ -109,57 +109,89 @@ window.updateCategoryOptions = function() {
   const categorySelect = document.getElementById('entry-category-kind');
   const itemSelect = document.getElementById('entry-category-item');
   
-  if (!typeRadios || !categorySelect || !itemSelect) return;
+  if (!typeRadios || !categorySelect || !itemSelect) {
+    console.warn('updateCategoryOptions: 필수 요소를 찾을 수 없습니다.');
+    return;
+  }
   
   const selectedType = Array.from(typeRadios).find(radio => radio.checked)?.value;
+  
+  if (!selectedType) {
+    console.warn('updateCategoryOptions: 선택된 구분이 없습니다.');
+    return;
+  }
   
   // 카테고리 드롭다운 초기화
   categorySelect.innerHTML = '<option value="">--선택--</option>';
   // 항목 드롭다운도 초기화
   itemSelect.innerHTML = '<option value="">카테고리를 먼저 선택하세요</option>';
   
+  // 카테고리 데이터 접근 (전역 또는 window 객체에서)
+  const expenseItems = window.expenseCategoryItems || expenseCategoryItems || (typeof expenseCategoryItems !== 'undefined' ? expenseCategoryItems : null);
+  const incomeItems = window.incomeCategoryItems || incomeCategoryItems || (typeof incomeCategoryItems !== 'undefined' ? incomeCategoryItems : null);
+  
   if (selectedType === 'expense') {
     // 지출용 카테고리 추가
-    Object.keys(expenseCategoryItems).forEach(category => {
-      const option = document.createElement('option');
-      option.value = category;
-      option.textContent = category;
-      categorySelect.appendChild(option);
-    });
+    if (expenseItems && typeof expenseItems === 'object') {
+      Object.keys(expenseItems).forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      });
+    } else {
+      console.error('expenseCategoryItems를 찾을 수 없습니다.');
+    }
   } else if (selectedType === 'income') {
     // 수입용 카테고리 추가
-    Object.keys(incomeCategoryItems).forEach(category => {
-      const option = document.createElement('option');
-      option.value = category;
-      option.textContent = category;
-      categorySelect.appendChild(option);
-    });
+    if (incomeItems && typeof incomeItems === 'object') {
+      Object.keys(incomeItems).forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      });
+    } else {
+      console.error('incomeCategoryItems를 찾을 수 없습니다.');
+    }
   }
 }
 
-// 카테고리 선택 시 항목 드롭다운 업데이트 (전역으로 노출)
+  // 카테고리 선택 시 항목 드롭다운 업데이트 (전역으로 노출)
 window.updateItemOptions = function() {
   const form = document.getElementById('entry-form');
   const typeRadios = form ? form.querySelectorAll('input[name="type"]') : document.querySelectorAll('input[name="type"]');
   const categorySelect = document.getElementById('entry-category-kind');
   const itemSelect = document.getElementById('entry-category-item');
   
-  if (!typeRadios || !categorySelect || !itemSelect) return;
+  if (!typeRadios || !categorySelect || !itemSelect) {
+    console.warn('updateItemOptions: 필수 요소를 찾을 수 없습니다.');
+    return;
+  }
   
   const selectedType = Array.from(typeRadios).find(radio => radio.checked)?.value;
   const selectedCategory = categorySelect.value;
   
+  if (!selectedType) {
+    console.warn('updateItemOptions: 선택된 구분이 없습니다.');
+    return;
+  }
+  
   // 항목 드롭다운 초기화
   itemSelect.innerHTML = '<option value="">--선택--</option>';
   
+  // 카테고리 데이터 접근 (전역 또는 window 객체에서)
+  const expenseItems = window.expenseCategoryItems || expenseCategoryItems || (typeof expenseCategoryItems !== 'undefined' ? expenseCategoryItems : null);
+  const incomeItems = window.incomeCategoryItems || incomeCategoryItems || (typeof incomeCategoryItems !== 'undefined' ? incomeCategoryItems : null);
+  
   let categoryItems = {};
   if (selectedType === 'expense') {
-    categoryItems = expenseCategoryItems;
+    categoryItems = expenseItems || {};
   } else if (selectedType === 'income') {
-    categoryItems = incomeCategoryItems;
+    categoryItems = incomeItems || {};
   }
   
-  if (selectedCategory && categoryItems[selectedCategory]) {
+  if (selectedCategory && categoryItems && categoryItems[selectedCategory] && Array.isArray(categoryItems[selectedCategory])) {
     // 선택된 카테고리에 해당하는 항목들 추가
     categoryItems[selectedCategory].forEach(item => {
       const option = document.createElement('option');
@@ -556,7 +588,8 @@ if (form) {
       alert('날짜를 입력해주세요.');
       return;
     }
-    if (!user) {
+    // 담당자 검증: 빈 문자열, null, undefined 모두 체크
+    if (!user || user.trim() === '' || user === 'null' || user === 'undefined') {
       alert('담당자를 선택해주세요.');
       return;
     }
@@ -637,18 +670,45 @@ if (form) {
         if (typeof calculateAccountBalances === 'function') {
           calculateAccountBalances();
         }
-        if (typeof renderTable === 'function') {
-          renderTable();
+        
+        // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
+        const currentTab = window.currentActiveTab || 'dashboard';
+        
+        if (currentTab === 'dashboard') {
+          if (typeof renderTable === 'function') {
+            renderTable();
+          }
+          if (typeof renderCardTable === 'function') {
+            renderCardTable('all');
+          }
+          if (typeof renderBankTable === 'function') {
+            renderBankTable();
+          }
+        } else if (currentTab === 'accounts') {
+          // 계좌 관리 탭인 경우 계좌 테이블 갱신
+          if (typeof renderAccountTransactionTable === 'function') {
+            const accountSelect = document.getElementById('account-filter-select');
+            const selectedAccount = accountSelect ? accountSelect.value : 'all';
+            renderAccountTransactionTable(selectedAccount);
+          }
+          // 계좌 목록도 갱신
+          const accountsContainer = document.getElementById('accounts-container');
+          if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+            window.renderAccountsTab(accountsContainer);
+          }
+        } else if (currentTab === 'cards') {
+          // 결제수단 관리 탭인 경우 카드 목록 갱신
+          const paymentMethodsContainer = document.getElementById('payment-methods-container');
+          if (paymentMethodsContainer && typeof window.renderPaymentMethodsTab === 'function') {
+            window.renderPaymentMethodsTab(paymentMethodsContainer);
+          }
         }
-        if (typeof renderCardTable === 'function') {
-          renderCardTable('all');
-        }
-        if (typeof renderBankTable === 'function') {
-          renderBankTable();
-        }
+        
+        // 대시보드는 항상 업데이트
         if (typeof updateDashboard === 'function') {
           updateDashboard();
         }
+        
         alert('수정되었습니다!');
         if (typeof window.closeModal === 'function') {
           window.closeModal();
@@ -656,6 +716,12 @@ if (form) {
       }
     } else {
       // 신규 입력 모드: 새 데이터 추가
+      // 담당자 검증 강화
+      if (!user || user.trim() === '' || user === 'null' || user === 'undefined') {
+        alert('담당자를 선택해주세요.');
+        return;
+      }
+      
       const now = Date.now();
       const entry = {
         id: now,
@@ -706,14 +772,34 @@ if (form) {
 // 수정 기능
 // ========================================
 window.editTransaction = function(id) {
-  console.log('수정 모드 시작 - ID:', id);
+  console.log('수정 모드 시작 - ID:', id, '타입:', typeof id);
   
-  // transactionData에서 해당 id 데이터 찾기
-  const entry = transactionData.find(item => item.id === id);
+  // id 타입 변환 (문자열로 전달될 수 있음)
+  const searchId = typeof id === 'string' ? parseFloat(id) : id;
+  
+  // transactionData 접근 확인
+  if (typeof transactionData === 'undefined' || !Array.isArray(transactionData)) {
+    console.error('transactionData가 정의되지 않았거나 배열이 아닙니다.');
+    alert('데이터를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+    return;
+  }
+  
+  console.log('transactionData 길이:', transactionData.length);
+  console.log('검색할 ID:', searchId);
+  
+  // transactionData에서 해당 id 데이터 찾기 (숫자 비교)
+  const entry = transactionData.find(item => {
+    const itemId = typeof item.id === 'string' ? parseFloat(item.id) : item.id;
+    return itemId === searchId || item.id === searchId;
+  });
+  
   if (!entry) {
+    console.error('내역을 찾을 수 없음. 전체 ID 목록:', transactionData.map(t => ({ id: t.id, type: typeof t.id })));
     alert('해당 내역을 찾을 수 없습니다.');
     return;
   }
+  
+  console.log('찾은 내역:', entry);
   
   // 모달 제목 변경
   if (modalTitle) {
@@ -1435,6 +1521,14 @@ window.openAccountTransactionModal = function() {
     accountTransactionModalOverlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     
+    // 폼 완전 초기화
+    if (accountTransactionForm) {
+      accountTransactionForm.reset();
+    }
+    if (accountTransactionCardForm) {
+      accountTransactionCardForm.reset();
+    }
+    
     // 오늘 날짜로 설정
     const today = new Date();
     const dateInput = document.getElementById('account-transaction-date');
@@ -1468,10 +1562,22 @@ window.openAccountTransactionModal = function() {
       generalTabBtn.style.borderBottomColor = '#EF4444';
     }
     
-    // 카테고리 옵션 초기화
-    if (typeof window.updateAccountTransactionCategoryOptions === 'function') {
-      window.updateAccountTransactionCategoryOptions();
+    // 구분 라디오 버튼 기본값 설정 (지출)
+    const typeRadios = accountTransactionForm ? accountTransactionForm.querySelectorAll('input[name="account-transaction-type"]') : [];
+    if (typeRadios && typeRadios.length > 0) {
+      typeRadios.forEach(radio => {
+        if (radio.value === 'expense') {
+          radio.checked = true;
+        }
+      });
     }
+    
+    // 카테고리 옵션 초기화 (약간의 지연을 두어 DOM 업데이트 대기)
+    setTimeout(() => {
+      if (typeof window.updateAccountTransactionCategoryOptions === 'function') {
+        window.updateAccountTransactionCategoryOptions();
+      }
+    }, 50);
     
     // 금액 입력 필드에 천 단위 콤마 자동 포맷팅
     const amountInput = document.getElementById('account-transaction-amount');
@@ -1491,6 +1597,10 @@ window.openAccountTransactionModal = function() {
         e.target.setSelectionRange(newCursorPosition, newCursorPosition);
       });
     }
+    
+    console.log('계좌 입출금 내역 등록 모달 열림');
+  } else {
+    console.error('account-transaction-modal-overlay를 찾을 수 없습니다.');
   }
 };
 
@@ -1696,25 +1806,33 @@ window.updateAccountTransactionCategoryOptions = function() {
   // 항목 드롭다운도 초기화
   itemSelect.innerHTML = '<option value="">카테고리를 먼저 선택하세요</option>';
   
+  // 카테고리 데이터 접근 (전역 또는 window 객체에서)
+  const expenseItems = window.expenseCategoryItems || expenseCategoryItems || (typeof expenseCategoryItems !== 'undefined' ? expenseCategoryItems : null);
+  const incomeItems = window.incomeCategoryItems || incomeCategoryItems || (typeof incomeCategoryItems !== 'undefined' ? incomeCategoryItems : null);
+  
   if (selectedType === 'expense') {
     // 지출용 카테고리 추가
-    if (typeof expenseCategoryItems !== 'undefined') {
-      Object.keys(expenseCategoryItems).forEach(category => {
+    if (expenseItems && typeof expenseItems === 'object') {
+      Object.keys(expenseItems).forEach(category => {
         const option = document.createElement('option');
         option.value = category;
         option.textContent = category;
         categorySelect.appendChild(option);
       });
+    } else {
+      console.error('expenseCategoryItems를 찾을 수 없습니다.');
     }
   } else if (selectedType === 'income') {
     // 수입용 카테고리 추가
-    if (typeof incomeCategoryItems !== 'undefined') {
-      Object.keys(incomeCategoryItems).forEach(category => {
+    if (incomeItems && typeof incomeItems === 'object') {
+      Object.keys(incomeItems).forEach(category => {
         const option = document.createElement('option');
         option.value = category;
         option.textContent = category;
         categorySelect.appendChild(option);
       });
+    } else {
+      console.error('incomeCategoryItems를 찾을 수 없습니다.');
     }
   }
 };
@@ -1736,11 +1854,15 @@ window.updateAccountTransactionItemOptions = function() {
   // 항목 드롭다운 초기화
   itemSelect.innerHTML = '<option value="">--선택--</option>';
   
+  // 카테고리 데이터 접근 (전역 또는 window 객체에서)
+  const expenseItems = window.expenseCategoryItems || expenseCategoryItems || (typeof expenseCategoryItems !== 'undefined' ? expenseCategoryItems : null);
+  const incomeItems = window.incomeCategoryItems || incomeCategoryItems || (typeof incomeCategoryItems !== 'undefined' ? incomeCategoryItems : null);
+  
   let categoryItems = {};
   if (selectedType === 'expense') {
-    categoryItems = typeof expenseCategoryItems !== 'undefined' ? expenseCategoryItems : {};
+    categoryItems = expenseItems || {};
   } else if (selectedType === 'income') {
-    categoryItems = typeof incomeCategoryItems !== 'undefined' ? incomeCategoryItems : {};
+    categoryItems = incomeItems || {};
   }
   
   if (selectedCategory && categoryItems[selectedCategory]) {
@@ -1821,21 +1943,37 @@ if (accountTransactionForm) {
       saveData();
     }
     
+    // 현재 활성 탭 확인 후 해당 탭의 렌더 함수 호출
+    const currentTab = window.currentActiveTab || 'dashboard';
+    
     // 계좌 입출금 관리 탭 갱신
-    if (typeof renderAccountTransactionTable === 'function') {
-      renderAccountTransactionTable('all');
+    if (currentTab === 'accounts') {
+      if (typeof renderAccountTransactionTable === 'function') {
+        const accountSelect = document.getElementById('account-filter-select');
+        const selectedAccount = accountSelect ? accountSelect.value : 'all';
+        renderAccountTransactionTable(selectedAccount);
+      }
+      // 계좌 목록도 갱신
+      const accountsContainer = document.getElementById('accounts-container');
+      if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+        window.renderAccountsTab(accountsContainer);
+      }
     }
     
     // 월별 현황 탭도 갱신 (열려있을 경우)
-    if (typeof renderTable === 'function') {
-      renderTable();
+    if (currentTab === 'dashboard') {
+      if (typeof renderTable === 'function') {
+        renderTable();
+      }
+      if (typeof renderCardTable === 'function') {
+        renderCardTable('all');
+      }
+      if (typeof renderBankTable === 'function') {
+        renderBankTable();
+      }
     }
-    if (typeof renderCardTable === 'function') {
-      renderCardTable('all');
-    }
-    if (typeof renderBankTable === 'function') {
-      renderBankTable();
-    }
+    
+    // 대시보드는 항상 업데이트
     if (typeof updateDashboard === 'function') {
       updateDashboard();
     }
