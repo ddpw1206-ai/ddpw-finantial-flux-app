@@ -1773,9 +1773,10 @@ if (accountTransactionModalOverlay) {
   });
 }
 
-// 카드 선택 시 정보 업데이트
+// 카드 선택 시 정보 업데이트 및 구분 라디오 버튼 변경 이벤트
 if (accountTransactionModalOverlay) {
   accountTransactionModalOverlay.addEventListener('change', function(e) {
+    // 카드 선택 시 정보 업데이트
     if (e.target.id === 'account-transaction-card-select') {
       updateCardPaymentInfo(e.target.value);
     }
@@ -1785,33 +1786,68 @@ if (accountTransactionModalOverlay) {
         updateCardPaymentInfo(cardSelect.value);
       }
     }
+    
+    // 구분(수입/지출) 라디오 버튼 변경 시 카테고리 옵션 업데이트
+    if (e.target.name === 'account-transaction-type' && e.target.type === 'radio') {
+      console.log('구분 변경:', e.target.value);
+      if (typeof window.updateAccountTransactionCategoryOptions === 'function') {
+        window.updateAccountTransactionCategoryOptions();
+      }
+    }
+    
+    // 카테고리 선택 시 항목 옵션 업데이트
+    if (e.target.id === 'account-transaction-category-kind') {
+      console.log('카테고리 변경:', e.target.value);
+      if (typeof window.updateAccountTransactionItemOptions === 'function') {
+        window.updateAccountTransactionItemOptions();
+      }
+    }
   });
 }
 
 // 계좌 입출금 내역 등록 - 카테고리 옵션 업데이트 함수
 window.updateAccountTransactionCategoryOptions = function() {
   const form = document.getElementById('account-transaction-form');
-  if (!form) return;
+  if (!form) {
+    console.warn('updateAccountTransactionCategoryOptions: account-transaction-form을 찾을 수 없습니다.');
+    return;
+  }
   
   const typeRadios = form.querySelectorAll('input[name="account-transaction-type"]');
   const categorySelect = document.getElementById('account-transaction-category-kind');
   const itemSelect = document.getElementById('account-transaction-category-item');
   
-  if (!typeRadios || !categorySelect || !itemSelect) return;
+  if (!typeRadios || typeRadios.length === 0) {
+    console.warn('updateAccountTransactionCategoryOptions: 구분 라디오 버튼을 찾을 수 없습니다.');
+    return;
+  }
+  if (!categorySelect || !itemSelect) {
+    console.warn('updateAccountTransactionCategoryOptions: 카테고리 또는 항목 select를 찾을 수 없습니다.');
+    return;
+  }
   
   const selectedType = Array.from(typeRadios).find(radio => radio.checked)?.value;
   
-  // 카테고리 드롭다운 초기화
+  if (!selectedType) {
+    console.warn('updateAccountTransactionCategoryOptions: 선택된 구분이 없습니다.');
+    return;
+  }
+  
+  console.log('카테고리 옵션 업데이트 - 선택된 구분:', selectedType);
+  
+  // 카테고리 드롭다운 완전 초기화 (기존 옵션 모두 제거)
   categorySelect.innerHTML = '<option value="">--선택--</option>';
-  // 항목 드롭다운도 초기화
+  // 항목 드롭다운도 완전 초기화
   itemSelect.innerHTML = '<option value="">카테고리를 먼저 선택하세요</option>';
   
   // 카테고리 데이터 접근 (전역 또는 window 객체에서)
   const expenseItems = window.expenseCategoryItems || expenseCategoryItems || (typeof expenseCategoryItems !== 'undefined' ? expenseCategoryItems : null);
   const incomeItems = window.incomeCategoryItems || incomeCategoryItems || (typeof incomeCategoryItems !== 'undefined' ? incomeCategoryItems : null);
   
+  console.log('데이터 확인 - expenseItems:', expenseItems ? Object.keys(expenseItems).length + '개' : '없음', 'incomeItems:', incomeItems ? Object.keys(incomeItems).length + '개' : '없음');
+  
   if (selectedType === 'expense') {
-    // 지출용 카테고리 추가
+    // 지출용 카테고리만 추가
     if (expenseItems && typeof expenseItems === 'object') {
       Object.keys(expenseItems).forEach(category => {
         const option = document.createElement('option');
@@ -1819,11 +1855,12 @@ window.updateAccountTransactionCategoryOptions = function() {
         option.textContent = category;
         categorySelect.appendChild(option);
       });
+      console.log('지출용 카테고리 추가 완료:', Object.keys(expenseItems).length, '개');
     } else {
       console.error('expenseCategoryItems를 찾을 수 없습니다.');
     }
   } else if (selectedType === 'income') {
-    // 수입용 카테고리 추가
+    // 수입용 카테고리만 추가
     if (incomeItems && typeof incomeItems === 'object') {
       Object.keys(incomeItems).forEach(category => {
         const option = document.createElement('option');
@@ -1831,6 +1868,7 @@ window.updateAccountTransactionCategoryOptions = function() {
         option.textContent = category;
         categorySelect.appendChild(option);
       });
+      console.log('수입용 카테고리 추가 완료:', Object.keys(incomeItems).length, '개');
     } else {
       console.error('incomeCategoryItems를 찾을 수 없습니다.');
     }
@@ -1840,18 +1878,35 @@ window.updateAccountTransactionCategoryOptions = function() {
 // 계좌 입출금 내역 등록 - 항목 옵션 업데이트 함수
 window.updateAccountTransactionItemOptions = function() {
   const form = document.getElementById('account-transaction-form');
-  if (!form) return;
+  if (!form) {
+    console.warn('updateAccountTransactionItemOptions: account-transaction-form을 찾을 수 없습니다.');
+    return;
+  }
   
   const typeRadios = form.querySelectorAll('input[name="account-transaction-type"]');
   const categorySelect = document.getElementById('account-transaction-category-kind');
   const itemSelect = document.getElementById('account-transaction-category-item');
   
-  if (!typeRadios || !categorySelect || !itemSelect) return;
+  if (!typeRadios || typeRadios.length === 0) {
+    console.warn('updateAccountTransactionItemOptions: 구분 라디오 버튼을 찾을 수 없습니다.');
+    return;
+  }
+  if (!categorySelect || !itemSelect) {
+    console.warn('updateAccountTransactionItemOptions: 카테고리 또는 항목 select를 찾을 수 없습니다.');
+    return;
+  }
   
   const selectedType = Array.from(typeRadios).find(radio => radio.checked)?.value;
   const selectedCategory = categorySelect.value;
   
-  // 항목 드롭다운 초기화
+  if (!selectedType) {
+    console.warn('updateAccountTransactionItemOptions: 선택된 구분이 없습니다.');
+    return;
+  }
+  
+  console.log('항목 옵션 업데이트 - 선택된 구분:', selectedType, '선택된 카테고리:', selectedCategory);
+  
+  // 항목 드롭다운 완전 초기화
   itemSelect.innerHTML = '<option value="">--선택--</option>';
   
   // 카테고리 데이터 접근 (전역 또는 window 객체에서)
@@ -1865,16 +1920,20 @@ window.updateAccountTransactionItemOptions = function() {
     categoryItems = incomeItems || {};
   }
   
-  if (selectedCategory && categoryItems[selectedCategory]) {
-    // 선택된 카테고리에 해당하는 항목들 추가
+  if (selectedCategory && categoryItems && categoryItems[selectedCategory] && Array.isArray(categoryItems[selectedCategory])) {
+    // 선택된 카테고리에 해당하는 항목들만 추가
     categoryItems[selectedCategory].forEach(item => {
       const option = document.createElement('option');
       option.value = item;
       option.textContent = item;
       itemSelect.appendChild(option);
     });
+    console.log('항목 추가 완료:', categoryItems[selectedCategory].length, '개');
   } else {
     itemSelect.innerHTML = '<option value="">카테고리를 먼저 선택하세요</option>';
+    if (selectedCategory) {
+      console.warn('선택된 카테고리에 해당하는 항목을 찾을 수 없습니다:', selectedCategory);
+    }
   }
 };
 
