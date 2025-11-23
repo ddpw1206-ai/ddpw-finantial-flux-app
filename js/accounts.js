@@ -526,12 +526,69 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
       </tr>
     `;
   } else {
+    // 전체 계좌 선택 시 각 계좌별 잔액을 추적하기 위한 맵
+    const accountBalances = new Map();
+    
+    // 전체 계좌 선택 시 각 계좌의 초기 잔액 설정
+    if (selectedAccount === 'all') {
+      accountData.forEach(acc => {
+        if (acc.type === 'bank') {
+          // 통장: currentBalance에서 현재 월의 거래를 역순으로 빼서 초기값 계산
+          let initialBalance = acc.currentBalance || acc.initialBalance || 0;
+          
+          // 현재 월의 거래를 역순으로 처리하여 초기값 계산
+          const currentMonthTransactions = sortedData.filter(t => {
+            const tDate = new Date(t.date);
+            return (t.paymentMethod === 'transfer' || t.paymentMethod === 'cash') &&
+                   t.paymentDetail === acc.name &&
+                   tDate.getFullYear() === curYear &&
+                   tDate.getMonth() + 1 === curMonth;
+          });
+          
+          // 역순으로 빼서 초기값 계산
+          currentMonthTransactions.forEach(t => {
+            if (t.type === 'income') {
+              initialBalance -= t.amount;
+            } else if (t.type === 'expense') {
+              initialBalance += t.amount;
+            }
+          });
+          
+          accountBalances.set(acc.name, initialBalance);
+        } else if (acc.type === 'card') {
+          // 카드: creditLimit에서 currentBalance를 빼서 가용 잔액 계산
+          const creditLimit = acc.creditLimit || 0;
+          const usedAmount = acc.currentBalance || 0;
+          let initialBalance = creditLimit - usedAmount;
+          
+          // 현재 월의 카드 거래를 역순으로 처리
+          const currentMonthTransactions = sortedData.filter(t => {
+            const tDate = new Date(t.date);
+            return t.paymentMethod === 'credit' &&
+                   t.paymentDetail === acc.name &&
+                   tDate.getFullYear() === curYear &&
+                   tDate.getMonth() + 1 === curMonth;
+          });
+          
+          // 역순으로 더해서 초기값 계산
+          currentMonthTransactions.forEach(t => {
+            if (t.type === 'expense') {
+              initialBalance += t.amount;
+            }
+          });
+          
+          accountBalances.set(acc.name, initialBalance);
+        }
+      });
+    }
+    
     sortedData.forEach(entry => {
       const dateObj = new Date(entry.date);
       const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
       
       // 잔액 계산
       if (selectedAccountData) {
+        // 특정 계좌 선택 시
         if (selectedAccountData.type === 'bank') {
           // 통장: 수입은 +, 지출은 -
           if (entry.type === 'income') {
@@ -543,6 +600,32 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
           // 카드: 지출만 사용액에 추가
           if (entry.type === 'expense') {
             runningBalance -= entry.amount;
+          }
+        }
+      } else if (selectedAccount === 'all') {
+        // 전체 계좌 선택 시: 각 거래의 계좌별로 잔액 계산
+        const entryAccount = entry.paymentDetail;
+        if (entryAccount) {
+          let accountBalance = accountBalances.get(entryAccount) || 0;
+          const accountInfo = accountData.find(acc => acc.name === entryAccount);
+          
+          if (accountInfo) {
+            if (accountInfo.type === 'bank') {
+              // 통장: 수입은 +, 지출은 -
+              if (entry.type === 'income') {
+                accountBalance += entry.amount;
+              } else if (entry.type === 'expense') {
+                accountBalance -= entry.amount;
+              }
+            } else if (accountInfo.type === 'card') {
+              // 카드: 지출만 사용액에 추가
+              if (entry.type === 'expense') {
+                accountBalance -= entry.amount;
+              }
+            }
+            
+            accountBalances.set(entryAccount, accountBalance);
+            runningBalance = accountBalance; // 현재 행의 잔액으로 설정
           }
         }
       }

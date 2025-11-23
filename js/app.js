@@ -128,8 +128,21 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       e.stopPropagation();
       
-      // 1. active 클래스 제거
-      tabButtons.forEach(b => b.classList.remove('active'));
+      // 모든 탭 버튼을 다시 쿼리 (최신 상태 보장)
+      const allTabButtons = document.querySelectorAll('.nav-tab');
+      
+      // 1. 모든 탭의 active 클래스 제거 및 스타일 초기화
+      allTabButtons.forEach(b => {
+        b.classList.remove('active');
+        // 인라인 스타일도 모두 제거하여 CSS 기본값으로 복원
+        b.style.color = '';
+        b.style.fontWeight = '';
+        b.style.borderBottom = '';
+        b.style.borderBottomColor = '';
+        b.style.background = '';
+      });
+      
+      // 2. 클릭한 탭만 활성화 (CSS 클래스만 사용, 인라인 스타일 제거)
       this.classList.add('active');
       
       const tabKey = this.getAttribute('data-tab');
@@ -139,6 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       window.currentActiveTab = tabKey;
+      
+      console.log('탭 전환:', tabKey, '활성화된 탭:', this.textContent);
       
       // 탭 전환 핸들러 호출
       handleTabSwitch(tabKey);
@@ -286,6 +301,20 @@ document.addEventListener('DOMContentLoaded', function() {
         // 2. 해당 탭으로 전환
         const tabButton = document.querySelector(`.nav-tab[data-tab="${targetTab}"]`);
         if (tabButton) {
+          // 모든 탭의 active 클래스 제거 및 스타일 초기화
+          const allTabButtons = document.querySelectorAll('.nav-tab');
+          allTabButtons.forEach(b => {
+            b.classList.remove('active');
+            b.style.color = '';
+            b.style.fontWeight = '';
+            b.style.borderBottom = '';
+            b.style.borderBottomColor = '';
+            b.style.background = '';
+          });
+          
+          // 선택한 탭만 활성화
+          tabButton.classList.add('active');
+          
           // 탭 버튼 클릭 이벤트 트리거 (기존 로직 재사용)
           tabButton.click();
           
@@ -332,6 +361,22 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 월 텍스트 초기화
   updateMonthText();
+  
+  // 초기 로드 시 탭 활성화 상태 정리 (모든 탭의 인라인 스타일 제거)
+  const initialTabButtons = document.querySelectorAll('.nav-tab');
+  initialTabButtons.forEach(btn => {
+    // active 클래스가 없는 탭은 스타일 초기화
+    if (!btn.classList.contains('active')) {
+      btn.style.color = '';
+      btn.style.fontWeight = '';
+      btn.style.borderBottom = '';
+      btn.style.borderBottomColor = '';
+      btn.style.background = '';
+    }
+  });
+  
+  // 초기 활성 탭 설정
+  window.currentActiveTab = 'dashboard';
   
   // 모달 초기화 (카테고리 옵션, 자주 쓰는 사용처, 결제수단 옵션)
   setTimeout(() => {
