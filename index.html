@@ -2051,9 +2051,63 @@
       }
     }
 
-    function openModal(isEdit = false) {
+    // 전역 함수로 노출 (외부에서 호출 가능하도록)
+    window.openModal = function(isEdit = false) {
+      if (!modalOverlay) {
+        console.error('모달 오버레이를 찾을 수 없습니다.');
+        return;
+      }
+      
       modalOverlay.style.display = 'flex';
       document.body.style.overflow = 'hidden';
+      
+      // ========================================
+      // 탭 초기화 (수동 입력 탭 활성화)
+      // ========================================
+      const tabButtons = modalOverlay.querySelectorAll('.entry-tab-btn');
+      const tabContents = modalOverlay.querySelectorAll('.entry-tab-content');
+      
+      console.log('모달 열기 - 탭 초기화:', tabButtons.length, '개 버튼,', tabContents.length, '개 콘텐츠');
+      
+      // 모든 탭 버튼과 콘텐츠 초기화
+      tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.color = '#6B7280';
+        btn.style.fontWeight = '500';
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.borderBottom = '2px solid transparent';
+      });
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
+      });
+      
+      // 수동 입력 탭 활성화
+      const manualTabBtn = modalOverlay.querySelector('.entry-tab-btn[data-tab="manual"]');
+      const manualTabContent = document.getElementById('entry-tab-manual');
+      const autoTabContent = document.getElementById('entry-tab-auto');
+      
+      console.log('수동 입력 탭 요소:', { manualTabBtn: !!manualTabBtn, manualTabContent: !!manualTabContent, autoTabContent: !!autoTabContent });
+      
+      if (manualTabBtn) {
+        manualTabBtn.classList.add('active');
+        manualTabBtn.style.color = '#EF4444';
+        manualTabBtn.style.fontWeight = '600';
+        manualTabBtn.style.borderBottomColor = '#EF4444';
+        manualTabBtn.style.borderBottom = '2px solid #EF4444';
+        console.log('✅ 수동 입력 탭 버튼 활성화');
+      }
+      if (manualTabContent) {
+        manualTabContent.classList.add('active');
+        manualTabContent.style.display = 'block';
+        console.log('✅ 수동 입력 탭 콘텐츠 표시');
+      }
+      if (autoTabContent) {
+        autoTabContent.classList.remove('active');
+        autoTabContent.style.display = 'none';
+        console.log('✅ 자동 입력 탭 콘텐츠 숨김');
+      }
+      
       if (!isEdit && form) {
         // 신규 입력 모드: 폼 초기화
         form.reset();
@@ -2063,15 +2117,17 @@
           dateInput.value = today.toISOString().split('T')[0];
         }
         // 항목 드롭다운 초기화
-        updateItemOptions();
-        if (methodSelect) {
+        if (typeof updateItemOptions === 'function') {
+          updateItemOptions();
+        }
+        if (methodSelect && typeof updatePaymentFields === 'function') {
           updatePaymentFields();
         }
         if (modalTitle) {
           modalTitle.textContent = '📝 내역 입력';
         }
       }
-    }
+    };
 
     // FAB 버튼 툴팁 업데이트 함수
     function updateFabTooltip() {
@@ -2090,7 +2146,9 @@
         if (modalTitle) {
           modalTitle.textContent = '💰 계좌 입출금 내역 추가';
         }
-        openModal(false);
+        if (typeof window.openModal === 'function') {
+          window.openModal(false);
+        }
         // 결제수단을 계좌이체로 설정
         if (methodSelect) {
           methodSelect.value = 'transfer';
@@ -2098,13 +2156,17 @@
         }
       } else if (currentActiveTab === 'dashboard') {
         // 월별현황: 내역 입력 모달 열기
-        openModal(false);
+        if (typeof window.openModal === 'function') {
+          window.openModal(false);
+        }
       } else if (currentActiveTab === 'saving') {
         // 저축관리: 저축 목표 추가 (추후 구현)
         alert('저축 목표 추가 기능은 추후 구현 예정입니다.');
       } else {
         // 기타 탭: 기본 내역 입력 모달 열기
-        openModal(false);
+        if (typeof window.openModal === 'function') {
+          window.openModal(false);
+        }
       }
     });
     
@@ -4161,8 +4223,10 @@ function renderBankTable() {
     );
   }
   
+  // ✅ 카드 대금 청구 항목 제외 (isCardPayment: true인 항목은 월별 현황에 표시하지 않음)
   let bankData = monthData.filter(entry => 
-    entry.paymentMethod === 'transfer' || entry.paymentMethod === 'cash'
+    (entry.paymentMethod === 'transfer' || entry.paymentMethod === 'cash') &&
+    !entry.isCardPayment // 카드 대금 청구는 제외
   );
   
   // 정렬 적용
@@ -4846,7 +4910,13 @@ window.deleteTransaction = function(id) {
   // 신규 등록 버튼 이벤트
   document.addEventListener('click', function(e) {
     if (e.target.id === 'new-entry-btn') {
-      openModal(false);
+      console.log('신규 등록 버튼 클릭');
+      if (typeof window.openModal === 'function') {
+        window.openModal(false);
+      } else {
+        console.error('openModal 함수를 찾을 수 없습니다.');
+        alert('모달을 열 수 없습니다. 페이지를 새로고침해주세요.');
+      }
     }
   });
   
@@ -6304,8 +6374,13 @@ window.deleteTransaction = function(id) {
   
   // 탭 전환 기능 (모달 내부 탭 전환) - 개선된 버전
   document.addEventListener('click', function(e) {
+    console.log('클릭 이벤트 발생:', e.target);
+    
     // 모달 내부의 entry-tab-btn 클릭 처리
     if (e.target.classList.contains('entry-tab-btn') || e.target.closest('.entry-tab-btn')) {
+      e.preventDefault(); // 기본 동작 방지
+      e.stopPropagation(); // 이벤트 버블링 방지
+      
       const tabBtn = e.target.classList.contains('entry-tab-btn') ? e.target : e.target.closest('.entry-tab-btn');
       if (!tabBtn) {
         console.warn('탭 버튼을 찾을 수 없습니다.');
@@ -6318,7 +6393,7 @@ window.deleteTransaction = function(id) {
         return;
       }
       
-      console.log('탭 버튼 클릭:', tabName);
+      console.log('✅ 탭 버튼 클릭:', tabName, 'from', tabBtn);
       
       // 해당 모달 오버레이 찾기
       const modalOverlay = tabBtn.closest('#modal-overlay') || tabBtn.closest('#account-transaction-modal-overlay');
@@ -6362,11 +6437,11 @@ window.deleteTransaction = function(id) {
       if (targetContent) {
         targetContent.classList.add('active');
         targetContent.style.display = 'block';
-        console.log('탭 전환 성공:', tabName, '콘텐츠 표시됨');
+        console.log('✅ 탭 전환 성공:', tabName, '콘텐츠 표시됨', targetContent.id);
         
         // 자동 입력 탭으로 전환 시 초기화
         if (tabName === 'auto' && targetContent.id === 'entry-tab-auto') {
-          console.log('자동 입력 탭 활성화 - 초기화');
+          console.log('✅ 자동 입력 탭 활성화 - 초기화 시작');
           // 파일 입력 초기화
           const excelFileInput = targetContent.querySelector('#excel-file-input');
           const excelFileName = targetContent.querySelector('#excel-file-name');
@@ -6396,11 +6471,15 @@ window.deleteTransaction = function(id) {
           window.parsedExcelData = null;
         }
       } else {
-        console.error('탭 콘텐츠를 찾을 수 없습니다:', `entry-tab-${tabName} 또는 account-transaction-tab-${tabName}`);
+        console.error('❌ 탭 콘텐츠를 찾을 수 없습니다:', `entry-tab-${tabName} 또는 account-transaction-tab-${tabName}`);
         // 디버깅: 모든 entry-tab-content 요소 출력
         const allTabContents = modalOverlay.querySelectorAll('.entry-tab-content');
-        console.log('모달 내 모든 탭 콘텐츠:', Array.from(allTabContents).map(c => c.id));
+        console.log('모달 내 모든 탭 콘텐츠:', Array.from(allTabContents).map(c => ({ id: c.id, display: c.style.display, active: c.classList.contains('active') })));
+        console.log('모달 오버레이 ID:', modalOverlay.id);
+        console.log('탭 버튼:', tabBtn);
       }
+    } else {
+      console.warn('⚠️ entry-tab-btn 클래스가 없습니다. 클릭된 요소:', e.target);
     }
     
     // 자동 입력 탭의 취소 버튼
@@ -6629,8 +6708,11 @@ window.deleteTransaction = function(id) {
   console.log('자동 입력 탭 이벤트 리스너 등록 완료');
   
   // 파일 분석 처리 함수 (전역으로 노출)
+  // ========================================
+  // 월별 현황 자동 입력용 파싱 함수 (parseCardStatement 재사용)
+  // ========================================
   window.handleExcelAnalyze = async function() {
-    console.log('handleExcelAnalyze 함수 호출됨');
+    console.log('✅ [자동 입력] handleExcelAnalyze 함수 호출됨');
     const fileInput = document.getElementById('excel-file-input');
     if (!fileInput) {
       console.error('파일 input을 찾을 수 없습니다: excel-file-input');
@@ -6645,7 +6727,7 @@ window.deleteTransaction = function(id) {
     }
     
     const file = fileInput.files[0];
-    console.log('파일 분석 시작:', file.name, '크기:', file.size);
+    console.log('✅ [자동 입력] 파일 분석 시작:', file.name, '크기:', file.size);
     
     const analyzeBtn = document.getElementById('excel-analyze-btn');
     if (analyzeBtn) {
@@ -6657,32 +6739,35 @@ window.deleteTransaction = function(id) {
     }
     
     try {
-      // XLSX 라이브러리 확인
-      if (typeof XLSX === 'undefined') {
-        throw new Error('XLSX 라이브러리를 찾을 수 없습니다. SheetJS CDN이 로드되었는지 확인하세요.');
+      // parseCardStatement 함수 사용 (js/excel-parser.js)
+      if (typeof window.parseCardStatement !== 'function') {
+        throw new Error('parseCardStatement 함수를 찾을 수 없습니다. excel-parser.js가 로드되었는지 확인하세요.');
       }
-      console.log('XLSX 라이브러리 확인 완료');
+      console.log('✅ [자동 입력] parseCardStatement 함수 확인됨');
       
-      // 엑셀 파일 파싱
-      console.log('parseExcelFile 호출 시작');
-      const jsonData = await parseExcelFile(file);
-      console.log('데이터 로드 완료 (행 개수):', jsonData.length);
+      // 카드 명세서 파싱
+      const result = await window.parseCardStatement(file);
+      console.log('✅ [자동 입력] 파싱 성공:', {
+        cardCompany: result.cardCompany,
+        totalCount: result.totalCount,
+        transactions: result.transactions?.length || 0
+      });
       
-      // 데이터 분석
-      console.log('analyzeExcelData 호출 시작');
-      const result = analyzeExcelData(file.name, jsonData);
-      console.log('카드사 감지됨:', result.cardCompany);
-      console.log('추출된 거래 건수:', result.count);
-      console.log('총 금액:', result.totalAmount);
+      // 결과 형식 변환 (기존 analyzeExcelData 형식과 호환)
+      const formattedResult = {
+        cardCompany: result.cardCompany || '알 수 없음',
+        transactions: result.transactions || [],
+        count: result.totalCount || 0,
+        totalAmount: result.summary?.finalAmount || result.summary?.totalAmount || 0
+      };
       
       // 결과 저장
-      window.parsedExcelData = result;
-      console.log('결과 저장 완료');
+      window.parsedExcelData = formattedResult;
+      console.log('✅ [자동 입력] 결과 저장 완료:', formattedResult);
       
       // 결과 표시
-      console.log('showResult 호출 시작');
-      showResult(result);
-      console.log('결과 표시 완료');
+      showResult(formattedResult);
+      console.log('✅ [자동 입력] 결과 표시 완료');
       
       // 가계부 추가 버튼 활성화
       const importBtn = document.getElementById('excel-import-btn');
@@ -6691,13 +6776,13 @@ window.deleteTransaction = function(id) {
         importBtn.style.cursor = 'pointer';
         importBtn.style.background = '#10B981';
         importBtn.style.color = '#FFFFFF';
-        console.log('가계부 추가 버튼 활성화 완료');
+        console.log('✅ [자동 입력] 가계부 추가 버튼 활성화 완료');
       } else {
         console.error('가계부 추가 버튼을 찾을 수 없습니다: excel-import-btn');
       }
       
     } catch (error) {
-      console.error('파일 분석 오류:', error);
+      console.error('❌ [자동 입력] 파일 분석 오류:', error);
       console.error('에러 스택:', error.stack);
       showError('파일 분석 중 오류가 발생했습니다: ' + error.message);
     } finally {
@@ -7093,8 +7178,12 @@ window.deleteTransaction = function(id) {
   }
   
   // 가계부에 추가
+  // ========================================
+  // 월별 현황 자동 입력용 거래 추가 함수
+  // 계좌 잔액에는 영향을 주지 않고, 월별 현황(transactionData)에만 추가
+  // ========================================
   function importToTransactions(transactions) {
-    console.log('가계부 추가 시작, 거래 건수:', transactions.length);
+    console.log('✅ [자동 입력] 가계부 추가 시작, 거래 건수:', transactions.length);
     
     if (!transactions || transactions.length === 0) {
       throw new Error('추가할 거래 내역이 없습니다.');
@@ -7104,32 +7193,59 @@ window.deleteTransaction = function(id) {
       throw new Error('transactionData 배열을 찾을 수 없습니다.');
     }
     
+    let addedCount = 0;
+    let duplicateCount = 0;
+    
     transactions.forEach(t => {
+      // 중복 체크: 날짜, 사용처(가맹점), 금액이 모두 일치하는 거래가 있는지 확인
+      const isDuplicate = transactionData.some(existing => {
+        return existing.date === t.date &&
+               existing.item === t.merchant &&
+               Math.abs(existing.amount - t.amount) < 1; // 금액 차이 1원 미만
+      });
+      
+      if (isDuplicate) {
+        duplicateCount++;
+        console.log('중복 거래 스킵:', t.date, t.merchant, t.amount);
+        return;
+      }
+      
+      // 월별 현황용 거래 내역 생성 (계좌 잔액에는 영향 없음)
       const newEntry = {
         id: Date.now() + Math.random(),
         date: t.date,
-        user: '둠둠',
-        type: 'expense',
-        item: t.merchant,
-        category: '미분류',
+        user: '-', // 자동 입력은 담당자 없음
+        type: 'expense', // 지출
+        item: t.merchant || '미상', // 가맹점명
+        category: '미분류', // 기본 카테고리
         amount: t.amount,
-        paymentMethod: 'credit',
-        status: '완료',
-        timestamp: Date.now()
+        paymentMethod: 'credit', // 신용카드
+        paymentDetail: '', // 결제수단 상세 (자동 입력에서는 비워둠)
+        status: '✅완료',
+        timestamp: Date.now(),
+        isAutoGenerated: true // 자동 입력 표시
       };
       
       transactionData.push(newEntry);
+      addedCount++;
     });
     
-    console.log('거래 내역 추가 완료, 총 개수:', transactionData.length);
+    console.log('✅ [자동 입력] 거래 내역 추가 완료:', {
+      추가됨: addedCount,
+      중복: duplicateCount,
+      총개수: transactionData.length
+    });
     
-    // 저장
+    // 저장 (월별 현황 데이터만 저장, 계좌 잔액은 변경하지 않음)
     if (typeof saveData === 'function') {
       saveData();
-      console.log('데이터 저장 완료');
+      console.log('✅ [자동 입력] 데이터 저장 완료 (월별 현황만)');
     } else {
       console.warn('saveData 함수를 찾을 수 없습니다.');
     }
+    
+    // 결과 반환
+    return { added: addedCount, duplicate: duplicateCount };
   }
   
   console.log('DOMContentLoaded 완료 - 엑셀 파싱 기능 초기화됨');
