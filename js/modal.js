@@ -1791,22 +1791,54 @@ function updateAccountTransactionAccountOptions() {
   }
 }
 
-// 카드 선택 드롭다운 업데이트
-function updateAccountTransactionCardOptions() {
+// 카드 선택 드롭다운 업데이트 (전역으로 노출)
+window.updateAccountTransactionCardOptions = function() {
+  console.log('카드 선택 드롭다운 업데이트 시작');
   const cardSelect = document.getElementById('account-transaction-card-select');
-  if (!cardSelect) return;
+  if (!cardSelect) {
+    console.error('카드 선택 드롭다운을 찾을 수 없습니다: account-transaction-card-select');
+    return;
+  }
   
   cardSelect.innerHTML = '<option value="">--선택--</option>';
   
+  let cardCount = 0;
+  
+  // accountData에서 카드 타입 계좌 가져오기
   if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
-    accountData.filter(acc => acc.type === 'card' && acc.creditLimit).forEach(card => {
+    const accountCards = accountData.filter(acc => acc.type === 'card');
+    console.log('accountData에서 찾은 카드 개수:', accountCards.length);
+    accountCards.forEach(card => {
       const option = document.createElement('option');
       option.value = card.name;
       option.textContent = card.name;
       cardSelect.appendChild(option);
+      cardCount++;
     });
+  } else {
+    console.warn('accountData가 정의되지 않았거나 배열이 아닙니다');
   }
-}
+  
+  // cardData에서도 추가 (accountData에 없는 경우)
+  if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+    console.log('cardData에서 찾은 카드 개수:', cardData.length);
+    cardData.forEach(card => {
+      // 중복 체크
+      const existingOption = Array.from(cardSelect.options).find(opt => opt.value === card.name);
+      if (!existingOption) {
+        const option = document.createElement('option');
+        option.value = card.name;
+        option.textContent = card.name;
+        cardSelect.appendChild(option);
+        cardCount++;
+      }
+    });
+  } else {
+    console.warn('cardData가 정의되지 않았거나 배열이 아닙니다');
+  }
+  
+  console.log('카드 선택 드롭다운 업데이트 완료, 총 카드 개수:', cardCount);
+};
 
 // 카드 선택 시 결제 계좌 및 금액 자동 계산
 function updateCardPaymentInfo(selectedCardName) {
@@ -1915,12 +1947,84 @@ if (accountTransactionModalOverlay) {
         if (cardStatementTab) {
           cardStatementTab.style.display = 'block';
           // 카드 선택 드롭다운 업데이트
-          updateAccountTransactionCardOptions();
+          if (typeof window.updateAccountTransactionCardOptions === 'function') {
+            window.updateAccountTransactionCardOptions();
+          }
           // 오늘 날짜로 설정
           const today = new Date();
           const dateInput = document.getElementById('account-transaction-card-date');
           if (dateInput) {
             dateInput.value = today.toISOString().split('T')[0];
+          }
+          
+          // 파싱 결과 영역 초기화
+          const parseResult = document.getElementById('account-transaction-parse-result');
+          const fileInfo = document.getElementById('account-transaction-file-info');
+          if (parseResult) {
+            parseResult.style.display = 'none';
+          }
+          if (fileInfo) {
+            fileInfo.textContent = '';
+          }
+          
+          // 파일 input 초기화
+          const fileInput = document.getElementById('account-transaction-statement-file');
+          if (fileInput) {
+            fileInput.value = '';
+          }
+        }
+      }
+    }
+  });
+}
+
+// 카드 선택 change 이벤트 리스너 (카드 명세서 등록 탭)
+const accountTransactionCardSelect = document.getElementById('account-transaction-card-select');
+if (accountTransactionCardSelect) {
+  accountTransactionCardSelect.addEventListener('change', function() {
+    const selectedCardName = this.value;
+    if (!selectedCardName) {
+      const paymentAccountInput = document.getElementById('account-transaction-payment-account');
+      if (paymentAccountInput) {
+        paymentAccountInput.value = '';
+      }
+      return;
+    }
+    
+    // 선택된 카드 정보 찾기
+    const selectedCard = typeof accountData !== 'undefined' && Array.isArray(accountData)
+      ? accountData.find(acc => acc.name === selectedCardName && acc.type === 'card')
+      : null;
+    
+    if (selectedCard) {
+      const paymentAccountInput = document.getElementById('account-transaction-payment-account');
+      if (paymentAccountInput) {
+        paymentAccountInput.value = selectedCard.linkedAccount || '';
+      }
+      
+      // 파싱 결과의 금액이 있으면 덮어쓰지 않음 (파싱 결과 우선)
+      const amountInput = document.getElementById('account-transaction-card-amount');
+      if (amountInput && !amountInput.getAttribute('data-amount')) {
+        // 파싱 결과가 없을 때만 자동 계산
+        const dateInput = document.getElementById('account-transaction-card-date');
+        if (dateInput && dateInput.value) {
+          const selectedDate = new Date(dateInput.value);
+          const year = selectedDate.getFullYear();
+          const month = selectedDate.getMonth() + 1;
+          
+          if (typeof transactionData !== 'undefined' && Array.isArray(transactionData)) {
+            const cardTransactions = transactionData.filter(t => {
+              const tDate = new Date(t.date);
+              return tDate.getFullYear() === year &&
+                     tDate.getMonth() + 1 === month &&
+                     t.paymentMethod === 'credit' &&
+                     t.paymentDetail === selectedCardName;
+            });
+            
+            const totalAmount = cardTransactions.reduce((sum, t) => sum + t.amount, 0);
+            if (totalAmount > 0) {
+              amountInput.value = totalAmount.toLocaleString();
+            }
           }
         }
       }

@@ -6,6 +6,111 @@
   <title>DDPW Moneybook Flux</title>
   <!-- SheetJS for Excel parsing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <!-- 전역 함수 정의 (HTML onchange에서 사용) -->
+  <script>
+    // 파일 change 핸들러 함수 (전역으로 노출 - HTML 로드 전에 정의되어야 함)
+    window.handleAccountTransactionFileChange = function(input) {
+      const file = input.files && input.files[0];
+      if (!file) {
+        console.log('파일 input 직접 change 이벤트 발생: 파일 없음');
+        return;
+      }
+      console.log('파일 input 직접 change 이벤트 발생:', file.name, '크기:', file.size);
+      
+      // 약간의 지연을 두어 전역 이벤트 리스너가 먼저 처리하도록 함
+      setTimeout(function() {
+        if (typeof window.parseCardStatement === 'function') {
+          console.log('onchange: parseCardStatement 함수 확인됨, 직접 파싱 시작');
+          const fileInfo = document.getElementById('account-transaction-file-info');
+          if (fileInfo) fileInfo.textContent = '파싱 중... ⏳';
+          
+          window.parseCardStatement(file).then(function(result) {
+            console.log('onchange: 파싱 성공:', result);
+            if (fileInfo) fileInfo.textContent = '✓ 파일: ' + file.name + ' (' + (result.totalCount || 0) + '개 거래)';
+            
+            const modalOverlay = document.getElementById('account-transaction-modal-overlay');
+            const parseResult = modalOverlay ? modalOverlay.querySelector('#account-transaction-parse-result') : document.getElementById('account-transaction-parse-result');
+            const parsedData = modalOverlay ? modalOverlay.querySelector('#account-transaction-parsed-data') : document.getElementById('account-transaction-parsed-data');
+            
+            if (parseResult && parsedData) {
+              parseResult.style.display = 'block';
+              const totalAmount = result.summary?.totalAmount || 0;
+              const finalAmount = result.summary?.finalAmount || totalAmount;
+              const discount = result.summary?.discount || 0;
+              const billingStart = result.summary?.billingPeriod?.start || '';
+              const billingEnd = result.summary?.billingPeriod?.end || '';
+              const paymentDate = result.summary?.paymentDate || '';
+              
+              parsedData.innerHTML = 
+                '<div style="font-weight: 600; font-size: 1rem; margin-bottom: 12px; color: #0C4A6E;">📊 파싱 결과</div>' +
+                '<div style="margin-bottom: 8px;"><strong>카드사:</strong> ' + (result.cardCompany || '알 수 없음') + '</div>' +
+                '<div style="margin-bottom: 8px;"><strong>거래 건수:</strong> ' + (result.totalCount || 0) + '건</div>' +
+                '<div style="margin-bottom: 8px;"><strong>총 이용금액:</strong> ' + totalAmount.toLocaleString() + '원</div>' +
+                (discount > 0 ? '<div style="margin-bottom: 8px;"><strong>할인/적립:</strong> ' + discount.toLocaleString() + '원</div>' : '') +
+                '<div style="margin-bottom: 8px; font-weight: 600; color: #DC2626;"><strong>청구 금액:</strong> ' + finalAmount.toLocaleString() + '원</div>' +
+                (billingStart ? '<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ' + billingStart + ' ~ ' + (billingEnd || '') + '</div>' : '') +
+                (paymentDate ? '<div style="margin-bottom: 8px;"><strong>결제일:</strong> ' + paymentDate + '</div>' : '');
+              
+              // 카드 선택 드롭다운 업데이트 및 자동 선택
+              if (typeof window.updateAccountTransactionCardOptions === 'function') {
+                window.updateAccountTransactionCardOptions();
+              }
+              
+              const cardSelect = document.getElementById('account-transaction-card-select');
+              if (cardSelect) {
+                const allCards = [];
+                if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+                  allCards.push.apply(allCards, accountData.filter(function(acc) { return acc.type === 'card'; }));
+                }
+                if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+                  cardData.forEach(function(card) {
+                    if (!allCards.find(function(c) { return c.name === card.name; })) {
+                      allCards.push(card);
+                    }
+                  });
+                }
+                
+                if (result.cardCompany && allCards.length > 0) {
+                  const matchingCard = allCards.find(function(card) { return card.cardCompany === result.cardCompany; });
+                  if (matchingCard && cardSelect.options.length > 1) {
+                    cardSelect.value = matchingCard.name;
+                  } else if (cardSelect.options.length > 1) {
+                    cardSelect.value = cardSelect.options[1].value;
+                  }
+                } else if (cardSelect.options.length > 1) {
+                  cardSelect.value = cardSelect.options[1].value;
+                }
+                
+                const selectedCardName = cardSelect.value;
+                if (selectedCardName) {
+                  const selectedCard = allCards.find(function(card) { return card.name === selectedCardName; });
+                  if (selectedCard) {
+                    const paymentAccountInput = document.getElementById('account-transaction-payment-account');
+                    const amountInput = document.getElementById('account-transaction-card-amount');
+                    const dateInput = document.getElementById('account-transaction-card-date');
+                    if (paymentAccountInput) paymentAccountInput.value = selectedCard.linkedAccount || '';
+                    if (amountInput && finalAmount > 0) amountInput.value = finalAmount.toLocaleString();
+                    if (dateInput && paymentDate) dateInput.value = paymentDate;
+                  }
+                }
+              }
+              
+              console.log('onchange: 파싱 결과 표시 완료');
+            } else {
+              console.error('onchange: 파싱 결과 표시 영역을 찾을 수 없습니다');
+            }
+          }).catch(function(error) {
+            console.error('onchange: 파싱 실패:', error);
+            if (fileInfo) fileInfo.textContent = '❌ 파일 파싱 실패: ' + error.message;
+          });
+        } else {
+          console.error('onchange: parseCardStatement 함수를 찾을 수 없습니다');
+          const fileInfo = document.getElementById('account-transaction-file-info');
+          if (fileInfo) fileInfo.textContent = '❌ 파싱 함수를 찾을 수 없습니다';
+        }
+      }, 50);
+    };
+  </script>
   <!-- 여기에 CSS 연결 추가 -->
   <link rel="stylesheet" href="css/common.css">
   <link rel="stylesheet" href="css/dashboard.css">
@@ -1203,55 +1308,55 @@
         
         <!-- 자동 입력 탭 -->
         <div id="entry-tab-auto" class="entry-tab-content">
-          <div style="margin-bottom: 20px;">
-            <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 1rem;">📄 청구서 파일 일괄 등록하기</label>
-            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
-              <input type="file" id="entry-statement-file" accept=".xlsx,.xls" style="display: none;">
-              <button type="button" id="upload-entry-statement-btn" style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">파일 선택</button>
-              <span id="entry-file-info" style="font-size: 0.9rem; color: #6B7280;"></span>
-            </div>
-            <div style="font-size: 0.85rem; color: #6B7280; padding: 12px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
-              💡 파일을 업로드하면 카드사가 자동으로 감지되고 거래내역이 자동으로 등록됩니다.
-            </div>
-          </div>
-          
-          <!-- 카드사 및 카드 선택 (파싱 결과 표시 후 수정 가능) -->
-          <div id="entry-card-selection" style="display: none; margin-bottom: 20px; padding: 16px; background: #FFFFFF; border-radius: 8px; border: 1px solid #E5E7EB;">
-            <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 0.95rem;">💳 카드사 및 카드 선택</label>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              <div>
-                <label for="entry-auto-card-company" style="font-size: 0.9rem; color: #6B7280; margin-bottom: 6px; display: block;">카드사</label>
-                <select id="entry-auto-card-company" style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
-                  <option value="">--선택--</option>
-                </select>
+          <div style="padding: 20px;">
+            <h3 style="margin-bottom: 20px; font-size: 1.1rem; font-weight: 600; color: #111827;">📄 카드 청구서 엑셀 파일 업로드</h3>
+            
+            <!-- 파일 선택 영역 -->
+            <div style="margin-bottom: 20px;">
+              <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 1rem;">파일 선택</label>
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+                <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display: none;">
+                <button type="button" id="excel-select-btn" onclick="document.getElementById('excel-file-input')?.click(); console.log('파일 선택 버튼 클릭 (onclick)');" style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">파일 선택</button>
+                <span id="excel-file-name" style="font-size: 0.9rem; color: #6B7280;"></span>
               </div>
-              <div>
-                <label for="entry-auto-card-select" style="font-size: 0.9rem; color: #6B7280; margin-bottom: 6px; display: block;">카드</label>
-                <select id="entry-auto-card-select" style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
-                  <option value="">--카드사를 먼저 선택하세요--</option>
-                </select>
+              <div style="font-size: 0.85rem; color: #6B7280; padding: 12px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
+                💡 엑셀 파일을 선택한 후 "파일 분석" 버튼을 클릭하세요.
               </div>
-              <!-- 청구연월 선택 (항상 표시, 수동 설정 가능) -->
-              <div id="entry-billing-period-selection">
-                <label style="font-size: 0.9rem; color: #6B7280; margin-bottom: 6px; display: block;">청구연월 (수동 설정)</label>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <select id="entry-auto-year-select" style="flex: 1; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
-                    <option value="">연도</option>
-                  </select>
-                  <select id="entry-auto-month-select" style="flex: 1; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
-                    <option value="">월</option>
-                  </select>
+            </div>
+            
+            <!-- 파일 분석 버튼 -->
+            <div style="margin-bottom: 20px;">
+              <button type="button" id="excel-analyze-btn" disabled onclick="if (!this.disabled) { console.log('파일 분석 버튼 클릭 (onclick)'); handleExcelAnalyze(); }" style="padding: 12px 24px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: not-allowed; background: #D1D5DB; color: #6B7280; width: 100%;">파일 분석</button>
+            </div>
+            
+            <!-- 결과 표시 영역 -->
+            <div id="excel-result-area" style="display: none; margin-bottom: 20px; padding: 16px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
+              <div style="font-weight: 600; font-size: 1rem; margin-bottom: 12px; color: #0C4A6E;">📊 분석 결과</div>
+              <div style="display: grid; gap: 8px; font-size: 0.9rem;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #6B7280;">카드사:</span>
+                  <span id="result-company" style="font-weight: 600; color: #111827;">-</span>
                 </div>
-                <div id="entry-billing-period-display" style="margin-top: 8px; font-size: 0.85rem; color: #6B7280; padding: 8px; background: #F9FAFB; border-radius: 6px;">
-                  청구기간: 선택해주세요
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #6B7280;">거래 건수:</span>
+                  <span id="result-count" style="font-weight: 600; color: #111827;">0건</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #6B7280;">총 금액:</span>
+                  <span id="result-amount" style="font-weight: 600; color: #DC2626;">0원</span>
                 </div>
               </div>
             </div>
+            
+            <!-- 가계부에 추가 버튼 -->
+            <div style="margin-bottom: 20px;">
+              <button type="button" id="excel-import-btn" disabled onclick="if (!this.disabled) { console.log('가계부 추가 버튼 클릭 (onclick)'); handleExcelImport(); }" style="padding: 12px 24px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: not-allowed; background: #D1D5DB; color: #6B7280; width: 100%;">가계부에 추가</button>
+            </div>
+            
+            <!-- 오류 메시지 영역 -->
+            <div id="excel-error" style="display: none; padding: 12px; background: #FEE2E2; border-radius: 8px; border: 1px solid #FCA5A5; color: #991B1B; font-size: 0.9rem;"></div>
           </div>
-          
-          <div id="entry-parse-result" style="display: none; margin-top: 20px;">
-            <div id="entry-parsed-data" style="font-size: 0.9rem; color: #0C4A6E; padding: 16px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;"></div>
-          </div>
+        </div>
           
           <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
             <button type="button" class="modal-btn modal-btn-cancel" id="modal-cancel-btn-auto">취소</button>
@@ -1371,8 +1476,8 @@
           <div style="margin-bottom: 20px;">
             <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 1rem;">📄 청구서 파일 업로드</label>
             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
-              <input type="file" id="account-transaction-statement-file" accept=".xlsx,.xls" style="display: none;">
-              <button type="button" id="upload-account-transaction-statement-btn" onclick="document.getElementById('account-transaction-statement-file').click();" style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">파일 선택</button>
+              <input type="file" id="account-transaction-statement-file" accept=".xlsx,.xls" style="display: none;" onchange="handleAccountTransactionFileChange(this);">
+              <button type="button" id="upload-account-transaction-statement-btn" onclick="(function(){console.log('계좌 입출금 파일 선택 버튼 클릭 (onclick)'); const fileInput = document.getElementById('account-transaction-statement-file'); console.log('파일 input 찾기:', fileInput ? '찾음' : '없음'); if (fileInput) { console.log('파일 input 클릭 실행'); fileInput.click(); console.log('파일 input 클릭 완료'); } else { console.error('파일 input을 찾을 수 없습니다'); alert('파일 선택 기능을 사용할 수 없습니다. 페이지를 새로고침해주세요.'); }})(); return false;" style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: all 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">파일 선택</button>
               <span id="account-transaction-file-info" style="font-size: 0.9rem; color: #6B7280;"></span>
             </div>
             <div style="font-size: 0.85rem; color: #6B7280; padding: 12px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
@@ -1692,74 +1797,94 @@
 // ========================================
 
 // ========================================
-// DOMContentLoaded - 페이지 로드 후 실행
+// 주의: handleAccountTransactionFileChange 함수는 <head> 섹션에 정의되어 있습니다.
+// parseCardStatement 함수는 DOMContentLoaded 밖에 정의되어 있어야 합니다.
 // ========================================
-// 주의: app.js에도 DOMContentLoaded가 있습니다.
-// 중복 실행을 방지하기 위해 이 부분은 최소화되었습니다.
-document.addEventListener('DOMContentLoaded', function() {
-  // 버전 표시는 app.js에서 처리됩니다.
-  // config.js의 APP_VERSION을 사용합니다.
+
+// 엑셀 파일 읽기 및 파싱 메인 함수 (전역으로 노출 - DOMContentLoaded 밖에 정의)
+// 주의: 이 함수는 parseKBCard, parseSamsungCard, parseGenericCard, detectCardCompany 함수에 의존합니다.
+// 이 함수들은 DOMContentLoaded 내부에 정의되어 있으므로, 
+// parseCardStatement는 DOMContentLoaded가 실행된 후에만 사용할 수 있습니다.
+// 하지만 setTimeout을 사용하여 지연 실행하므로 문제없습니다.
+window.parseCardStatement = function(file, forceCardCompany = null) {
+  console.log('parseCardStatement 함수 호출됨, 파일:', file.name);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      try {
+        console.log('파일 읽기 완료, 파싱 시작');
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        // 첫 번째 시트 선택
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // JSON으로 변환
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        console.log('JSON 변환 완료, 행 개수:', jsonData.length);
+        
+        // 카드사 감지 또는 강제 지정
+        let selectedCardCompany = forceCardCompany;
+        
+        if (!selectedCardCompany) {
+          // 사용자가 선택한 카드사 가져오기 (카드 대금 등록 모달에서)
+          const cardCompanySelect = document.getElementById('card-payment-card-company-select');
+          selectedCardCompany = cardCompanySelect ? cardCompanySelect.value : '';
+        }
+        
+        // 카드사가 없으면 자동 감지
+        if (!selectedCardCompany) {
+          if (typeof detectCardCompany === 'function') {
+            selectedCardCompany = detectCardCompany(file.name, jsonData);
+            console.log('자동 감지된 카드사:', selectedCardCompany);
+          } else {
+            console.warn('detectCardCompany 함수를 찾을 수 없습니다. 기본 파싱을 사용합니다.');
+            selectedCardCompany = '알 수 없음';
+          }
+        }
+        
+        // 카드사별 파싱 로직 선택
+        let parsedData;
+        if (selectedCardCompany === 'KB카드' && typeof parseKBCard === 'function') {
+          console.log('KB카드 파싱 시작');
+          parsedData = parseKBCard(jsonData);
+        } else if (selectedCardCompany === '삼성카드' && typeof parseSamsungCard === 'function') {
+          console.log('삼성카드 파싱 시작');
+          parsedData = parseSamsungCard(jsonData);
+        } else if (typeof parseGenericCard === 'function') {
+          // 기본 파싱 (자동 감지)
+          console.log('범용 파싱 시작');
+          parsedData = parseGenericCard(jsonData);
+        } else {
+          throw new Error('파싱 함수를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+        }
+        
+        // 감지된 카드사로 설정
+        parsedData.cardCompany = selectedCardCompany;
+        console.log('파싱 완료, 거래 건수:', parsedData.totalCount);
+        
+        resolve(parsedData);
+      } catch (error) {
+        console.error('파싱 중 오류:', error);
+        reject(error);
+      }
+    };
+    
+    reader.onerror = function(error) {
+      console.error('파일 읽기 오류:', error);
+      reject(error);
+    };
+    
+    reader.readAsArrayBuffer(file);
+  });
+};
   
   // ========================================
-  // 데이터 저장 배열 (레거시 - config.js 사용 권장)
+  // DOMContentLoaded 이벤트 리스너 시작
   // ========================================
-  // 주의: 이 변수들은 config.js에도 정의되어 있습니다.
-  // 외부 JS 파일이 로드되면 config.js의 값이 사용됩니다.
-  if (typeof transactionData === 'undefined') {
-    var transactionData = [];
-  }
-  if (typeof accountData === 'undefined') {
-    var accountData = [];
-  }
-  if (typeof merchantHistory === 'undefined') {
-    var merchantHistory = []; // 자주 쓰는 사용처 목록
-  }
-  if (typeof cardData === 'undefined') {
-    var cardData = []; // 카드 목록 (결제수단과 동일하게 사용)
-  }
-  
-  const savedData = localStorage.getItem('budgetData');
-  if (savedData) {
-    transactionData = JSON.parse(savedData);
-  }
-  
-  const savedAccountData = localStorage.getItem('accountData');
-  if (savedAccountData) {
-    accountData = JSON.parse(savedAccountData);
-  }
-  
-  const savedMerchantHistory = localStorage.getItem('merchantHistory');
-  if (savedMerchantHistory) {
-    merchantHistory = JSON.parse(savedMerchantHistory);
-  }
-  
-  const savedCardData = localStorage.getItem('cardData');
-  if (savedCardData) {
-    cardData = JSON.parse(savedCardData);
-  } else {
-    // 기본 카드 데이터 (초기값)
-    cardData = [
-      { id: Date.now(), name: 'KB 탄탄대로 올쇼핑', type: 'credit', cardCompany: 'KB카드' },
-      { id: Date.now() + 1, name: '삼성 네이버 taptap', type: 'credit', cardCompany: '삼성카드' },
-      { id: Date.now() + 2, name: '삼성 베네핏', type: 'credit', cardCompany: '삼성카드' },
-      { id: Date.now() + 3, name: '카카오뱅크 체크', type: 'debit', cardCompany: '카카오뱅크' }
-    ];
-    localStorage.setItem('cardData', JSON.stringify(cardData));
-  }
-  
-  // 카드 데이터 저장 함수 (레거시 - data-manager.js 사용 권장)
-  if (typeof saveCardData === 'undefined') {
-    window.saveCardData = function() {
-      localStorage.setItem('cardData', JSON.stringify(cardData));
-    };
-  }
-  
-  // 자주 쓰는 사용처 저장 함수 (레거시)
-  if (typeof saveMerchantHistory === 'undefined') {
-    window.saveMerchantHistory = function() {
-      localStorage.setItem('merchantHistory', JSON.stringify(merchantHistory));
-    };
-  }
+  document.addEventListener('DOMContentLoaded', function() {
   
   // 자주 쓰는 사용처 추가 함수
   function addToMerchantHistory(merchant) {
@@ -3868,13 +3993,15 @@ function parseGenericCard(data) {
   };
 }
 
-// 엑셀 파일 읽기 및 파싱 메인 함수
-function parseCardStatement(file, forceCardCompany = null) {
+// 엑셀 파일 읽기 및 파싱 메인 함수 (전역으로 노출)
+window.parseCardStatement = function(file, forceCardCompany = null) {
+  console.log('parseCardStatement 함수 호출됨, 파일:', file.name);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
     reader.onload = function(e) {
       try {
+        console.log('파일 읽기 완료, 파싱 시작');
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         
@@ -3884,6 +4011,7 @@ function parseCardStatement(file, forceCardCompany = null) {
         
         // JSON으로 변환
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        console.log('JSON 변환 완료, 행 개수:', jsonData.length);
         
         // 카드사 감지 또는 강제 지정
         let selectedCardCompany = forceCardCompany;
@@ -3903,30 +4031,36 @@ function parseCardStatement(file, forceCardCompany = null) {
         // 카드사별 파싱 로직 선택
         let parsedData;
         if (selectedCardCompany === 'KB카드') {
+          console.log('KB카드 파싱 시작');
           parsedData = parseKBCard(jsonData);
         } else if (selectedCardCompany === '삼성카드') {
+          console.log('삼성카드 파싱 시작');
           parsedData = parseSamsungCard(jsonData);
         } else {
           // 기본 파싱 (자동 감지)
+          console.log('범용 파싱 시작');
           parsedData = parseGenericCard(jsonData);
         }
         
         // 감지된 카드사로 설정
         parsedData.cardCompany = selectedCardCompany;
+        console.log('파싱 완료, 거래 건수:', parsedData.totalCount);
         
         resolve(parsedData);
       } catch (error) {
+        console.error('파싱 중 오류:', error);
         reject(error);
       }
     };
     
     reader.onerror = function(error) {
+      console.error('파일 읽기 오류:', error);
       reject(error);
     };
     
     reader.readAsArrayBuffer(file);
   });
-}
+};
 
 // ========================================
 // 8. 대시보드 카드 실시간 계산
@@ -5316,11 +5450,11 @@ window.deleteTransaction = function(id) {
           parsedData.innerHTML = `
             <div style="margin-bottom: 8px;"><strong>카드사:</strong> ${result.cardCompany}</div>
             <div style="margin-bottom: 8px;"><strong>거래 건수:</strong> ${result.totalCount}건</div>
-            <div style="margin-bottom: 8px;"><strong>총 금액:</strong> ${result.summary.totalAmount.toLocaleString()}원</div>
-            ${result.summary.discount ? `<div style="margin-bottom: 8px;"><strong>할인:</strong> ${result.summary.discount.toLocaleString()}원</div>` : ''}
-            ${result.summary.finalAmount ? `<div style="margin-bottom: 8px;"><strong>청구 금액:</strong> ${result.summary.finalAmount.toLocaleString()}원</div>` : ''}
-            ${result.summary.billingPeriod.start ? `<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ${result.summary.billingPeriod.start} ~ ${result.summary.billingPeriod.end}</div>` : ''}
-            ${result.summary.paymentDate ? `<div style="margin-bottom: 8px;"><strong>결제일:</strong> ${result.summary.paymentDate}</div>` : ''}
+            <div style="margin-bottom: 8px;"><strong>총 금액:</strong> ${result.summary?.totalAmount?.toLocaleString() || 0}원</div>
+            ${result.summary?.discount ? `<div style="margin-bottom: 8px;"><strong>할인:</strong> ${result.summary.discount.toLocaleString()}원</div>` : ''}
+            ${result.summary?.finalAmount ? `<div style="margin-bottom: 8px;"><strong>청구 금액:</strong> ${result.summary.finalAmount.toLocaleString()}원</div>` : ''}
+            ${result.summary?.billingPeriod?.start ? `<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ${result.summary.billingPeriod.start} ~ ${result.summary.billingPeriod.end || ''}</div>` : ''}
+            ${result.summary?.paymentDate ? `<div style="margin-bottom: 8px;"><strong>결제일:</strong> ${result.summary.paymentDate}</div>` : ''}
             <div style="margin-top: 12px;">
               <button type="button" id="add-transactions-btn" style="padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">월별 현황 거래내역에 일괄 추가</button>
             </div>
@@ -5548,16 +5682,19 @@ window.deleteTransaction = function(id) {
     }
   });
 
-  // 월별 현황 내역 입력 모달의 청구서 파일 업로드
+  // 월별 현황 내역 입력 모달의 청구서 파일 업로드 (구버전 - 제거 예정)
+  // 주의: entry-statement-file은 더 이상 사용되지 않음. excel-file-input 사용
   document.addEventListener('click', function(e) {
     if (e.target.id === 'upload-entry-statement-btn') {
-      const entryStatementFile = document.getElementById('entry-statement-file');
-      if (entryStatementFile) {
-        entryStatementFile.click();
+      // 구버전 버튼 - excel-file-input으로 리다이렉트
+      const excelFileInput = document.getElementById('excel-file-input');
+      if (excelFileInput) {
+        excelFileInput.click();
       }
     }
   });
   
+  // 구버전 파일 업로드 (entry-statement-file) - 제거 예정
   document.addEventListener('change', async function(e) {
     if (e.target.id === 'entry-statement-file') {
       const file = e.target.files[0];
@@ -5799,9 +5936,9 @@ window.deleteTransaction = function(id) {
             <div style="margin-bottom: 8px;"><strong>카드사:</strong> ${cardCompanyText}</div>
             <div style="margin-bottom: 8px;"><strong>카드:</strong> ${cardText}</div>
             <div style="margin-bottom: 8px;"><strong>거래 건수:</strong> ${result.totalCount}건</div>
-            <div style="margin-bottom: 8px;"><strong>총 금액:</strong> ${result.summary.totalAmount.toLocaleString()}원</div>
-            ${result.summary.finalAmount ? `<div style="margin-bottom: 8px;"><strong>청구 금액:</strong> ${result.summary.finalAmount.toLocaleString()}원</div>` : ''}
-            ${result.summary.billingPeriod.start ? `<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ${result.summary.billingPeriod.start} ~ ${result.summary.billingPeriod.end || ''}</div>` : ''}
+            <div style="margin-bottom: 8px;"><strong>총 금액:</strong> ${result.summary?.totalAmount?.toLocaleString() || 0}원</div>
+            ${result.summary?.finalAmount ? `<div style="margin-bottom: 8px;"><strong>청구 금액:</strong> ${result.summary.finalAmount.toLocaleString()}원</div>` : ''}
+            ${result.summary?.billingPeriod?.start ? `<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ${result.summary.billingPeriod.start} ~ ${result.summary.billingPeriod.end || ''}</div>` : ''}
             <div style="margin-top: 12px;">
               <button type="button" id="entry-add-transactions-btn" style="padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: background 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">월별 현황 거래내역에 일괄 추가</button>
             </div>
@@ -6020,33 +6157,8 @@ window.deleteTransaction = function(id) {
     }
   });
   
-  // 계좌 입출금 내역 등록 모달의 카드 명세서 파일 업로드
-  // 모달 내부에서 직접 이벤트 리스너 등록
-  const accountTransactionModalOverlay = document.getElementById('account-transaction-modal-overlay');
-  if (accountTransactionModalOverlay) {
-    // 이벤트 위임을 사용하여 모달 내부의 버튼 클릭 감지
-    accountTransactionModalOverlay.addEventListener('click', function(e) {
-      // 버튼 자체 또는 버튼 내부 요소 클릭 시 처리
-      const uploadBtn = e.target.id === 'upload-account-transaction-statement-btn' 
-        ? e.target 
-        : e.target.closest('#upload-account-transaction-statement-btn');
-      
-      if (uploadBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const accountTransactionStatementFile = document.getElementById('account-transaction-statement-file');
-        if (accountTransactionStatementFile) {
-          console.log('파일 선택 버튼 클릭됨');
-          accountTransactionStatementFile.click();
-        } else {
-          console.error('파일 input 요소를 찾을 수 없습니다:', 'account-transaction-statement-file');
-        }
-      }
-    });
-  }
-  
-  // 전역 이벤트 리스너도 유지 (모달이 나중에 생성될 수 있으므로)
+  // 계좌 입출금 내역 등록 모달의 카드 명세서 파일 업로드 (이벤트 위임)
+  // 주의: onclick이 이미 있으므로 preventDefault를 하지 않음
   document.addEventListener('click', function(e) {
     // 버튼 자체 또는 버튼 내부 요소 클릭 시 처리
     const uploadBtn = e.target.id === 'upload-account-transaction-statement-btn' 
@@ -6054,43 +6166,66 @@ window.deleteTransaction = function(id) {
       : e.target.closest('#upload-account-transaction-statement-btn');
     
     if (uploadBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const accountTransactionStatementFile = document.getElementById('account-transaction-statement-file');
-      if (accountTransactionStatementFile) {
-        console.log('파일 선택 버튼 클릭됨 (전역)');
-        accountTransactionStatementFile.click();
-      } else {
-        console.error('파일 input 요소를 찾을 수 없습니다:', 'account-transaction-statement-file');
-      }
+      // onclick이 처리하므로 preventDefault를 하지 않음
+      console.log('계좌 입출금 파일 선택 버튼 클릭 (이벤트 위임 - 백업용)');
+      // onclick이 작동하지 않을 때를 대비한 백업 로직 (100ms 후 실행)
+      setTimeout(function() {
+        const fileInput = document.getElementById('account-transaction-statement-file');
+        // 파일이 선택되지 않았다면 onclick이 작동하지 않은 것
+        if (fileInput && (!fileInput.files || fileInput.files.length === 0)) {
+          console.log('백업: 파일 input 직접 클릭 (onclick이 작동하지 않음)');
+          fileInput.click();
+        }
+      }, 100);
     }
   });
   
+  // 계좌 입출금 파일 change 이벤트 (DOMContentLoaded 안)
   document.addEventListener('change', async function(e) {
+    console.log('change 이벤트 발생 - 타겟 ID:', e.target.id);
     if (e.target.id === 'account-transaction-statement-file') {
+      console.log('계좌 입출금 파일 change 이벤트 발생 (DOMContentLoaded 내부)');
       const file = e.target.files[0];
-      if (!file) return;
+      if (!file) {
+        console.log('파일이 선택되지 않음');
+        return;
+      }
+      
+      console.log('파일 선택됨:', file.name, '크기:', file.size, '타입:', file.type);
       
       const fileInfo = document.getElementById('account-transaction-file-info');
       const parseResult = document.getElementById('account-transaction-parse-result');
       const parsedData = document.getElementById('account-transaction-parsed-data');
       
+      console.log('DOM 요소 확인:', {
+        fileInfo: !!fileInfo,
+        parseResult: !!parseResult,
+        parsedData: !!parsedData
+      });
+      
       if (fileInfo) {
         fileInfo.textContent = '파싱 중... ⏳';
+        console.log('파일 정보 영역에 "파싱 중" 표시');
+      } else {
+        console.error('파일 정보 영역을 찾을 수 없습니다: account-transaction-file-info');
       }
       
       if (parseResult) {
         parseResult.style.display = 'none';
+        console.log('파싱 결과 영역 숨김');
+      } else {
+        console.error('파싱 결과 영역을 찾을 수 없습니다: account-transaction-parse-result');
       }
       
       // 파일 형식 확인
       if (file.type === 'application/pdf') {
+        console.log('PDF 파일 감지 - 지원하지 않음');
         if (fileInfo) {
           fileInfo.textContent = '❌ PDF 파일은 아직 지원하지 않습니다. 엑셀 파일을 사용해주세요.';
         }
         return;
       } else if (file.type.startsWith('image/')) {
+        console.log('이미지 파일 감지 - 지원하지 않음');
         if (fileInfo) {
           fileInfo.textContent = '❌ 이미지 파일은 아직 지원하지 않습니다. 엑셀 파일을 사용해주세요.';
         }
@@ -6100,6 +6235,12 @@ window.deleteTransaction = function(id) {
       // 엑셀 파일 파싱
       try {
         console.log('파일 파싱 시작:', file.name);
+        console.log('parseCardStatement 함수 확인:', typeof parseCardStatement);
+        
+        if (typeof parseCardStatement !== 'function') {
+          throw new Error('parseCardStatement 함수를 찾을 수 없습니다.');
+        }
+        
         const result = await parseCardStatement(file);
         
         console.log('파싱 결과:', result);
@@ -6159,44 +6300,36 @@ window.deleteTransaction = function(id) {
         }
         
         // 폼에 자동 입력
-        // 1. 카드 선택 - accountData에서 모든 카드 가져오기
+        // 1. 카드 선택 드롭다운 업데이트 및 자동 선택
+        if (typeof window.updateAccountTransactionCardOptions === 'function') {
+          window.updateAccountTransactionCardOptions();
+        }
+        
         const cardSelect = document.getElementById('account-transaction-card-select');
         if (cardSelect) {
-          console.log('카드 선택 드롭다운 찾음, accountData 확인:', typeof accountData !== 'undefined' ? accountData.length : 'undefined');
+          console.log('카드 선택 드롭다운 찾음, 옵션 개수:', cardSelect.options.length);
           
-          // 먼저 모든 카드를 드롭다운에 채우기
-          cardSelect.innerHTML = '<option value="">--선택--</option>';
+          // 모든 카드 목록 가져오기 (accountData + cardData)
+          const allCards = [];
           
-          // accountData에서 모든 카드 타입 계좌 가져오기
-          const allCards = typeof accountData !== 'undefined' && Array.isArray(accountData)
-            ? accountData.filter(acc => acc.type === 'card')
-            : [];
-          
-          console.log('accountData에서 찾은 카드 개수:', allCards.length);
-          
-          // 모든 카드 추가
-          allCards.forEach(card => {
-            const option = document.createElement('option');
-            option.value = card.name;
-            option.textContent = card.name;
-            cardSelect.appendChild(option);
-          });
-          
-          // cardData에서도 추가 (accountData에 없는 경우)
-          if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
-            cardData.forEach(card => {
-              // 중복 체크
-              const existingOption = Array.from(cardSelect.options).find(opt => opt.value === card.name);
-              if (!existingOption) {
-                const option = document.createElement('option');
-                option.value = card.name;
-                option.textContent = card.name;
-                cardSelect.appendChild(option);
-              }
-            });
+          // accountData에서 카드 가져오기
+          if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+            const accountCards = accountData.filter(acc => acc.type === 'card');
+            allCards.push(...accountCards);
+            console.log('accountData에서 찾은 카드:', accountCards.length, '개');
           }
           
-          console.log('총 카드 옵션 개수:', cardSelect.options.length - 1);
+          // cardData에서 카드 가져오기 (중복 제외)
+          if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+            cardData.forEach(card => {
+              if (!allCards.find(c => c.name === card.name)) {
+                allCards.push(card);
+              }
+            });
+            console.log('cardData에서 추가된 카드:', cardData.length, '개');
+          }
+          
+          console.log('총 카드 개수:', allCards.length);
           
           // 파싱된 카드사와 일치하는 카드 자동 선택
           if (result.cardCompany && allCards.length > 0) {
@@ -6204,19 +6337,30 @@ window.deleteTransaction = function(id) {
             if (matchingCard) {
               cardSelect.value = matchingCard.name;
               console.log('카드 자동 선택:', matchingCard.name);
-              // 카드 선택 이벤트 트리거하여 결제 계좌 자동 설정
-              cardSelect.dispatchEvent(new Event('change'));
             } else {
               // 카드사는 일치하지 않지만 첫 번째 카드 선택
-              if (allCards.length > 0) {
-                cardSelect.value = allCards[0].name;
-                cardSelect.dispatchEvent(new Event('change'));
+              if (cardSelect.options.length > 1) {
+                cardSelect.value = cardSelect.options[1].value;
+                console.log('첫 번째 카드 선택:', cardSelect.options[1].value);
               }
             }
-          } else if (allCards.length > 0) {
+          } else if (cardSelect.options.length > 1) {
             // 카드사 정보가 없으면 첫 번째 카드 선택
-            cardSelect.value = allCards[0].name;
-            cardSelect.dispatchEvent(new Event('change'));
+            cardSelect.value = cardSelect.options[1].value;
+            console.log('첫 번째 카드 선택 (카드사 정보 없음):', cardSelect.options[1].value);
+          }
+          
+          // 결제 계좌 자동 설정
+          const selectedCardName = cardSelect.value;
+          if (selectedCardName) {
+            const selectedCard = allCards.find(card => card.name === selectedCardName);
+            if (selectedCard) {
+              const paymentAccountInput = document.getElementById('account-transaction-payment-account');
+              if (paymentAccountInput) {
+                paymentAccountInput.value = selectedCard.linkedAccount || '';
+                console.log('결제 계좌 자동 설정:', selectedCard.linkedAccount || '없음');
+              }
+            }
           }
         } else {
           console.error('카드 선택 드롭다운을 찾을 수 없습니다');
@@ -6225,17 +6369,21 @@ window.deleteTransaction = function(id) {
         // 2. 날짜 설정 (결제일 또는 청구 기간 종료일)
         const dateInput = document.getElementById('account-transaction-card-date');
         if (dateInput) {
-          if (result.summary.paymentDate) {
+          if (result.summary && result.summary.paymentDate) {
             dateInput.value = result.summary.paymentDate;
-          } else if (result.summary.billingPeriod.end) {
+          } else if (result.summary && result.summary.billingPeriod && result.summary.billingPeriod.end) {
             dateInput.value = result.summary.billingPeriod.end;
           }
         }
         
-        // 3. 금액 설정
+        // 3. 금액 설정 (파싱 결과의 청구 금액 사용)
         const amountInput = document.getElementById('account-transaction-card-amount');
-        if (amountInput && result.summary.finalAmount) {
-          amountInput.value = result.summary.finalAmount.toLocaleString();
+        if (amountInput && result.summary && result.summary.finalAmount) {
+          // 콤마 제거 후 숫자로 변환하여 저장 (표시용 콤마는 나중에)
+          const finalAmount = result.summary.finalAmount;
+          amountInput.value = finalAmount.toLocaleString();
+          // 데이터 속성으로 원본 값 저장 (나중에 사용)
+          amountInput.setAttribute('data-amount', finalAmount);
         }
         
       } catch (error) {
@@ -6325,6 +6473,38 @@ window.deleteTransaction = function(id) {
         targetContent.classList.add('active');
         targetContent.style.display = 'block';
         console.log('탭 전환 성공:', tabName, '콘텐츠 표시됨');
+        
+        // 자동 입력 탭으로 전환 시 초기화
+        if (tabName === 'auto' && targetContent.id === 'entry-tab-auto') {
+          console.log('자동 입력 탭 활성화 - 초기화');
+          // 파일 입력 초기화
+          const excelFileInput = targetContent.querySelector('#excel-file-input');
+          const excelFileName = targetContent.querySelector('#excel-file-name');
+          const excelAnalyzeBtn = targetContent.querySelector('#excel-analyze-btn');
+          const excelImportBtn = targetContent.querySelector('#excel-import-btn');
+          const excelResultArea = targetContent.querySelector('#excel-result-area');
+          const excelError = targetContent.querySelector('#excel-error');
+          
+          if (excelFileInput) excelFileInput.value = '';
+          if (excelFileName) excelFileName.textContent = '';
+          if (excelAnalyzeBtn) {
+            excelAnalyzeBtn.disabled = true;
+            excelAnalyzeBtn.textContent = '파일 분석';
+            excelAnalyzeBtn.style.cursor = 'not-allowed';
+            excelAnalyzeBtn.style.background = '#D1D5DB';
+            excelAnalyzeBtn.style.color = '#6B7280';
+          }
+          if (excelImportBtn) {
+            excelImportBtn.disabled = true;
+            excelImportBtn.style.cursor = 'not-allowed';
+            excelImportBtn.style.background = '#D1D5DB';
+            excelImportBtn.style.color = '#6B7280';
+          }
+          if (excelResultArea) excelResultArea.style.display = 'none';
+          if (excelError) excelError.style.display = 'none';
+          
+          window.parsedExcelData = null;
+        }
       } else {
         console.error('탭 콘텐츠를 찾을 수 없습니다:', `entry-tab-${tabName} 또는 account-transaction-tab-${tabName}`);
         // 디버깅: 모든 entry-tab-content 요소 출력
@@ -6444,7 +6624,880 @@ window.deleteTransaction = function(id) {
   renderBankTable();
   updateDashboard();
 
+  // ========================================
+  // 엑셀 파싱 기능 (이벤트 위임 사용)
+  // ========================================
+  
+  // 전역 변수: 파싱된 엑셀 데이터 저장 (전역으로 노출)
+  window.parsedExcelData = null;
+  
+  // XLSX 라이브러리 확인
+  console.log('엑셀 파싱 기능 초기화 시작');
+  if (typeof XLSX === 'undefined') {
+    console.error('XLSX 라이브러리를 찾을 수 없습니다. SheetJS CDN이 로드되었는지 확인하세요.');
+  } else {
+    console.log('XLSX 라이브러리 확인 완료');
+  }
+  
+  // 자동 입력 탭 이벤트 위임 (월별 현황 > 신규 등록 > 자동 입력)
+  // 주의: 버튼에 onclick이 직접 추가되어 있어서 이 이벤트 리스너는 백업용
+  document.addEventListener('click', function(e) {
+    // 파일 선택 버튼 클릭 (onclick이 작동하지 않을 때를 대비)
+    if (e.target.id === 'excel-select-btn' || e.target.closest('#excel-select-btn')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const fileInput = document.getElementById('excel-file-input');
+      if (fileInput) {
+        console.log('파일 선택 버튼 클릭됨 (이벤트 위임)');
+        fileInput.click();
+      }
+    }
+    
+    // 파일 분석 버튼 클릭 (onclick이 작동하지 않을 때를 대비)
+    if (e.target.id === 'excel-analyze-btn' || e.target.closest('#excel-analyze-btn')) {
+      const analyzeBtn = e.target.id === 'excel-analyze-btn' ? e.target : e.target.closest('#excel-analyze-btn');
+      if (analyzeBtn && !analyzeBtn.disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('파일 분석 버튼 클릭됨 (이벤트 위임)');
+        handleExcelAnalyze();
+      }
+    }
+    
+    // 가계부에 추가 버튼 클릭 (onclick이 작동하지 않을 때를 대비)
+    if (e.target.id === 'excel-import-btn' || e.target.closest('#excel-import-btn')) {
+      const importBtn = e.target.id === 'excel-import-btn' ? e.target : e.target.closest('#excel-import-btn');
+      if (importBtn && !importBtn.disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('가계부 추가 버튼 클릭됨 (이벤트 위임)');
+        handleExcelImport();
+      }
+    }
+  });
+  
+  // 자동 입력 탭 파일 선택 이벤트 (전역)
+  console.log('파일 선택 change 이벤트 리스너 등록 시작');
+  document.addEventListener('change', function(e) {
+    if (e.target.id === 'excel-file-input') {
+      console.log('파일 input change 이벤트 발생');
+      const file = e.target.files[0];
+      if (!file) {
+        console.log('파일이 선택되지 않음');
+        return;
+      }
+      
+      console.log('파일 선택됨:', file.name, '크기:', file.size, 'bytes', '타입:', file.type);
+      
+      const fileNameSpan = document.getElementById('excel-file-name');
+      if (fileNameSpan) {
+        fileNameSpan.textContent = file.name;
+        console.log('파일명 표시 완료');
+      } else {
+        console.error('파일명 표시 영역을 찾을 수 없습니다: excel-file-name');
+      }
+      
+      // 파일 분석 버튼 활성화
+      const analyzeBtn = document.getElementById('excel-analyze-btn');
+      if (analyzeBtn) {
+        analyzeBtn.disabled = false;
+        analyzeBtn.style.cursor = 'pointer';
+        analyzeBtn.style.background = '#3B82F6';
+        analyzeBtn.style.color = '#FFFFFF';
+        console.log('파일 분석 버튼 활성화 완료');
+      } else {
+        console.error('파일 분석 버튼을 찾을 수 없습니다: excel-analyze-btn');
+      }
+      
+      // 결과 영역 및 오류 메시지 숨기기
+      const resultArea = document.getElementById('excel-result-area');
+      const errorArea = document.getElementById('excel-error');
+      if (resultArea) {
+        resultArea.style.display = 'none';
+        console.log('결과 영역 숨김');
+      }
+      if (errorArea) {
+        errorArea.style.display = 'none';
+        console.log('오류 영역 숨김');
+      }
+      
+      // 가계부 추가 버튼 비활성화
+      const importBtn = document.getElementById('excel-import-btn');
+      if (importBtn) {
+        importBtn.disabled = true;
+        importBtn.style.cursor = 'not-allowed';
+        importBtn.style.background = '#D1D5DB';
+        importBtn.style.color = '#6B7280';
+        console.log('가계부 추가 버튼 비활성화 완료');
+      }
+      
+      window.parsedExcelData = null;
+      console.log('파일 선택 처리 완료');
+    }
+  });
+  
+  console.log('자동 입력 탭 이벤트 리스너 등록 완료');
+  
+  // 파일 분석 처리 함수 (전역으로 노출)
+  window.handleExcelAnalyze = async function() {
+    console.log('handleExcelAnalyze 함수 호출됨');
+    const fileInput = document.getElementById('excel-file-input');
+    if (!fileInput) {
+      console.error('파일 input을 찾을 수 없습니다: excel-file-input');
+      showError('파일 input을 찾을 수 없습니다.');
+      return;
+    }
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+      console.error('파일이 선택되지 않았습니다.');
+      showError('파일을 먼저 선택해주세요.');
+      return;
+    }
+    
+    const file = fileInput.files[0];
+    console.log('파일 분석 시작:', file.name, '크기:', file.size);
+    
+    const analyzeBtn = document.getElementById('excel-analyze-btn');
+    if (analyzeBtn) {
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = '분석 중...';
+      console.log('분석 버튼 상태 변경: 비활성화, 텍스트 변경');
+    } else {
+      console.error('분석 버튼을 찾을 수 없습니다: excel-analyze-btn');
+    }
+    
+    try {
+      // XLSX 라이브러리 확인
+      if (typeof XLSX === 'undefined') {
+        throw new Error('XLSX 라이브러리를 찾을 수 없습니다. SheetJS CDN이 로드되었는지 확인하세요.');
+      }
+      console.log('XLSX 라이브러리 확인 완료');
+      
+      // 엑셀 파일 파싱
+      console.log('parseExcelFile 호출 시작');
+      const jsonData = await parseExcelFile(file);
+      console.log('데이터 로드 완료 (행 개수):', jsonData.length);
+      
+      // 데이터 분석
+      console.log('analyzeExcelData 호출 시작');
+      const result = analyzeExcelData(file.name, jsonData);
+      console.log('카드사 감지됨:', result.cardCompany);
+      console.log('추출된 거래 건수:', result.count);
+      console.log('총 금액:', result.totalAmount);
+      
+      // 결과 저장
+      window.parsedExcelData = result;
+      console.log('결과 저장 완료');
+      
+      // 결과 표시
+      console.log('showResult 호출 시작');
+      showResult(result);
+      console.log('결과 표시 완료');
+      
+      // 가계부 추가 버튼 활성화
+      const importBtn = document.getElementById('excel-import-btn');
+      if (importBtn) {
+        importBtn.disabled = false;
+        importBtn.style.cursor = 'pointer';
+        importBtn.style.background = '#10B981';
+        importBtn.style.color = '#FFFFFF';
+        console.log('가계부 추가 버튼 활성화 완료');
+      } else {
+        console.error('가계부 추가 버튼을 찾을 수 없습니다: excel-import-btn');
+      }
+      
+    } catch (error) {
+      console.error('파일 분석 오류:', error);
+      console.error('에러 스택:', error.stack);
+      showError('파일 분석 중 오류가 발생했습니다: ' + error.message);
+    } finally {
+      // 버튼 복원
+      const analyzeBtn = document.getElementById('excel-analyze-btn');
+      if (analyzeBtn) {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = '파일 분석';
+        console.log('분석 버튼 복원 완료');
+      }
+    }
+  };
+  
+  // 가계부에 추가 처리 함수 (전역으로 노출)
+  window.handleExcelImport = function() {
+    console.log('handleExcelImport 함수 호출됨');
+    console.log('parsedExcelData 확인:', window.parsedExcelData);
+    if (!window.parsedExcelData || !window.parsedExcelData.transactions || window.parsedExcelData.transactions.length === 0) {
+      showError('추가할 거래 내역이 없습니다.');
+      return;
+    }
+    
+    const count = window.parsedExcelData.transactions.length;
+    const confirmed = confirm(`${count}건의 거래를 가계부에 추가하시겠습니까?`);
+    
+    if (!confirmed) return;
+    
+    console.log('가계부 추가 시작:', count, '건');
+    
+    try {
+      importToTransactions(window.parsedExcelData.transactions);
+      console.log('가계부 추가 완료');
+      
+      alert(`${count}건의 거래가 추가되었습니다!`);
+      
+      // 모달 닫기
+      if (typeof closeModal === 'function') {
+        closeModal();
+      }
+      
+      // 테이블 갱신
+      if (typeof renderTable === 'function') {
+        renderTable();
+      }
+      if (typeof renderCardTable === 'function') {
+        renderCardTable('all');
+      }
+      if (typeof updateDashboard === 'function') {
+        updateDashboard();
+      }
+      
+    } catch (error) {
+      console.error('가계부 추가 오류:', error);
+      showError('가계부 추가 중 오류가 발생했습니다: ' + error.message);
+    }
+  }
+  
+  // ========================================
+  // 엑셀 파싱 함수들
+  // ========================================
+  
+  // 엑셀 파일을 JSON으로 변환
+  async function parseExcelFile(file) {
+    return new Promise((resolve, reject) => {
+      // XLSX 라이브러리 확인
+      if (typeof XLSX === 'undefined') {
+        reject(new Error('XLSX 라이브러리를 찾을 수 없습니다. SheetJS CDN이 로드되었는지 확인하세요.'));
+        return;
+      }
+      
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        try {
+          console.log('파일 읽기 완료, 파싱 시작');
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          console.log('워크북 시트 개수:', workbook.SheetNames.length);
+          
+          // 첫 번째 시트 선택
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          
+          // JSON 배열로 변환 (header: 1은 첫 번째 행을 헤더로 사용하지 않음)
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+          
+          console.log('JSON 변환 완료, 행 개수:', jsonData.length);
+          resolve(jsonData);
+          
+        } catch (error) {
+          console.error('데이터 파싱 실패:', error);
+          reject(new Error('데이터 파싱 실패: ' + error.message));
+        }
+      };
+      
+      reader.onerror = function(error) {
+        console.error('파일 읽기 실패:', error);
+        reject(new Error('파일 읽기 실패: 파일을 읽을 수 없습니다.'));
+      };
+      
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  
+  // 엑셀 데이터 분석
+  function analyzeExcelData(filename, jsonData) {
+    console.log('데이터 분석 시작, 파일명:', filename, '데이터 행 수:', jsonData.length);
+    
+    // 카드사 감지
+    const cardCompany = detectCardCompanyFromData(filename, jsonData);
+    console.log('감지된 카드사:', cardCompany);
+    
+    // 거래 내역 추출
+    const transactions = extractTransactions(jsonData);
+    console.log('추출된 거래 내역:', transactions.length, '건');
+    
+    if (transactions.length === 0) {
+      throw new Error('거래 내역을 찾을 수 없습니다. 파일 형식을 확인해주세요.');
+    }
+    
+    // 총 금액 계산
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    
+    return {
+      cardCompany: cardCompany,
+      transactions: transactions,
+      count: transactions.length,
+      totalAmount: totalAmount
+    };
+  }
+  
+  // 카드사 감지
+  function detectCardCompanyFromData(filename, jsonData) {
+    const name = filename.toLowerCase();
+    const firstRows = jsonData.slice(0, 15).flat().join(' ').toLowerCase();
+    
+    if (name.includes('kb') || name.includes('국민') || firstRows.includes('kb') || firstRows.includes('국민')) {
+      return 'KB카드';
+    } else if (name.includes('samsung') || name.includes('삼성') || firstRows.includes('삼성')) {
+      return '삼성카드';
+    } else if (name.includes('shinhan') || name.includes('신한') || firstRows.includes('신한')) {
+      return '신한카드';
+    } else if (name.includes('hyundai') || name.includes('현대') || firstRows.includes('현대')) {
+      return '현대카드';
+    } else if (name.includes('lotte') || name.includes('롯데') || firstRows.includes('롯데')) {
+      return '롯데카드';
+    } else if (name.includes('hana') || name.includes('하나') || firstRows.includes('하나')) {
+      return '하나카드';
+    } else if (name.includes('woori') || name.includes('우리') || firstRows.includes('우리')) {
+      return '우리카드';
+    } else if (name.includes('nh') || name.includes('농협') || firstRows.includes('농협')) {
+      return 'NH카드';
+    }
+    
+    return '알 수 없음';
+  }
+  
+  // 거래 내역 추출
+  function extractTransactions(jsonData) {
+    const transactions = [];
+    
+    // 날짜 패턴: YYYY-MM-DD, YYYY/MM/DD, YYYYMMDD
+    const datePattern = /(\d{4}[-./]\d{1,2}[-./]\d{1,2})|(\d{8})/;
+    
+    // 헤더 행 찾기 (날짜, 가맹점, 금액 컬럼 찾기)
+    let headerRow = -1;
+    let dateCol = -1;
+    let merchantCol = -1;
+    let amountCol = -1;
+    
+    // 첫 20행에서 헤더 찾기
+    for (let i = 0; i < Math.min(20, jsonData.length); i++) {
+      const row = jsonData[i];
+      if (!row || row.length === 0) continue;
+      
+      // 헤더 키워드 찾기
+      const rowText = row.map(cell => String(cell || '')).join(' ').toLowerCase();
+      
+      if (rowText.includes('거래일') || rowText.includes('승인일') || rowText.includes('이용일') || 
+          rowText.includes('날짜') || rowText.includes('일자')) {
+        headerRow = i;
+        
+        // 컬럼 인덱스 찾기
+        for (let j = 0; j < row.length; j++) {
+          const cell = String(row[j] || '').toLowerCase();
+          
+          if (dateCol === -1 && (cell.includes('거래일') || cell.includes('승인일') || 
+              cell.includes('이용일') || cell.includes('날짜') || cell.includes('일자'))) {
+            dateCol = j;
+          } else if (merchantCol === -1 && (cell.includes('가맹점') || cell.includes('사용처') || 
+              cell.includes('상호') || cell.includes('가맹점명'))) {
+            merchantCol = j;
+          } else if (amountCol === -1 && (cell.includes('금액') || cell.includes('이용금액') || 
+              cell.includes('승인금액'))) {
+            amountCol = j;
+          }
+        }
+        
+        if (headerRow !== -1 && dateCol !== -1 && amountCol !== -1) {
+          break;
+        }
+      }
+    }
+    
+    // 헤더를 못 찾은 경우, 자동 감지
+    if (headerRow === -1) {
+      for (let i = 0; i < Math.min(20, jsonData.length); i++) {
+        const row = jsonData[i];
+        if (!row || row.length === 0) continue;
+        
+        // 날짜 패턴이 있는 행 찾기
+        for (let j = 0; j < row.length; j++) {
+          const cell = row[j];
+          if (cell && datePattern.test(String(cell))) {
+            headerRow = i;
+            dateCol = j;
+            break;
+          }
+        }
+        
+        if (headerRow !== -1) break;
+      }
+    }
+    
+    // 가맹점과 금액 컬럼 자동 감지
+    if (headerRow !== -1) {
+      const sampleRow = jsonData[headerRow + 1] || jsonData[headerRow];
+      if (sampleRow) {
+        for (let j = 0; j < sampleRow.length; j++) {
+          const cell = sampleRow[j];
+          if (!cell) continue;
+          
+          const cellStr = String(cell);
+          
+          // 금액 컬럼 (100 이상의 숫자)
+          if (amountCol === -1) {
+            const amount = parseAmount(cellStr);
+            if (amount >= 100) {
+              amountCol = j;
+            }
+          }
+          
+          // 가맹점 컬럼 (한글이 2글자 이상)
+          if (merchantCol === -1 && /[가-힣]{2,}/.test(cellStr)) {
+            merchantCol = j;
+          }
+        }
+      }
+    }
+    
+    console.log('컬럼 매핑:', { headerRow, dateCol, merchantCol, amountCol });
+    
+    if (dateCol === -1 || amountCol === -1) {
+      throw new Error('날짜 또는 금액 컬럼을 찾을 수 없습니다.');
+    }
+    
+    // 거래 내역 추출
+    const startRow = headerRow !== -1 ? headerRow + 1 : 0;
+    for (let i = startRow; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (!row || row.length === 0) continue;
+      
+      // 빈 행 스킵
+      const isEmpty = row.every(cell => !cell || String(cell).trim() === '');
+      if (isEmpty) continue;
+      
+      // 날짜 추출
+      const dateCell = row[dateCol];
+      if (!dateCell) continue;
+      
+      const date = parseDate(String(dateCell));
+      if (!date) continue;
+      
+      // 금액 추출
+      const amountCell = row[amountCol];
+      const amount = parseAmount(String(amountCell || ''));
+      if (amount < 100) continue; // 100원 미만은 거래로 간주하지 않음
+      
+      // 가맹점명 추출
+      let merchant = '미분류';
+      if (merchantCol !== -1 && row[merchantCol]) {
+        merchant = String(row[merchantCol]).trim();
+        if (merchant.length === 0) merchant = '미분류';
+      }
+      
+      transactions.push({
+        date: date,
+        merchant: merchant,
+        amount: amount
+      });
+    }
+    
+    return transactions;
+  }
+  
+  // 날짜 파싱
+  function parseDate(value) {
+    if (!value) return null;
+    
+    const str = String(value).trim();
+    
+    // YYYY-MM-DD 또는 YYYY/MM/DD
+    const dateMatch1 = str.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+    if (dateMatch1) {
+      const year = dateMatch1[1];
+      const month = String(dateMatch1[2]).padStart(2, '0');
+      const day = String(dateMatch1[3]).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    // YYYYMMDD
+    const dateMatch2 = str.match(/(\d{4})(\d{2})(\d{2})/);
+    if (dateMatch2) {
+      return `${dateMatch2[1]}-${dateMatch2[2]}-${dateMatch2[3]}`;
+    }
+    
+    // 엑셀 시리얼 날짜 (숫자)
+    if (!isNaN(value) && Number(value) > 40000) {
+      const date = new Date((Number(value) - 25569) * 86400 * 1000);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    return null;
+  }
+  
+  // 금액 파싱
+  function parseAmount(value) {
+    if (!value) return 0;
+    const str = String(value).replace(/[^0-9.-]/g, '');
+    const num = parseFloat(str);
+    return isNaN(num) ? 0 : Math.abs(num);
+  }
+  
+  // 결과 표시
+  function showResult(result) {
+    console.log('결과 표시:', result);
+    
+    const resultArea = document.getElementById('excel-result-area');
+    const companySpan = document.getElementById('result-company');
+    const countSpan = document.getElementById('result-count');
+    const amountSpan = document.getElementById('result-amount');
+    const errorArea = document.getElementById('excel-error');
+    
+    if (resultArea) {
+      resultArea.style.display = 'block';
+    }
+    
+    if (companySpan) {
+      companySpan.textContent = result.cardCompany || '알 수 없음';
+    }
+    
+    if (countSpan) {
+      countSpan.textContent = result.count + '건';
+    }
+    
+    if (amountSpan) {
+      amountSpan.textContent = result.totalAmount.toLocaleString() + '원';
+    }
+    
+    if (errorArea) {
+      errorArea.style.display = 'none';
+    }
+  }
+  
+  // 오류 메시지 표시
+  function showError(message) {
+    console.error('오류 메시지:', message);
+    
+    const errorArea = document.getElementById('excel-error');
+    if (errorArea) {
+      errorArea.textContent = '❌ ' + message;
+      errorArea.style.display = 'block';
+    }
+    
+    // 결과 영역 숨기기
+    const resultArea = document.getElementById('excel-result-area');
+    if (resultArea) {
+      resultArea.style.display = 'none';
+    }
+    
+    // 가계부 추가 버튼 비활성화
+    const importBtn = document.getElementById('excel-import-btn');
+    if (importBtn) {
+      importBtn.disabled = true;
+      importBtn.style.cursor = 'not-allowed';
+      importBtn.style.background = '#D1D5DB';
+      importBtn.style.color = '#6B7280';
+    }
+  }
+  
+  // 가계부에 추가
+  function importToTransactions(transactions) {
+    console.log('가계부 추가 시작, 거래 건수:', transactions.length);
+    
+    if (!transactions || transactions.length === 0) {
+      throw new Error('추가할 거래 내역이 없습니다.');
+    }
+    
+    if (typeof transactionData === 'undefined' || !Array.isArray(transactionData)) {
+      throw new Error('transactionData 배열을 찾을 수 없습니다.');
+    }
+    
+    transactions.forEach(t => {
+      const newEntry = {
+        id: Date.now() + Math.random(),
+        date: t.date,
+        user: '둠둠',
+        type: 'expense',
+        item: t.merchant,
+        category: '미분류',
+        amount: t.amount,
+        paymentMethod: 'credit',
+        status: '완료',
+        timestamp: Date.now()
+      };
+      
+      transactionData.push(newEntry);
+    });
+    
+    console.log('거래 내역 추가 완료, 총 개수:', transactionData.length);
+    
+    // 저장
+    if (typeof saveData === 'function') {
+      saveData();
+      console.log('데이터 저장 완료');
+    } else {
+      console.warn('saveData 함수를 찾을 수 없습니다.');
+    }
+  }
+
+  console.log('DOMContentLoaded 완료 - 엑셀 파싱 기능 초기화됨');
 }); // DOMContentLoaded 이벤트 리스너 닫기
+
+// ========================================
+// 전역 이벤트 리스너 (DOMContentLoaded 밖에서도 작동)
+// ========================================
+console.log('전역 스크립트 실행 시작 - 이벤트 리스너 등록');
+
+// 전역 변수 초기화 (DOMContentLoaded 밖에서)
+if (typeof window.parsedExcelData === 'undefined') {
+  window.parsedExcelData = null;
+  console.log('전역 변수 parsedExcelData 초기화');
+}
+
+// 전역 클릭 이벤트 리스너
+document.addEventListener('click', function(e) {
+  // 파일 선택 버튼 클릭
+  if (e.target.id === 'excel-select-btn' || e.target.closest('#excel-select-btn')) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('전역: 파일 선택 버튼 클릭됨');
+    const fileInput = document.getElementById('excel-file-input');
+    if (fileInput) {
+      console.log('전역: 파일 input 찾음, 클릭 실행');
+      fileInput.click();
+    } else {
+      console.error('전역: 파일 input을 찾을 수 없습니다');
+    }
+  }
+  
+  // 파일 분석 버튼 클릭
+  if (e.target.id === 'excel-analyze-btn' || e.target.closest('#excel-analyze-btn')) {
+    const analyzeBtn = e.target.id === 'excel-analyze-btn' ? e.target : e.target.closest('#excel-analyze-btn');
+    if (analyzeBtn && !analyzeBtn.disabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('전역: 파일 분석 버튼 클릭됨');
+      if (typeof window.handleExcelAnalyze === 'function') {
+        window.handleExcelAnalyze();
+      } else {
+        console.error('전역: handleExcelAnalyze 함수를 찾을 수 없습니다');
+      }
+    }
+  }
+  
+  // 가계부에 추가 버튼 클릭
+  if (e.target.id === 'excel-import-btn' || e.target.closest('#excel-import-btn')) {
+    const importBtn = e.target.id === 'excel-import-btn' ? e.target : e.target.closest('#excel-import-btn');
+    if (importBtn && !importBtn.disabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('전역: 가계부 추가 버튼 클릭됨');
+      if (typeof window.handleExcelImport === 'function') {
+        window.handleExcelImport();
+      } else {
+        console.error('전역: handleExcelImport 함수를 찾을 수 없습니다');
+      }
+    }
+  }
+});
+
+// 전역 파일 선택 change 이벤트
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'excel-file-input') {
+    console.log('전역: 파일 input change 이벤트 발생');
+    const file = e.target.files[0];
+    if (!file) {
+      console.log('전역: 파일이 선택되지 않음');
+      return;
+    }
+    
+    console.log('전역: 파일 선택됨:', file.name, '크기:', file.size);
+    
+    const fileNameSpan = document.getElementById('excel-file-name');
+    if (fileNameSpan) {
+      fileNameSpan.textContent = file.name;
+      console.log('전역: 파일명 표시 완료');
+    }
+    
+    const analyzeBtn = document.getElementById('excel-analyze-btn');
+    if (analyzeBtn) {
+      analyzeBtn.disabled = false;
+      analyzeBtn.style.cursor = 'pointer';
+      analyzeBtn.style.background = '#3B82F6';
+      analyzeBtn.style.color = '#FFFFFF';
+      console.log('전역: 파일 분석 버튼 활성화');
+    }
+    
+    window.parsedExcelData = null;
+    console.log('전역: 파일 선택 처리 완료');
+  }
+});
+
+// 계좌 입출금 내역 등록 모달의 파일 선택 (전역)
+document.addEventListener('click', function(e) {
+  const uploadBtn = e.target.id === 'upload-account-transaction-statement-btn' 
+    ? e.target 
+    : e.target.closest('#upload-account-transaction-statement-btn');
+  
+  if (uploadBtn) {
+    console.log('전역: 계좌 입출금 파일 선택 버튼 클릭됨');
+    // onclick이 처리하므로 여기서는 로그만
+  }
+});
+
+// 계좌 입출금 내역 등록 모달의 파일 change 이벤트 (전역 - 백업)
+document.addEventListener('change', async function(e) {
+  console.log('전역 change 이벤트 발생 - 타겟 ID:', e.target.id);
+  if (e.target.id === 'account-transaction-statement-file') {
+    console.log('전역: 계좌 입출금 파일 change 이벤트 발생');
+    const file = e.target.files[0];
+    if (!file) {
+      console.log('전역: 파일이 선택되지 않음');
+      return;
+    }
+    
+    console.log('전역: 파일 선택됨:', file.name, '크기:', file.size, '타입:', file.type);
+    
+    // DOMContentLoaded 안의 이벤트 리스너가 처리하지 못한 경우를 대비한 백업 처리
+    const fileInfo = document.getElementById('account-transaction-file-info');
+    if (fileInfo) {
+      fileInfo.textContent = '파싱 중... ⏳';
+      console.log('전역: 파일 정보 영역에 "파싱 중" 표시');
+    }
+    
+    // parseCardStatement 함수가 있는지 확인
+    if (typeof parseCardStatement === 'function') {
+      try {
+        console.log('전역: 파일 파싱 시작');
+        const result = await parseCardStatement(file);
+        console.log('전역: 파싱 결과:', result);
+        
+        if (fileInfo) {
+          fileInfo.textContent = `✓ 파일: ${file.name} (${result.totalCount}개 거래)`;
+        }
+        
+        // 파싱 결과 표시
+        const modalOverlay = document.getElementById('account-transaction-modal-overlay');
+        const currentParseResult = modalOverlay 
+          ? modalOverlay.querySelector('#account-transaction-parse-result')
+          : document.getElementById('account-transaction-parse-result');
+        const currentParsedData = modalOverlay
+          ? modalOverlay.querySelector('#account-transaction-parsed-data')
+          : document.getElementById('account-transaction-parsed-data');
+        
+        if (currentParseResult && currentParsedData) {
+          currentParseResult.style.display = 'block';
+          const totalAmount = result.summary?.totalAmount || 0;
+          const finalAmount = result.summary?.finalAmount || totalAmount;
+          const discount = result.summary?.discount || 0;
+          const billingStart = result.summary?.billingPeriod?.start || '';
+          const billingEnd = result.summary?.billingPeriod?.end || '';
+          const paymentDate = result.summary?.paymentDate || '';
+          
+          currentParsedData.innerHTML = `
+            <div style="font-weight: 600; font-size: 1rem; margin-bottom: 12px; color: #0C4A6E;">📊 파싱 결과</div>
+            <div style="margin-bottom: 8px;"><strong>카드사:</strong> ${result.cardCompany || '알 수 없음'}</div>
+            <div style="margin-bottom: 8px;"><strong>거래 건수:</strong> ${result.totalCount || 0}건</div>
+            <div style="margin-bottom: 8px;"><strong>총 이용금액:</strong> ${totalAmount.toLocaleString()}원</div>
+            ${discount > 0 ? `<div style="margin-bottom: 8px;"><strong>할인/적립:</strong> ${discount.toLocaleString()}원</div>` : ''}
+            <div style="margin-bottom: 8px; font-weight: 600; color: #DC2626;"><strong>청구 금액:</strong> ${finalAmount.toLocaleString()}원</div>
+            ${billingStart ? `<div style="margin-bottom: 8px;"><strong>청구 기간:</strong> ${billingStart} ~ ${billingEnd || ''}</div>` : ''}
+            ${paymentDate ? `<div style="margin-bottom: 8px;"><strong>결제일:</strong> ${paymentDate}</div>` : ''}
+          `;
+          console.log('전역: 파싱 결과 표시 완료');
+          
+          // 폼에 자동 입력
+          // 1. 카드 선택 드롭다운 업데이트 및 자동 선택
+          if (typeof window.updateAccountTransactionCardOptions === 'function') {
+            window.updateAccountTransactionCardOptions();
+          }
+          
+          const cardSelect = document.getElementById('account-transaction-card-select');
+          if (cardSelect) {
+            console.log('전역: 카드 선택 드롭다운 찾음, 옵션 개수:', cardSelect.options.length);
+            
+            // 모든 카드 목록 가져오기
+            const allCards = [];
+            if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+              const accountCards = accountData.filter(acc => acc.type === 'card');
+              allCards.push(...accountCards);
+              console.log('전역: accountData에서 찾은 카드:', accountCards.length, '개');
+            }
+            if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+              cardData.forEach(card => {
+                if (!allCards.find(c => c.name === card.name)) {
+                  allCards.push(card);
+                }
+              });
+              console.log('전역: cardData에서 추가된 카드:', cardData.length, '개');
+            }
+            
+            console.log('전역: 총 카드 개수:', allCards.length);
+            
+            // 파싱된 카드사와 일치하는 카드 자동 선택
+            if (result.cardCompany && allCards.length > 0) {
+              const matchingCard = allCards.find(card => card.cardCompany === result.cardCompany);
+              if (matchingCard && cardSelect.options.length > 1) {
+                cardSelect.value = matchingCard.name;
+                console.log('전역: 카드 자동 선택:', matchingCard.name);
+              } else if (cardSelect.options.length > 1) {
+                cardSelect.value = cardSelect.options[1].value;
+                console.log('전역: 첫 번째 카드 선택');
+              }
+            } else if (cardSelect.options.length > 1) {
+              cardSelect.value = cardSelect.options[1].value;
+              console.log('전역: 첫 번째 카드 선택 (카드사 정보 없음)');
+            }
+            
+            // 결제 계좌 및 금액 자동 설정
+            const selectedCardName = cardSelect.value;
+            if (selectedCardName) {
+              const selectedCard = allCards.find(card => card.name === selectedCardName);
+              if (selectedCard) {
+                const paymentAccountInput = document.getElementById('account-transaction-payment-account');
+                const amountInput = document.getElementById('account-transaction-card-amount');
+                const dateInput = document.getElementById('account-transaction-card-date');
+                
+                if (paymentAccountInput) {
+                  paymentAccountInput.value = selectedCard.linkedAccount || '';
+                  console.log('전역: 결제 계좌 자동 설정:', selectedCard.linkedAccount || '없음');
+                }
+                
+                // 금액 자동 설정 (파싱 결과의 최종 금액)
+                if (amountInput && finalAmount > 0) {
+                  amountInput.value = finalAmount.toLocaleString();
+                  console.log('전역: 금액 자동 설정:', finalAmount);
+                }
+                
+                // 날짜 자동 설정 (결제일이 있으면 사용)
+                if (dateInput && paymentDate) {
+                  dateInput.value = paymentDate;
+                  console.log('전역: 날짜 자동 설정:', paymentDate);
+                }
+              }
+            }
+          } else {
+            console.error('전역: 카드 선택 드롭다운을 찾을 수 없습니다');
+          }
+        }
+      } catch (error) {
+        console.error('전역: 파싱 오류:', error);
+        if (fileInfo) {
+          fileInfo.textContent = '❌ 파일 파싱 실패: ' + error.message;
+        }
+      }
+    } else {
+      console.error('전역: parseCardStatement 함수를 찾을 수 없습니다');
+      if (fileInfo) {
+        fileInfo.textContent = '❌ 파싱 함수를 찾을 수 없습니다';
+      }
+    }
+  }
+});
+
+console.log('전역 이벤트 리스너 등록 완료');
 </script>
 
    <!-- JS 연결 (body 끝 직전!) -->
