@@ -3002,12 +3002,26 @@ function renderCardList() {
   
   cardList.innerHTML = '';
   
-  if (cardData.length === 0) {
+  // accountData에서 카드만 필터링 (단일 DB 사용)
+  const cards = (typeof accountData !== 'undefined' && Array.isArray(accountData))
+    ? accountData.filter(acc => acc.type === 'card')
+    : [];
+  
+  // 레거시 호환성: cardData도 포함 (중복 제거)
+  if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+    cardData.forEach(card => {
+      if (!cards.find(c => c.id === card.id)) {
+        cards.push(card);
+      }
+    });
+  }
+  
+  if (cards.length === 0) {
     cardList.innerHTML = '<div style="text-align: center; padding: 20px; color: #6B7280;">등록된 카드가 없습니다.</div>';
     return;
   }
   
-  cardData.forEach(card => {
+  cards.forEach(card => {
     const item = document.createElement('div');
     item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;';
     item.innerHTML = `
@@ -3163,7 +3177,24 @@ function updateEntryAutoCardSelect(selectedCompany) {
   cardSelect.innerHTML = '<option value="">--카드사를 먼저 선택하세요--</option>';
   
   if (selectedCompany) {
-    cardData.filter(c => c.cardCompany === selectedCompany).forEach(card => {
+    // accountData에서 카드 필터링 (단일 DB 사용)
+    const cards = [];
+    
+    if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+      const accountCards = accountData.filter(acc => acc.type === 'card' && acc.cardCompany === selectedCompany);
+      cards.push(...accountCards);
+    }
+    
+    // 레거시 호환성: cardData도 포함 (중복 제거)
+    if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+      cardData.filter(c => c.cardCompany === selectedCompany).forEach(card => {
+        if (!cards.find(c => c.id === card.id)) {
+          cards.push(card);
+        }
+      });
+    }
+    
+    cards.forEach(card => {
       const option = document.createElement('option');
       option.value = card.name;
       option.textContent = card.name;
@@ -5132,11 +5163,23 @@ window.deleteTransaction = function(id) {
         const newCard = {
           id: now,
           name: name,
-          type: type,
+          type: 'card', // accountData 통합을 위해 'card' 타입 명시
+          cardType: type, // credit 또는 debit
           cardCompany: cardCompany
         };
-        cardData.push(newCard);
-        saveCardData();
+        
+        // accountData에 저장 (단일 DB 사용)
+        if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+          accountData.push(newCard);
+          if (typeof saveAccountData === 'function') {
+            saveAccountData();
+          }
+        }
+        
+        // 레거시 호환성을 위해 cardData에도 저장 (추후 제거 예정)
+        // cardData.push(newCard);
+        // saveCardData();
+        
         renderCardList();
         updateCardSelects();
         alert('카드가 추가되었습니다!');
@@ -5748,12 +5791,25 @@ window.deleteTransaction = function(id) {
                 return;
               }
               
-              // 선택된 카드 정보 가져오기
-              const selectedCard = cardData.find(c => c.name === selectedCardName && c.cardCompany === selectedCardCompany);
+              // 선택된 카드 정보 가져오기 (accountData + cardData 모두 검색)
+              let selectedCard = null;
+              
+              // accountData에서 카드 찾기
+              if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+                selectedCard = accountData.find(c => c.type === 'card' && c.name === selectedCardName);
+              }
+              
+              // accountData에서 못 찾았으면 cardData에서 찾기
+              if (!selectedCard && typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+                selectedCard = cardData.find(c => c.name === selectedCardName);
+              }
+              
               if (!selectedCard) {
-                alert('선택한 카드를 찾을 수 없습니다.');
+                alert('선택한 카드를 찾을 수 없습니다.\n\n카드명: ' + selectedCardName + '\n\n결제수단 관리에서 카드를 먼저 등록해주세요.');
                 return;
               }
+              
+              console.log('선택된 카드:', selectedCard);
               
               const paymentMethod = selectedCard.type === 'debit' ? 'debit' : 'credit';
               

@@ -2326,12 +2326,25 @@ if (accountTransactionCardForm) {
       return;
     }
     
-    // 선택된 카드 정보 찾기
-    const selectedCard = accountData.find(acc => acc.name === cardName && acc.type === 'card');
+    // 선택된 카드 정보 찾기 (accountData + cardData 모두 검색)
+    let selectedCard = null;
+    
+    // accountData에서 카드 찾기
+    if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+      selectedCard = accountData.find(acc => acc.type === 'card' && acc.name === cardName);
+    }
+    
+    // accountData에서 못 찾았으면 cardData에서 찾기
+    if (!selectedCard && typeof cardData !== 'undefined' && Array.isArray(cardData)) {
+      selectedCard = cardData.find(c => c.name === cardName);
+    }
+    
     if (!selectedCard) {
-      alert('선택한 카드를 찾을 수 없습니다.');
+      alert('선택한 카드를 찾을 수 없습니다.\n\n카드명: ' + cardName + '\n\n결제수단 관리에서 카드를 먼저 등록해주세요.');
       return;
     }
+    
+    console.log('선택된 카드:', selectedCard);
     
     const now = Date.now();
     const newEntry = {

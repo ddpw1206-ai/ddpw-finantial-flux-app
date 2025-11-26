@@ -105,10 +105,223 @@ alwaysApply: true
 ## 7. 작업 요청(프롬프트) 스타일 룰
 
 - 기능/버그 태스크를 요청할 때 기본 문구:
-  - “이번 작업은 기능/버그 수정 모드입니다. 구조 변경·리팩토링은 하지 말고, 내가 설명한 범위만 수정하세요.”
+  - "이번 작업은 기능/버그 수정 모드입니다. 구조 변경·리팩토링은 하지 말고, 내가 설명한 범위만 수정하세요."
 - 리팩토링 태스크를 요청할 때 기본 문구:
-  - “이번 작업은 리팩토링 전용입니다. 동작/기능은 절대 바꾸지 말고, DUPE-xxx 이슈만 해결하세요.”
+  - "이번 작업은 리팩토링 전용입니다. 동작/기능은 절대 바꾸지 말고, DUPE-xxx 이슈만 해결하세요."
 - 긴 작업 세션이 길어지면:
   - 필요한 시점에 새 스레드를 열고, `prd.md`, `tasklist.md`, 이 rules 파일을 다시 참조하도록 한다.
+
+---
+
+## 8. 데이터 통합 및 일관성 룰 (신규 추가)
+
+- **단일 데이터베이스 원칙**:
+  - `accountData`는 은행 계좌(`type: 'bank'`)와 카드(`type: 'card'`)를 모두 포함하는 **단일 DB**이다.
+  - `cardData`는 레거시 호환성을 위해 유지되지만, **신규 코드에서는 사용하지 않는다**.
+  
+- **카드 등록/수정**:
+  - 카드는 **반드시 `accountData`에 저장**한다.
+  - 카드 객체 구조:
+    ```javascript
+    {
+      id: timestamp,
+      name: '카드명',
+      type: 'card',              // ✅ 필수
+      cardType: 'credit|debit',  // credit 또는 debit
+      cardCompany: '카드사명',
+      linkedAccount: '연결계좌',  // 선택
+      paymentDay: 15              // 선택
+    }
+    ```
+
+- **카드 조회/검색**:
+  - 카드를 찾을 때는 **`accountData.filter(acc => acc.type === 'card')` 우선 사용**.
+  - 레거시 호환성을 위해 `cardData`도 체크하되, 중복 제거 필수.
+  - 예시:
+    ```javascript
+    // ✅ 올바른 방법
+    const cards = accountData.filter(acc => acc.type === 'card');
+    
+    // 레거시 호환 (중복 제거)
+    if (cardData && cardData.length > 0) {
+      cardData.forEach(card => {
+        if (!cards.find(c => c.id === card.id)) {
+          cards.push(card);
+        }
+      });
+    }
+    ```
+
+- **데이터 일관성 검증**:
+  - 카드 관련 함수 작성 시, `accountData`와 `cardData` 간 불일치가 발생하지 않도록 주의한다.
+  - 저장 시 `saveAccountData()` 호출 필수.
+
+---
+
+## 9. 코드 길이 제한 및 자동 리팩토링 룰 (신규 추가)
+
+### 9.1. index.html 길이 제한
+
+- **목표**: `index.html`은 **5,000 라인 이하**를 유지한다.
+- **경고 수준**: **7,000 라인 초과 시** 즉시 리팩토링을 고려한다.
+- **임계점**: **8,000 라인 초과 시** 반드시 리팩토링을 수행한다.
+
+### 9.2. 자동 리팩토링 트리거
+
+AI는 다음 상황에서 **자동으로 리팩토링을 제안**한다:
+
+1. **`index.html`이 7,000 라인 초과** 시:
+   - 사용자에게 "index.html이 {현재 라인 수}줄입니다. 리팩토링을 권장합니다." 알림.
+   - 분리 가능한 코드 블록 목록 제시.
+
+2. **같은 함수가 3회 이상 중복** 발견 시:
+   - `prompt-qa-list.md`에 `DUPE-xxx` 이슈 자동 등록.
+   - 통합 함수 작성 제안.
+
+3. **인라인 스크립트가 500 라인 초과** 시:
+   - 외부 JS 파일로 분리 권장.
+
+### 9.3. 리팩토링 우선순위
+
+리팩토링 시 다음 순서로 진행:
+
+1. **모달 관련 코드 분리** → `js/modal-init.js`, `js/modal-handlers.js`
+2. **이벤트 리스너 분리** → `js/event-handlers.js`
+3. **중복 함수 제거** → 유틸리티 함수로 통합
+4. **인라인 스크립트 최소화** → 외부 JS 파일로 이동
+
+### 9.4. 파일 분리 규칙
+
+- **모달 초기화**: `js/modal-init.js`
+  - 모달 DOM 요소 캐싱
+  - 초기 상태 설정
+  - 모달 열기/닫기 함수
+
+- **모달 이벤트 핸들러**: `js/modal-handlers.js`
+  - 폼 제출 이벤트
+  - 버튼 클릭 이벤트
+  - 입력 필드 변경 이벤트
+
+- **범용 이벤트 리스너**: `js/event-handlers.js`
+  - 탭 전환
+  - 파일 업로드
+  - 검색/필터링
+
+- **인라인 스크립트 허용 범위** (`index.html` 내):
+  - `DOMContentLoaded` 리스너 **1개만** 허용.
+  - 초기 데이터 로드 및 외부 JS 파일 로드만 포함.
+  - **최대 50 라인 이하**로 제한.
+
+### 9.5. 리팩토링 체크리스트
+
+리팩토링 후 반드시 확인:
+
+- [ ] Linter 에러 0개
+- [ ] 브라우저 콘솔 에러 0개
+- [ ] 기존 기능 모두 정상 동작
+- [ ] `accountData`, `cardData` 데이터 일관성 유지
+- [ ] 파일 길이: `index.html` < 7,000 라인
+
+---
+
+## 10. 모달 개발 및 관리 룰 (신규 추가)
+
+### 10.1. 모달 추가 시 필수 사항
+
+새 모달을 추가할 때는 다음 구조를 따른다:
+
+1. **HTML 구조** (`index.html`):
+   ```html
+   <!-- 모달 오버레이 -->
+   <div id="modal-name-overlay" class="modal-overlay">
+     <div class="modal">
+       <div class="modal-header">
+         <h3>모달 제목</h3>
+         <button id="modal-name-close" class="modal-close">✕</button>
+       </div>
+       <form id="modal-name-form">
+         <!-- 폼 내용 -->
+         <button type="submit">확인</button>
+       </form>
+     </div>
+   </div>
+   ```
+
+2. **초기화 함수** (`js/modal-init.js` 또는 해당 파일):
+   ```javascript
+   function initModalName() {
+     const modal = document.getElementById('modal-name-overlay');
+     const closeBtn = document.getElementById('modal-name-close');
+     const form = document.getElementById('modal-name-form');
+     
+     if (closeBtn) {
+       closeBtn.addEventListener('click', closeModalName);
+     }
+     
+     if (form) {
+       form.addEventListener('submit', handleModalNameSubmit);
+     }
+   }
+   
+   function openModalName() {
+     const modal = document.getElementById('modal-name-overlay');
+     if (modal) modal.style.display = 'flex';
+   }
+   
+   function closeModalName() {
+     const modal = document.getElementById('modal-name-overlay');
+     if (modal) modal.style.display = 'none';
+   }
+   ```
+
+3. **이벤트 핸들러 분리** (`js/modal-handlers.js` 또는 해당 파일):
+   ```javascript
+   function handleModalNameSubmit(e) {
+     e.preventDefault();
+     // 폼 제출 로직
+     closeModalName();
+   }
+   ```
+
+### 10.2. 모달 중복 방지
+
+- 모달 추가 전, 기존 모달 목록을 **반드시 확인**한다.
+- 비슷한 기능의 모달이 있다면 **재사용 또는 확장**한다.
+- 새 모달이 필요한 경우, `prompt-qa-list.md`에 사유를 기록한다.
+
+### 10.3. 모달 네이밍 규칙
+
+- **ID**: `{기능명}-modal-overlay` (예: `account-transaction-modal-overlay`)
+- **닫기 버튼**: `{기능명}-modal-close`
+- **폼**: `{기능명}-form`
+- **함수**: `open{기능명}Modal()`, `close{기능명}Modal()`, `init{기능명}Modal()`
+
+---
+
+## 11. 작업 전 체크리스트 (신규 추가)
+
+AI가 작업 시작 전 **반드시 확인**해야 할 사항:
+
+### 11.1. 기능 추가 작업 전
+
+- [ ] 비슷한 기능이 이미 구현되어 있는지 검색 (`grep`, `codebase_search`)
+- [ ] 관련 함수가 이미 존재하는지 확인
+- [ ] `index.html` 현재 라인 수 확인 (7,000 라인 초과 시 리팩토링 먼저)
+- [ ] `accountData` vs `cardData` 사용 여부 확인 (accountData 우선)
+
+### 11.2. 리팩토링 작업 전
+
+- [ ] 기존 기능 동작 방식 완전 이해
+- [ ] 영향받는 모든 파일 목록 작성
+- [ ] 리팩토링 범위 명확히 정의 (1개 파일 + 1개 목적)
+- [ ] 테스트 계획 수립 (브라우저 테스트 항목 명시)
+
+### 11.3. 작업 완료 후
+
+- [ ] `read_lints` 실행 → 모든 에러 수정
+- [ ] 브라우저 콘솔 에러 확인
+- [ ] 관련 기능 수동 테스트 (최소 2개 시나리오)
+- [ ] `index.html` 라인 수 확인 (증가 시 분리 계획 수립)
+- [ ] TODO 리스트 업데이트
 
 ---

@@ -566,13 +566,24 @@ function initCardManageForm() {
     const newCard = {
       id: now,
       name: name,
-      type: type,
+      type: 'card', // accountData 통합을 위해 'card' 타입 명시
+      cardType: type, // credit 또는 debit
       cardCompany: cardCompany
     };
-    cardData.push(newCard);
-    if (typeof saveCardData === 'function') {
-      saveCardData();
+    
+    // accountData에 저장 (단일 DB 사용)
+    if (typeof accountData !== 'undefined' && Array.isArray(accountData)) {
+      accountData.push(newCard);
+      if (typeof saveAccountData === 'function') {
+        saveAccountData();
+      }
     }
+    
+    // 레거시 호환성을 위해 cardData에도 저장 (추후 제거 예정)
+    // cardData.push(newCard);
+    // if (typeof saveCardData === 'function') {
+    //   saveCardData();
+    // }
     renderCardList();
     renderCardListInModal();
     // 결제수단 관리 탭이 열려있으면 다시 렌더링
