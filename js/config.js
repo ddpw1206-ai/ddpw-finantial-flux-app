@@ -20,6 +20,8 @@ let accountData = [];
 let merchantHistory = [];
 let cardData = [];
 let cardParsingTemplates = {};
+// 계좌 관리 카드 대금 청구 내역 (월별 현황과 분리)
+let accountCardPayments = [];
 // dataFolderHandle은 data-manager.js에서 정의됨
 let lastModifiedTime = {};
 
@@ -31,6 +33,7 @@ const ACCOUNT_FILE_NAME = 'account-data.json';
 const MERCHANT_FILE_NAME = 'merchant-history.json';
 const CARD_FILE_NAME = 'card-data.json';
 const CARD_PARSING_TEMPLATES_FILE_NAME = 'card-parsing-templates.json';
+const ACCOUNT_CARD_PAYMENTS_FILE_NAME = 'account-card-payments.json';
 
 // ========================================
 // 카테고리 데이터 (rollback.html에서 복원)

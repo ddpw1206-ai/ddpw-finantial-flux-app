@@ -74,6 +74,42 @@ function saveCardData() {
 }
 
 // ========================================
+// 계좌 관리 카드 대금 청구 내역 저장/로드
+// ========================================
+function saveAccountCardPayments() {
+  try {
+    // 항상 localStorage에 저장 (즉시 반영)
+    localStorage.setItem('accountCardPayments', JSON.stringify(accountCardPayments));
+    console.log('계좌 카드 대금 데이터 저장:', accountCardPayments.length);
+    
+    // 폴더가 선택되어 있으면 파일에도 저장
+    const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
+    if (folderHandle) {
+      saveDataToFolder().catch(error => {
+        console.error('파일 저장 실패, localStorage만 사용:', error);
+      });
+    }
+  } catch (error) {
+    console.error('계좌 카드 대금 데이터 저장 오류:', error);
+  }
+}
+
+function loadAccountCardPayments() {
+  try {
+    const saved = localStorage.getItem('accountCardPayments');
+    if (saved) {
+      accountCardPayments = JSON.parse(saved);
+      console.log('계좌 카드 대금 데이터 로드:', accountCardPayments.length);
+    } else {
+      accountCardPayments = [];
+    }
+  } catch (error) {
+    console.error('계좌 카드 대금 데이터 로드 오류:', error);
+    accountCardPayments = [];
+  }
+}
+
+// ========================================
 // localStorage 로드
 // ========================================
 function loadData() {
@@ -218,6 +254,12 @@ async function saveDataToFolder() {
     await templatesWritable.write(JSON.stringify(cardParsingTemplates, null, 2));
     await templatesWritable.close();
     
+    // 계좌 카드 대금 내역 저장
+    const cardPaymentsFile = await folderHandle.getFileHandle(ACCOUNT_CARD_PAYMENTS_FILE_NAME, { create: true });
+    const cardPaymentsWritable = await cardPaymentsFile.createWritable();
+    await cardPaymentsWritable.write(JSON.stringify(accountCardPayments, null, 2));
+    await cardPaymentsWritable.close();
+    
     console.log('파일 저장 완료');
     return true;
   } catch (error) {
@@ -295,6 +337,18 @@ async function loadDataFromFolder() {
       loadedAny = true;
     } catch (error) {
       console.warn('카드 파싱 템플릿 파일이 없습니다.');
+    }
+    
+    // 계좌 카드 대금 내역 로드
+    try {
+      const cardPaymentsFile = await folderHandle.getFileHandle(ACCOUNT_CARD_PAYMENTS_FILE_NAME);
+      const cardPaymentsContent = await cardPaymentsFile.getFile();
+      const cardPaymentsText = await cardPaymentsContent.text();
+      accountCardPayments = JSON.parse(cardPaymentsText);
+      console.log('파일에서 계좌 카드 대금 데이터 로드:', accountCardPayments.length);
+      loadedAny = true;
+    } catch (error) {
+      console.warn('계좌 카드 대금 데이터 파일이 없습니다.');
     }
     
     return loadedAny;

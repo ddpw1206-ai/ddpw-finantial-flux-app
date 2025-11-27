@@ -2118,7 +2118,7 @@
         }
         // 항목 드롭다운 초기화
         if (typeof updateItemOptions === 'function') {
-          updateItemOptions();
+        updateItemOptions();
         }
         if (methodSelect && typeof updatePaymentFields === 'function') {
           updatePaymentFields();
@@ -2491,6 +2491,29 @@
         }
       } else {
         // 신규 입력 모드: 새 데이터 추가
+        // ========================================
+        // 중복 체크: 날짜, 금액, 결제수단이 같은 경우 중복으로 간주
+        // ========================================
+        const isDuplicate = transactionData.some(existing => {
+          return existing.date === date &&
+                 Math.abs(existing.amount - amount) < 1 && // 금액 차이 1원 미만
+                 existing.paymentMethod === paymentMethod &&
+                 existing.paymentDetail === paymentDetail;
+        });
+        
+        if (isDuplicate) {
+          const confirmed = confirm(
+            `이미 등록된 거래 내역과 유사한 항목이 있습니다.\n\n` +
+            `날짜: ${date}\n` +
+            `금액: ${amount.toLocaleString()}원\n` +
+            `결제수단: ${paymentDetail || paymentMethod}\n\n` +
+            `그래도 등록하시겠습니까?`
+          );
+          if (!confirmed) {
+            return; // 사용자가 취소하면 등록하지 않음
+          }
+        }
+        
         const now = Date.now();
         const entry = {
           id: now,
@@ -2511,8 +2534,37 @@
         
         transactionData.push(entry);
         saveData();
+        
+        // ========================================
+        // 계좌 잔액 업데이트: 계좌이체(transfer) 또는 체크카드(debit)일 때만
+        // 신용카드(credit)나 현금(cash)은 월별 현황에만 반영
+        // ========================================
+        if (paymentMethod === 'transfer' || paymentMethod === 'debit') {
         // 계좌 잔액 자동 업데이트
+          if (typeof calculateAccountBalances === 'function') {
         calculateAccountBalances();
+          }
+          
+          // 계좌 관리 탭이 활성화되어 있으면 계좌 입출금 내역 테이블도 갱신
+          const currentTab = window.currentActiveTab || 'dashboard';
+          if (currentTab === 'accounts') {
+            if (typeof renderAccountTransactionTable === 'function') {
+              const accountSelect = document.getElementById('account-filter-select');
+              const selectedAccount = accountSelect ? accountSelect.value : 'all';
+              renderAccountTransactionTable(selectedAccount);
+            }
+            // 계좌 목록도 갱신
+            const accountsContainer = document.getElementById('accounts-container');
+            const mainContent = document.getElementById('main-content');
+            if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+              window.renderAccountsTab(accountsContainer);
+            } else if (mainContent && typeof window.renderAccountsTab === 'function') {
+              window.renderAccountsTab(mainContent);
+            }
+          }
+        }
+        
+        // 월별 현황 탭 갱신
         renderTable();
         renderCardTable('all');
         renderBankTable();
@@ -2558,8 +2610,16 @@ function calculateAccountBalances() {
     }
   });
   
+  // ✅ Phase 1: accountCardPayments도 함께 처리 (카드 대금은 계좌 잔액에 영향)
   // 모든 거래 내역을 날짜순으로 정렬하여 처리
-  const sortedTransactions = [...transactionData].sort((a, b) => {
+  const allTransactions = [...transactionData];
+  
+  // accountCardPayments도 합치기 (카드 대금은 계좌 잔액에 영향)
+  if (typeof accountCardPayments !== 'undefined' && Array.isArray(accountCardPayments)) {
+    allTransactions.push(...accountCardPayments);
+  }
+  
+  const sortedTransactions = allTransactions.sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     if (dateA.getTime() === dateB.getTime()) {
@@ -2570,6 +2630,12 @@ function calculateAccountBalances() {
   
   // 각 거래를 처리하여 계좌 잔액 업데이트
   sortedTransactions.forEach(transaction => {
+    // transfer 또는 cash 거래만 처리 (직접 입출금 거래)
+    // accountCardPayments의 모든 항목은 paymentMethod가 'transfer'이므로 포함됨
+    if (transaction.paymentMethod !== 'transfer' && transaction.paymentMethod !== 'cash') {
+      return;
+    }
+    
     const accountName = transaction.paymentDetail || '';
     
     // 해당 계좌 찾기
@@ -2902,14 +2968,124 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
   const tableContainer = document.getElementById('account-transaction-table');
   if (!tableContainer) return;
   
-  // 현재 선택된 월의 데이터 가져오기
-  let monthData = getCurrentMonthData();
+  // ✅ 현재 선택된 월 가져오기 (여러 방법 시도)
+  let currentYear, currentMonth;
+  
+  // 방법 1: month-select 요소에서 가져오기
+  const monthSelect = document.getElementById('month-select');
+  if (monthSelect && monthSelect.value) {
+    const selectedMonth = monthSelect.value; // 'YYYY-MM' 형식
+    const parts = selectedMonth.split('-');
+    if (parts.length === 2) {
+      currentYear = parseInt(parts[0], 10);
+      currentMonth = parseInt(parts[1], 10);
+    }
+  }
+  
+  // 방법 2: month-text에서 가져오기
+  if (!currentYear || !currentMonth) {
+    const monthText = document.getElementById('month-text');
+    if (monthText) {
+      const text = monthText.textContent.trim(); // '2025년 11월' 형식
+      const match = text.match(/(\d{4})년\s*(\d{1,2})월/);
+      if (match) {
+        currentYear = parseInt(match[1], 10);
+        currentMonth = parseInt(match[2], 10);
+      }
+    }
+  }
+  
+  // 방법 3: 전역 변수 사용
+  if (!currentYear || !currentMonth) {
+    currentYear = typeof curYear !== 'undefined' ? curYear : new Date().getFullYear();
+    currentMonth = typeof curMonth !== 'undefined' ? curMonth : new Date().getMonth() + 1;
+  }
+  
+  console.log('🔍 계좌 관리 렌더링 시작 - 선택된 월:', currentYear, '년', currentMonth, '월');
+  
+  // 현재 선택된 월의 transactionData 가져오기
+  let monthData = [];
+  if (typeof transactionData !== 'undefined' && Array.isArray(transactionData)) {
+    monthData = transactionData.filter(entry => {
+      if (!entry.date) return false;
+      const entryDate = new Date(entry.date);
+      return entryDate.getFullYear() === currentYear && (entryDate.getMonth() + 1) === currentMonth;
+    });
+  }
+  
+  // ✅ accountCardPayments도 현재 월로 필터링하여 합치기
+  let accountCardPaymentsMonthData = [];
+  if (typeof accountCardPayments !== 'undefined' && Array.isArray(accountCardPayments)) {
+    console.log('📊 accountCardPayments 전체 개수:', accountCardPayments.length);
+    
+    accountCardPaymentsMonthData = accountCardPayments.filter(entry => {
+      if (!entry.date) {
+        console.warn('accountCardPayments 항목에 date가 없음:', entry);
+        return false;
+      }
+      
+      // 날짜 형식 처리: 'YYYY-MM-DD' 또는 Date 객체
+      let entryYear, entryMonth;
+      
+      if (typeof entry.date === 'string') {
+        // 'YYYY-MM-DD' 형식인 경우
+        const dateParts = entry.date.split('-');
+        if (dateParts.length >= 2) {
+          entryYear = parseInt(dateParts[0], 10);
+          entryMonth = parseInt(dateParts[1], 10);
+        } else {
+          // 다른 형식인 경우 Date 객체로 파싱
+          const entryDate = new Date(entry.date);
+          if (isNaN(entryDate.getTime())) {
+            console.warn('accountCardPayments 날짜 파싱 실패:', entry.date);
+            return false;
+          }
+          entryYear = entryDate.getFullYear();
+          entryMonth = entryDate.getMonth() + 1;
+        }
+      } else {
+        // Date 객체인 경우
+        const entryDate = new Date(entry.date);
+        if (isNaN(entryDate.getTime())) {
+          console.warn('accountCardPayments 날짜 파싱 실패:', entry.date);
+          return false;
+        }
+        entryYear = entryDate.getFullYear();
+        entryMonth = entryDate.getMonth() + 1;
+      }
+      
+      const matches = entryYear === currentYear && entryMonth === currentMonth;
+      if (matches) {
+        console.log('✅ accountCardPayments 매칭 항목:', {
+          date: entry.date,
+          item: entry.item,
+          amount: entry.amount,
+          paymentDetail: entry.paymentDetail,
+          entryYear: entryYear,
+          entryMonth: entryMonth,
+          currentYear: currentYear,
+          currentMonth: currentMonth
+        });
+      } else {
+        console.log('❌ accountCardPayments 미매칭 항목:', {
+          date: entry.date,
+          entryYear: entryYear,
+          entryMonth: entryMonth,
+          currentYear: currentYear,
+          currentMonth: currentMonth
+        });
+      }
+      return matches;
+    });
+    
+    console.log('accountCardPayments 필터링 결과:', accountCardPaymentsMonthData.length, '개');
+  }
   
   // 카드 사용 내역 제외 (카드 대금 청구는 포함)
   // paymentMethod가 'credit' 또는 'debit'인 항목은 제외
-  // 단, isCardPayment가 true인 항목(카드 대금 청구)은 포함
+  // 단, isCardPayment가 true인 항목(카드 대금 청구)은 포함 (레거시 호환)
   monthData = monthData.filter(entry => {
-    // 카드 대금 청구 항목은 포함
+    // 카드 대금 청구 항목은 포함 (레거시 호환)
     if (entry.isCardPayment === true) {
       return true;
     }
@@ -2921,18 +3097,51 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
     return entry.paymentMethod === 'transfer' || entry.paymentMethod === 'cash';
   });
   
+  // ✅ accountCardPayments 데이터 합치기 (출처 구분을 위해 source 속성 추가)
+  const monthDataWithSource = monthData.map(entry => ({ ...entry, _source: 'transactionData' }));
+  const accountCardPaymentsWithSource = accountCardPaymentsMonthData.map(entry => ({ ...entry, _source: 'accountCardPayments' }));
+  
+  // ✅ 두 배열 합치기
+  let allAccountData = [...monthDataWithSource, ...accountCardPaymentsWithSource];
+  
   // 선택된 계좌로 필터링
   if (selectedAccount !== 'all') {
-    monthData = monthData.filter(entry => {
+    allAccountData = allAccountData.filter(entry => {
       // paymentDetail에 선택된 계좌명이 포함되어 있는지 확인
       return entry.paymentDetail && entry.paymentDetail.includes(selectedAccount);
     });
   }
   
-  console.log('계좌 입출금 렌더링 (카드 제외):', monthData.length, '개 항목');
+  console.log('🔍 계좌 입출금 렌더링 상세:', {
+    transactionData: monthDataWithSource.length,
+    accountCardPayments: accountCardPaymentsWithSource.length,
+    total: allAccountData.length,
+    selectedAccount: selectedAccount,
+    currentYear: currentYear,
+    currentMonth: currentMonth,
+    accountCardPaymentsTotal: typeof accountCardPayments !== 'undefined' ? accountCardPayments.length : 0
+  });
+  
+  // 디버깅: accountCardPayments 전체 내용 확인
+  if (typeof accountCardPayments !== 'undefined' && Array.isArray(accountCardPayments) && accountCardPayments.length > 0) {
+    console.log('📋 accountCardPayments 전체 항목:', accountCardPayments.map(e => ({
+      date: e.date,
+      item: e.item,
+      amount: e.amount,
+      paymentDetail: e.paymentDetail,
+      dateType: typeof e.date
+    })));
+    console.log('📅 accountCardPaymentsMonthData 필터링 결과:', accountCardPaymentsMonthData.map(e => ({
+      date: e.date,
+      item: e.item,
+      amount: e.amount
+    })));
+  } else {
+    console.warn('⚠️ accountCardPayments가 비어있거나 정의되지 않음');
+  }
   
   // 날짜순으로 정렬 (오래된 것부터)
-  const sortedData = [...monthData].sort((a, b) => {
+  const sortedData = [...allAccountData].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     if (dateA.getTime() === dateB.getTime()) {
@@ -3022,9 +3231,12 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
       
       const paymentMethodText = getPaymentMethodText(entry);
       
+      // ✅ 데이터 출처 확인 (삭제 시 올바른 배열에서 삭제하기 위해)
+      const dataSource = entry._source || 'transactionData'; // 기본값은 transactionData (레거시 호환)
+      
       tableHTML += `
         <tr>
-          <td><input type="checkbox" class="row-checkbox-account" data-id="${entry.id}" style="width: 18px; height: 18px; cursor: pointer;"></td>
+          <td><input type="checkbox" class="row-checkbox-account" data-id="${entry.id}" data-source="${dataSource}" style="width: 18px; height: 18px; cursor: pointer;"></td>
           <td>${dateStr}</td>
           <td>${entry.user}</td>
           <td>${entry.item}</td>
@@ -3033,8 +3245,8 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
           <td>${paymentMethodText}</td>
           <td style="color: ${balanceColor}; font-weight: 600;">${balanceStr}</td>
           <td>
-            <button class="btn-action" onclick="editTransaction(${entry.id})">수정</button>
-            <button class="btn-action" onclick="deleteTransaction(${entry.id})">삭제</button>
+            <button class="btn-action" onclick="editAccountTransaction(${entry.id}, '${dataSource}')">수정</button>
+            <button class="btn-action" onclick="deleteAccountTransaction(${entry.id}, '${dataSource}')">삭제</button>
           </td>
         </tr>
       `;
@@ -3249,7 +3461,7 @@ function updateEntryAutoCardSelect(selectedCompany) {
     
     // 레거시 호환성: cardData도 포함 (중복 제거)
     if (typeof cardData !== 'undefined' && Array.isArray(cardData)) {
-      cardData.filter(c => c.cardCompany === selectedCompany).forEach(card => {
+    cardData.filter(c => c.cardCompany === selectedCompany).forEach(card => {
         if (!cards.find(c => c.id === card.id)) {
           cards.push(card);
         }
@@ -4028,6 +4240,16 @@ function renderTable() {
   // 현재 선택된 월의 데이터만 필터링
   let monthData = getCurrentMonthData();
   
+  // ✅ 카드 대금 청구 항목 제외 (계좌 관리에서 등록한 카드 대금은 월별 현황에 표시하지 않음)
+  // isCardPayment 플래그가 있거나, 카테고리가 "카드대금"이고 paymentMethod가 "transfer"인 항목 제외
+  monthData = monthData.filter(entry => {
+    // isCardPayment 플래그가 있으면 제외
+    if (entry.isCardPayment === true) return false;
+    // 카테고리가 "카드대금"이고 paymentMethod가 "transfer"인 항목도 제외 (레거시 데이터 대응)
+    if (entry.category === '카드대금' && entry.paymentMethod === 'transfer') return false;
+    return true;
+  });
+  
   // 검색 필터링 적용
   if (typeof currentSearchKeyword !== 'undefined' && currentSearchKeyword) {
     monthData = monthData.filter(entry => 
@@ -4114,9 +4336,16 @@ function renderCardTable(selectedCard = 'all') {
     );
   }
   
-  let cardData = monthData.filter(entry => 
-    entry.paymentMethod === 'credit' || entry.paymentMethod === 'debit'
-  );
+  // ✅ 카드 대금 청구 항목 제외 (계좌 관리에서 등록한 카드 대금은 월별 현황에 표시하지 않음)
+  let cardData = monthData.filter(entry => {
+    // paymentMethod가 credit 또는 debit이어야 함
+    if (entry.paymentMethod !== 'credit' && entry.paymentMethod !== 'debit') return false;
+    // isCardPayment 플래그가 있으면 제외
+    if (entry.isCardPayment === true) return false;
+    // 카테고리가 "카드대금"이고 paymentMethod가 "transfer"인 항목도 제외 (레거시 데이터 대응)
+    if (entry.category === '카드대금' && entry.paymentMethod === 'transfer') return false;
+    return true;
+  });
   
   // 선택된 카드로 필터링
   if (selectedCard !== 'all') {
@@ -4223,11 +4452,16 @@ function renderBankTable() {
     );
   }
   
-  // ✅ 카드 대금 청구 항목 제외 (isCardPayment: true인 항목은 월별 현황에 표시하지 않음)
-  let bankData = monthData.filter(entry => 
-    (entry.paymentMethod === 'transfer' || entry.paymentMethod === 'cash') &&
-    !entry.isCardPayment // 카드 대금 청구는 제외
-  );
+  // ✅ 카드 대금 청구 항목 제외 (계좌 관리에서 등록한 카드 대금은 월별 현황에 표시하지 않음)
+  let bankData = monthData.filter(entry => {
+    // paymentMethod가 transfer 또는 cash여야 함
+    if (entry.paymentMethod !== 'transfer' && entry.paymentMethod !== 'cash') return false;
+    // isCardPayment 플래그가 있으면 제외
+    if (entry.isCardPayment === true) return false;
+    // 카테고리가 "카드대금"이고 paymentMethod가 "transfer"인 항목도 제외 (레거시 데이터 대응)
+    if (entry.category === '카드대금' && entry.paymentMethod === 'transfer') return false;
+    return true;
+  });
   
   // 정렬 적용
   if (typeof currentSortType !== 'undefined' && currentSortType) {
@@ -4396,8 +4630,11 @@ window.editTransaction = function(id) {
 // ========================================
 // 9. 삭제 기능
 // ========================================
+// ========================================
+// 월별 현황 거래 삭제 함수 (transactionData 전용)
+// ========================================
 window.deleteTransaction = function(id) {
-  console.log('삭제 요청 - ID:', id);
+  console.log('월별 현황 삭제 요청 - ID:', id);
   
   if (confirm('정말 삭제하시겠습니까?')) {
     const index = transactionData.findIndex(item => item.id === id);
@@ -4411,7 +4648,70 @@ window.deleteTransaction = function(id) {
       renderBankTable();
       updateDashboard();
       alert('삭제되었습니다!');
-      console.log('삭제 완료 - ID:', id);
+      console.log('월별 현황 삭제 완료 - ID:', id);
+    } else {
+      alert('해당 내역을 찾을 수 없습니다.');
+    }
+  }
+};
+
+// ========================================
+// 계좌 관리 거래 삭제 함수 (transactionData 또는 accountCardPayments)
+// ========================================
+window.deleteAccountTransaction = function(id, source) {
+  console.log('계좌 관리 삭제 요청 - ID:', id, 'Source:', source);
+  
+  if (confirm('정말 삭제하시겠습니까?')) {
+    let deleted = false;
+    
+    if (source === 'accountCardPayments') {
+      // accountCardPayments에서 삭제
+      if (typeof accountCardPayments !== 'undefined' && Array.isArray(accountCardPayments)) {
+        const index = accountCardPayments.findIndex(item => item.id === id);
+        if (index > -1) {
+          accountCardPayments.splice(index, 1);
+          if (typeof saveAccountCardPayments === 'function') {
+            saveAccountCardPayments();
+          }
+          deleted = true;
+        }
+      }
+    } else {
+      // transactionData에서 삭제 (기본값 또는 레거시)
+      const index = transactionData.findIndex(item => item.id === id);
+      if (index > -1) {
+        transactionData.splice(index, 1);
+        if (typeof saveData === 'function') {
+          saveData();
+        }
+        deleted = true;
+      }
+    }
+    
+    if (deleted) {
+      // 계좌 잔액 자동 업데이트
+      if (typeof calculateAccountBalances === 'function') {
+        calculateAccountBalances();
+      }
+      
+      // 계좌 관리 탭 갱신
+      if (typeof renderAccountTransactionTable === 'function') {
+        const accountSelect = document.getElementById('account-filter-select');
+        const selectedAccount = accountSelect ? accountSelect.value : 'all';
+        renderAccountTransactionTable(selectedAccount);
+      }
+      
+      // 계좌 목록도 갱신
+      const accountsContainer = document.getElementById('accounts-container');
+      const mainContent = document.getElementById('main-content');
+      if (accountsContainer && typeof window.renderAccountsTab === 'function') {
+        window.renderAccountsTab(accountsContainer);
+      } else if (mainContent && typeof window.renderAccountsTab === 'function') {
+        window.renderAccountsTab(mainContent);
+      }
+      
+      alert('삭제되었습니다!');
+      console.log('계좌 관리 삭제 완료 - ID:', id, 'Source:', source);
     } else {
       alert('해당 내역을 찾을 수 없습니다.');
     }
@@ -6561,19 +6861,62 @@ window.deleteTransaction = function(id) {
       return;
     }
     
-    const idsToDelete = Array.from(checkboxes).map(cb => parseFloat(cb.getAttribute('data-id')));
-    idsToDelete.forEach(id => {
-      const index = transactionData.findIndex(t => t.id === id);
+    // ✅ 데이터 출처를 구분하여 삭제
+    const itemsToDelete = Array.from(checkboxes).map(cb => ({
+      id: parseFloat(cb.getAttribute('data-id')),
+      source: cb.getAttribute('data-source') || 'transactionData'
+    }));
+    
+    let deletedFromTransactionData = false;
+    let deletedFromAccountCardPayments = false;
+    
+    itemsToDelete.forEach(item => {
+      if (item.source === 'accountCardPayments') {
+        // accountCardPayments에서 삭제
+        if (typeof accountCardPayments !== 'undefined' && Array.isArray(accountCardPayments)) {
+          const index = accountCardPayments.findIndex(t => t.id === item.id);
+          if (index !== -1) {
+            accountCardPayments.splice(index, 1);
+            deletedFromAccountCardPayments = true;
+          }
+        }
+      } else {
+        // transactionData에서 삭제
+        const index = transactionData.findIndex(t => t.id === item.id);
       if (index !== -1) {
         transactionData.splice(index, 1);
+          deletedFromTransactionData = true;
+        }
       }
     });
   
-    
+    // ✅ 출처에 따라 적절한 저장 함수 호출
+    if (deletedFromTransactionData) {
     saveData();
+    }
+    if (deletedFromAccountCardPayments) {
+      if (typeof saveAccountCardPayments === 'function') {
+        saveAccountCardPayments();
+      }
+    }
+    
+    // 계좌 잔액 업데이트
+    if (typeof calculateAccountBalances === 'function') {
+      calculateAccountBalances();
+    }
+    
+    // 렌더링 갱신
     renderTable();
     renderCardTable('all');
     renderBankTable();
+    
+    // 계좌 관리 탭도 갱신
+    if (typeof renderAccountTransactionTable === 'function') {
+      const accountSelect = document.getElementById('account-filter-select');
+      const selectedAccount = accountSelect ? accountSelect.value : 'all';
+      renderAccountTransactionTable(selectedAccount);
+    }
+    
     updateDashboard();
     
     // 체크박스 초기화
@@ -7247,7 +7590,7 @@ window.deleteTransaction = function(id) {
     // 결과 반환
     return { added: addedCount, duplicate: duplicateCount };
   }
-  
+
   console.log('DOMContentLoaded 완료 - 엑셀 파싱 기능 초기화됨');
   
   }); // DOMContentLoaded 이벤트 리스너 종료

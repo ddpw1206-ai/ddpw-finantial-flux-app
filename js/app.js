@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadMerchantHistory();
   loadCardData();
   loadCardParsingTemplates();
+  loadAccountCardPayments(); // 계좌 카드 대금 내역 로드
   
   // 자동 불러오기 로직 제거 (16번 QA: 수동 제어로 변경)
   // initializeFolderData() 함수는 제거되었고, 사용자가 명시적으로 불러오기 버튼을 눌렀을 때만 동기화됩니다.

@@ -367,13 +367,111 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
   // 테이블 컨테이너 완전히 새로 생성 (중복 방지)
   tableContainer.innerHTML = '';
   
-  // 현재 선택된 월의 데이터 가져오기
-  let monthData = getCurrentMonthData();
+  // ✅ 현재 선택된 월 가져오기 (여러 방법 시도)
+  let currentYear, currentMonth;
+  
+  // 방법 1: month-select 요소에서 가져오기
+  const monthSelect = document.getElementById('month-select');
+  if (monthSelect && monthSelect.value) {
+    const selectedMonth = monthSelect.value; // 'YYYY-MM' 형식
+    const parts = selectedMonth.split('-');
+    if (parts.length === 2) {
+      currentYear = parseInt(parts[0], 10);
+      currentMonth = parseInt(parts[1], 10);
+    }
+  }
+  
+  // 방법 2: month-text에서 가져오기
+  if (!currentYear || !currentMonth) {
+    const monthText = document.getElementById('month-text');
+    if (monthText) {
+      const text = monthText.textContent.trim(); // '2025년 11월' 형식
+      const match = text.match(/(\d{4})년\s*(\d{1,2})월/);
+      if (match) {
+        currentYear = parseInt(match[1], 10);
+        currentMonth = parseInt(match[2], 10);
+      }
+    }
+  }
+  
+  // 방법 3: 전역 변수 사용
+  if (!currentYear || !currentMonth) {
+    currentYear = typeof curYear !== 'undefined' ? curYear : new Date().getFullYear();
+    currentMonth = typeof curMonth !== 'undefined' ? curMonth : new Date().getMonth() + 1;
+  }
+  
+  console.log('🔍 [accounts.js] 계좌 관리 렌더링 시작 - 선택된 월:', currentYear, '년', currentMonth, '월');
+  
+  // 현재 선택된 월의 transactionData 가져오기
+  let monthData = [];
+  if (typeof transactionData !== 'undefined' && Array.isArray(transactionData)) {
+    monthData = transactionData.filter(entry => {
+      if (!entry.date) return false;
+      const entryDate = new Date(entry.date);
+      return entryDate.getFullYear() === currentYear && (entryDate.getMonth() + 1) === currentMonth;
+    });
+  }
   
   // 선택된 계좌 정보 가져오기
   let selectedAccountData = null;
   if (selectedAccount !== 'all') {
     selectedAccountData = accountData.find(acc => acc.name === selectedAccount);
+  }
+  
+  // ✅ accountCardPayments도 현재 월로 필터링하여 합치기
+  let accountCardPaymentsMonthData = [];
+  if (typeof accountCardPayments !== 'undefined' && Array.isArray(accountCardPayments)) {
+    console.log('📊 [accounts.js] accountCardPayments 전체 개수:', accountCardPayments.length);
+    
+    accountCardPaymentsMonthData = accountCardPayments.filter(entry => {
+      if (!entry.date) {
+        console.warn('[accounts.js] accountCardPayments 항목에 date가 없음:', entry);
+        return false;
+      }
+      
+      // 날짜 형식 처리: 'YYYY-MM-DD' 또는 Date 객체
+      let entryYear, entryMonth;
+      
+      if (typeof entry.date === 'string') {
+        // 'YYYY-MM-DD' 형식인 경우
+        const dateParts = entry.date.split('-');
+        if (dateParts.length >= 2) {
+          entryYear = parseInt(dateParts[0], 10);
+          entryMonth = parseInt(dateParts[1], 10);
+        } else {
+          // 다른 형식인 경우 Date 객체로 파싱
+          const entryDate = new Date(entry.date);
+          if (isNaN(entryDate.getTime())) {
+            console.warn('[accounts.js] accountCardPayments 날짜 파싱 실패:', entry.date);
+            return false;
+          }
+          entryYear = entryDate.getFullYear();
+          entryMonth = entryDate.getMonth() + 1;
+        }
+      } else {
+        // Date 객체인 경우
+        const entryDate = new Date(entry.date);
+        if (isNaN(entryDate.getTime())) {
+          console.warn('[accounts.js] accountCardPayments 날짜 파싱 실패:', entry.date);
+          return false;
+        }
+        entryYear = entryDate.getFullYear();
+        entryMonth = entryDate.getMonth() + 1;
+      }
+      
+      const matches = entryYear === currentYear && entryMonth === currentMonth;
+      if (matches) {
+        console.log('✅ [accounts.js] accountCardPayments 매칭 항목:', {
+          date: entry.date,
+          item: entry.item,
+          amount: entry.amount,
+          paymentDetail: entry.paymentDetail
+        });
+      }
+      return matches;
+    });
+    
+    console.log('📅 [accounts.js] accountCardPayments 필터링 결과:', accountCardPaymentsMonthData.length, '개');
   }
   
   // 직접 거래 필터링: paymentMethod가 'transfer' 또는 'cash'이고 paymentDetail이 selectedAccount인 항목
@@ -390,7 +488,11 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
     );
   }
   
-  // 카드 결제 대금 자동이체 내역 추가
+  // ✅ accountCardPayments 데이터 합치기 (출처 구분을 위해 source 속성 추가)
+  const directTransactionsWithSource = directTransactions.map(entry => ({ ...entry, _source: 'transactionData' }));
+  const accountCardPaymentsWithSource = accountCardPaymentsMonthData.map(entry => ({ ...entry, _source: 'accountCardPayments' }));
+  
+  // 카드 결제 대금 자동이체 내역 추가 (레거시 호환 - 자동 생성)
   let cardPayments = [];
   if (selectedAccount !== 'all' && selectedAccountData && selectedAccountData.type === 'bank') {
     // accountData에서 해당 계좌에 연결된 카드 찾기
@@ -403,14 +505,14 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
       if (!card.paymentDay) return;
       
       // 현재 월의 결제일 계산
-      const paymentDate = new Date(curYear, curMonth - 1, card.paymentDay);
+      const paymentDate = new Date(currentYear, currentMonth - 1, card.paymentDay);
       const paymentDateStr = paymentDate.toISOString().split('T')[0];
       
       // 해당 월의 카드 사용 총액 계산
       const cardTransactions = monthData.filter(t => {
         const tDate = new Date(t.date);
-        return tDate.getFullYear() === curYear &&
-               tDate.getMonth() + 1 === curMonth &&
+        return tDate.getFullYear() === currentYear &&
+               tDate.getMonth() + 1 === currentMonth &&
                t.paymentMethod === 'credit' &&
                t.paymentDetail === card.name;
       });
@@ -420,7 +522,7 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
       if (totalCardUsage > 0) {
         // 카드 결제 대금 내역 생성
         cardPayments.push({
-          id: `card-payment-${card.id}-${curYear}-${curMonth}`,
+          id: `card-payment-${card.id}-${currentYear}-${currentMonth}`,
           date: paymentDateStr,
           user: '-',
           type: 'expense',
@@ -437,8 +539,8 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
     });
   }
   
-  // 모든 거래 합치기
-  let allTransactions = [...directTransactions, ...cardPayments];
+  // ✅ 모든 거래 합치기 (accountCardPayments 포함)
+  let allTransactions = [...directTransactionsWithSource, ...accountCardPaymentsWithSource, ...cardPayments];
   
   // 날짜순으로 정렬 (오래된 것부터)
   const sortedData = [...allTransactions].sort((a, b) => {
@@ -674,8 +776,8 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
           <td style="color: ${balanceColor}; font-weight: 600;">${balanceStr}</td>
           <td>
             ${entry.isAutoGenerated ? '<span style="color: #6B7280; font-size: 0.85rem;">자동 생성</span>' : `
-            <button class="btn-action" onclick="editTransaction(${entry.id})">수정</button>
-            <button class="btn-action" onclick="deleteTransaction(${entry.id})">삭제</button>
+            <button class="btn-action" onclick="editAccountTransaction(${entry.id}, '${entry._source || 'transactionData'}')">수정</button>
+            <button class="btn-action" onclick="deleteAccountTransaction(${entry.id}, '${entry._source || 'transactionData'}')">삭제</button>
             `}
           </td>
         </tr>
@@ -690,7 +792,22 @@ function renderAccountTransactionTable(selectedAccount = 'all') {
   `;
   
   tableContainer.innerHTML = tableHTML;
-  console.log('계좌별 입출금 내역 렌더링:', directTransactions.length, '개 직접 거래', cardPayments.length, '개 카드 결제 대금', selectedAccount !== 'all' ? `(필터: ${selectedAccount})` : '(전체)');
+  console.log('✅ [accounts.js] 계좌별 입출금 내역 렌더링 완료:', {
+    total: sortedData.length,
+    directTransactions: directTransactionsWithSource.length,
+    accountCardPayments: accountCardPaymentsWithSource.length,
+    autoGeneratedCardPayments: cardPayments.length,
+    selectedAccount: selectedAccount !== 'all' ? selectedAccount : '전체',
+    currentYear: currentYear,
+    currentMonth: currentMonth
+  });
+  
+  // ⚠️ 디버깅: 렌더링이 0개인 경우 경고
+  if (sortedData.length === 0 && typeof accountCardPayments !== 'undefined' && accountCardPayments.length > 0) {
+    console.warn('⚠️ [accounts.js] 렌더링 문제: accountCardPayments에', accountCardPayments.length, '개 항목이 있지만 렌더링되지 않음');
+    console.warn('⚠️ [accounts.js] accountCardPayments 항목들의 날짜:', accountCardPayments.map(e => e.date));
+    console.warn('⚠️ [accounts.js] 현재 선택된 월:', currentYear, '년', currentMonth, '월');
+  }
 }
 
 console.log('accounts.js 로드 완료');
