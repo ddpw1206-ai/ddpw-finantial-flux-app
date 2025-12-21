@@ -6,7 +6,7 @@ function saveData() {
     // 항상 localStorage에 저장 (즉시 반영)
     localStorage.setItem('budgetData', JSON.stringify(transactionData));
     console.log('거래 데이터 저장:', transactionData.length);
-    
+
     // 폴더가 선택되어 있으면 파일에도 저장
     const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
     if (folderHandle) {
@@ -24,7 +24,7 @@ function saveAccountData() {
     // 항상 localStorage에 저장 (즉시 반영)
     localStorage.setItem('accountData', JSON.stringify(accountData));
     console.log('계좌 데이터 저장:', accountData.length);
-    
+
     // 폴더가 선택되어 있으면 파일에도 저장
     const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
     if (folderHandle) {
@@ -42,7 +42,7 @@ function saveMerchantHistory() {
     // 항상 localStorage에 저장 (즉시 반영)
     localStorage.setItem('merchantHistory', JSON.stringify(merchantHistory));
     console.log('사용처 히스토리 저장:', merchantHistory.length);
-    
+
     // 폴더가 선택되어 있으면 파일에도 저장
     const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
     if (folderHandle) {
@@ -60,7 +60,7 @@ function saveCardData() {
     // 항상 localStorage에 저장 (즉시 반영)
     localStorage.setItem('cardData', JSON.stringify(cardData));
     console.log('카드 데이터 저장:', cardData.length);
-    
+
     // 폴더가 선택되어 있으면 파일에도 저장
     const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
     if (folderHandle) {
@@ -70,6 +70,24 @@ function saveCardData() {
     }
   } catch (error) {
     console.error('카드 데이터 저장 오류:', error);
+  }
+}
+
+function saveAccountCardPayments() {
+  try {
+    // 항상 localStorage에 저장 (즉시 반영)
+    localStorage.setItem('accountCardPayments', JSON.stringify(accountCardPayments));
+    console.log('카드 대금 납부 내역 저장:', accountCardPayments.length);
+
+    // 폴더가 선택되어 있으면 파일에도 저장
+    const folderHandle = window.dataFolderHandle || (typeof dataFolderHandle !== 'undefined' ? dataFolderHandle : null);
+    if (folderHandle) {
+      saveDataToFolder().catch(error => {
+        console.error('파일 저장 실패, localStorage만 사용:', error);
+      });
+    }
+  } catch (error) {
+    console.error('카드 대금 납부 내역 저장 오류:', error);
   }
 }
 
@@ -133,6 +151,18 @@ function loadCardData() {
   }
 }
 
+function loadAccountCardPayments() {
+  try {
+    const saved = localStorage.getItem('accountCardPayments');
+    if (saved) {
+      accountCardPayments = JSON.parse(saved);
+      console.log('카드 대금 납부 내역 로드:', accountCardPayments.length);
+    }
+  } catch (error) {
+    console.error('카드 대금 납부 내역 로드 오류:', error);
+  }
+}
+
 function loadCardParsingTemplates() {
   try {
     const saved = localStorage.getItem('cardParsingTemplates');
@@ -186,38 +216,44 @@ async function saveDataToFolder() {
     // 폴더가 선택되지 않았으면 localStorage만 사용
     return false;
   }
-  
+
   try {
     // 거래 데이터 저장
     const transactionsFile = await folderHandle.getFileHandle(DATA_FILE_NAME, { create: true });
     const transactionsWritable = await transactionsFile.createWritable();
     await transactionsWritable.write(JSON.stringify(transactionData, null, 2));
     await transactionsWritable.close();
-    
+
     // 계좌 데이터 저장
     const accountsFile = await folderHandle.getFileHandle(ACCOUNT_FILE_NAME, { create: true });
     const accountsWritable = await accountsFile.createWritable();
     await accountsWritable.write(JSON.stringify(accountData, null, 2));
     await accountsWritable.close();
-    
+
     // 사용처 히스토리 저장
     const merchantsFile = await folderHandle.getFileHandle(MERCHANT_FILE_NAME, { create: true });
     const merchantsWritable = await merchantsFile.createWritable();
     await merchantsWritable.write(JSON.stringify(merchantHistory, null, 2));
     await merchantsWritable.close();
-    
+
     // 카드 데이터 저장
     const cardsFile = await folderHandle.getFileHandle(CARD_FILE_NAME, { create: true });
     const cardsWritable = await cardsFile.createWritable();
     await cardsWritable.write(JSON.stringify(cardData, null, 2));
     await cardsWritable.close();
-    
+
     // 카드 파싱 템플릿 저장
     const templatesFile = await folderHandle.getFileHandle(CARD_PARSING_TEMPLATES_FILE_NAME, { create: true });
     const templatesWritable = await templatesFile.createWritable();
     await templatesWritable.write(JSON.stringify(cardParsingTemplates, null, 2));
     await templatesWritable.close();
-    
+
+    // 카드 대금 납부 내역 저장
+    const paymentsFile = await folderHandle.getFileHandle(ACCOUNT_CARD_PAYMENTS_FILE_NAME, { create: true });
+    const paymentsWritable = await paymentsFile.createWritable();
+    await paymentsWritable.write(JSON.stringify(accountCardPayments, null, 2));
+    await paymentsWritable.close();
+
     console.log('파일 저장 완료');
     return true;
   } catch (error) {
@@ -233,9 +269,9 @@ async function loadDataFromFolder() {
   if (!folderHandle) {
     return false;
   }
-  
+
   let loadedAny = false;
-  
+
   try {
     // 거래 데이터 로드
     try {
@@ -248,7 +284,7 @@ async function loadDataFromFolder() {
     } catch (error) {
       console.warn('거래 데이터 파일이 없습니다.');
     }
-    
+
     // 계좌 데이터 로드
     try {
       const accountsFile = await folderHandle.getFileHandle(ACCOUNT_FILE_NAME);
@@ -260,7 +296,7 @@ async function loadDataFromFolder() {
     } catch (error) {
       console.warn('계좌 데이터 파일이 없습니다.');
     }
-    
+
     // 사용처 히스토리 로드
     try {
       const merchantsFile = await folderHandle.getFileHandle(MERCHANT_FILE_NAME);
@@ -272,7 +308,7 @@ async function loadDataFromFolder() {
     } catch (error) {
       console.warn('사용처 히스토리 파일이 없습니다.');
     }
-    
+
     // 카드 데이터 로드
     try {
       const cardsFile = await folderHandle.getFileHandle(CARD_FILE_NAME);
@@ -284,7 +320,7 @@ async function loadDataFromFolder() {
     } catch (error) {
       console.warn('카드 데이터 파일이 없습니다.');
     }
-    
+
     // 카드 파싱 템플릿 로드
     try {
       const templatesFile = await folderHandle.getFileHandle(CARD_PARSING_TEMPLATES_FILE_NAME);
@@ -296,7 +332,19 @@ async function loadDataFromFolder() {
     } catch (error) {
       console.warn('카드 파싱 템플릿 파일이 없습니다.');
     }
-    
+
+    // 카드 대금 납부 내역 로드
+    try {
+      const paymentsFile = await folderHandle.getFileHandle(ACCOUNT_CARD_PAYMENTS_FILE_NAME);
+      const paymentsContent = await paymentsFile.getFile();
+      const paymentsText = await paymentsContent.text();
+      accountCardPayments = JSON.parse(paymentsText);
+      console.log('파일에서 카드 대금 납부 내역 로드 완료:', accountCardPayments.length);
+      loadedAny = true;
+    } catch (error) {
+      console.warn('카드 대금 납부 내역 파일이 없습니다.');
+    }
+
     return loadedAny;
   } catch (error) {
     console.error('파일 로드 오류:', error);
@@ -345,4 +393,158 @@ if (typeof window !== 'undefined') {
 }
 
 console.log('data-manager.js 로드 완료');
+
+// ========================================
+// 설정 관리 (Configuration Management) - Vibe Coding Phase 1-1
+// ========================================
+const CONFIG_KEY = 'ddpw_config';
+
+const DataManager = {
+  // 1. 설정 저장
+  saveConfig: function (config) {
+    try {
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+      return true;
+    } catch (e) {
+      console.error('설정 저장 실패:', e);
+      return false;
+    }
+  },
+
+  // 2. 설정 불러오기 (없으면 초기값 생성)
+  loadConfig: function () {
+    try {
+      const saved = localStorage.getItem(CONFIG_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      } else {
+        // config.js의 전역 변수를 초기값으로 사용
+        const initialConfig = {
+          paymentMethods: window.PAYMENT_METHODS || {},
+          accountDetails: window.ACCOUNT_DETAILS || [],
+          incomeCategories: window.INCOME_CATEGORIES || {},
+          expenseCategories: window.EXPENSE_CATEGORIES || {}
+        };
+        this.saveConfig(initialConfig);
+        return initialConfig;
+      }
+    } catch (e) {
+      console.error('설정 로드 실패:', e);
+      return null;
+    }
+  },
+
+  // 3. 결제수단 추가
+  addPaymentMethod: function (category, name) {
+    const config = this.loadConfig();
+    if (!config || !config.paymentMethods) return false;
+
+    // category가 없으면 생성 (안전장치)
+    if (!config.paymentMethods[category]) config.paymentMethods[category] = [];
+
+    if (config.paymentMethods[category].includes(name)) {
+      alert('이미 존재하는 결제수단입니다.');
+      return false;
+    }
+
+    config.paymentMethods[category].push(name);
+    return this.saveConfig(config);
+  },
+
+  // 4. 결제수단 삭제
+  removePaymentMethod: function (category, name) {
+    const config = this.loadConfig();
+    if (!config || !config.paymentMethods || !config.paymentMethods[category]) return false;
+
+    const index = config.paymentMethods[category].indexOf(name);
+    if (index > -1) {
+      config.paymentMethods[category].splice(index, 1);
+      return this.saveConfig(config);
+    }
+    return false;
+  },
+
+  // 5. 계좌 추가
+  addAccount: function (accountData) {
+    const config = this.loadConfig();
+    if (!config) return false;
+    if (!config.accountDetails) config.accountDetails = [];
+
+    // 자동 순번 생성 (기존 최대값 + 1)
+    const maxNo = config.accountDetails.reduce((max, acc) => Math.max(max, acc.no || 0), 0);
+    accountData.no = maxNo + 1;
+
+    config.accountDetails.push(accountData);
+    return this.saveConfig(config);
+  },
+
+  // 6. 계좌 삭제
+  removeAccount: function (accountNo) {
+    const config = this.loadConfig();
+    if (!config || !config.accountDetails) return false;
+
+    const index = config.accountDetails.findIndex(acc => acc.no === accountNo);
+    if (index > -1) {
+      config.accountDetails.splice(index, 1);
+      return this.saveConfig(config);
+    }
+    return false;
+  },
+
+  // 7. 계좌 수정
+  updateAccount: function (accountNo, updates) {
+    const config = this.loadConfig();
+    if (!config || !config.accountDetails) return false;
+
+    const index = config.accountDetails.findIndex(acc => acc.no === accountNo);
+    if (index > -1) {
+      config.accountDetails[index] = { ...config.accountDetails[index], ...updates };
+      return this.saveConfig(config);
+    }
+    return false;
+  },
+
+  // 8. 카테고리 추가
+  addCategory: function (type, mainCategory, subCategory) {
+    const config = this.loadConfig();
+    if (!config) return false;
+
+    const targetCategories = type === 'income' ? config.incomeCategories : config.expenseCategories;
+    if (!targetCategories) return false;
+
+    // 대분류가 없으면 배열 생성
+    if (!targetCategories[mainCategory]) {
+      targetCategories[mainCategory] = [];
+    }
+
+    if (targetCategories[mainCategory].includes(subCategory)) {
+      alert('이미 존재하는 카테고리입니다.');
+      return false;
+    }
+
+    targetCategories[mainCategory].push(subCategory);
+    return this.saveConfig(config);
+  },
+
+  // 9. 카테고리 삭제
+  removeCategory: function (type, mainCategory, subCategory) {
+    const config = this.loadConfig();
+    if (!config) return false;
+
+    const targetCategories = type === 'income' ? config.incomeCategories : config.expenseCategories;
+    if (!targetCategories || !targetCategories[mainCategory]) return false;
+
+    const index = targetCategories[mainCategory].indexOf(subCategory);
+    if (index > -1) {
+      targetCategories[mainCategory].splice(index, 1);
+      return this.saveConfig(config);
+    }
+    return false;
+  }
+};
+
+// window 객체에 할당 (전역 접근)
+if (typeof window !== 'undefined') {
+  window.DataManager = DataManager;
+}
 

@@ -1,184 +1,281 @@
+
 // ========================================
-// 설정 탭
+// 항목관리 모달 로직 (Settings Logic)
 // ========================================
 
-function initSettings() {
-  console.log('설정 초기화');
-  
-  const mainContent = document.getElementById('main-content');
-  if (!mainContent) return;
-  
-  // mainContent 완전히 비우기 (중복 방지)
-  mainContent.innerHTML = '';
-  
-  // 설정 컨테이너 생성
-  const settingsContainer = document.createElement('div');
-  settingsContainer.id = 'settings-container';
-  mainContent.appendChild(settingsContainer);
-  
-  window.renderSettingsTab(settingsContainer);
+window.initSettingsModal = function () {
+  console.log('initSettingsModal 호출됨');
+
+  // 데이터 초기화 확인
+  if (window.DataManager) {
+    window.DataManager.loadConfig();
+  }
+
+  // 모달 열릴 때 렌더링하도록 이벤트 리스너 등록 (Bootstrap 5)
+  // index.html에서 data-bs-toggle="modal"로 열므로, show.bs.modal 이벤트 사용
+  const settingsModalEl = document.getElementById('settingsModal');
+  if (settingsModalEl) {
+    settingsModalEl.addEventListener('show.bs.modal', function () {
+      console.log('항목관리 모달 열림 - 렌더링 시작');
+      renderPaymentMethods();
+      renderAccounts();
+      renderCategories();
+    });
+  } else {
+    // 이미 모달이 DOM에 없을 수도 있으므로 (동적 로드 등), 
+    // 그냥 호출 시점에도 한 번 렌더링 시도
+    // (주의: 모달 HTML이 로드된 후에 호출되어야 함)
+    renderPaymentMethods();
+    renderAccounts();
+    renderCategories();
+  }
+};
+
+// =====================
+// 1. 결제수단 렌더링
+// =====================
+function renderPaymentMethods() {
+  const config = window.DataManager.loadConfig();
+  if (!config) return;
+
+  const renderList = (elementId, list, type) => {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.innerHTML = '';
+    list.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'list-group-item d-flex justify-content-between align-items-center p-2';
+      div.innerHTML = `
+                <span>${item}</span>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="window.removePaymentMethodItem('${type}', '${item}')">×</button>
+            `;
+      el.appendChild(div);
+    });
+  };
+
+  if (config.paymentMethods.creditCards) renderList('credit-card-list', config.paymentMethods.creditCards, 'creditCards');
+  if (config.paymentMethods.checkCards) renderList('check-card-list', config.paymentMethods.checkCards, 'checkCards');
+  if (config.paymentMethods.accounts) renderList('account-payment-list', config.paymentMethods.accounts, 'accounts');
+  if (config.paymentMethods.etc) renderList('etc-payment-list', config.paymentMethods.etc, 'etc');
 }
 
-// ========================================
-// 설정 탭 렌더링
-// ========================================
-window.renderSettingsTab = function(container) {
-  // container가 없으면 main-content를 찾아서 사용
-  if (!container) {
-    container = document.getElementById('main-content');
-  }
-  if (!container) {
-    console.error('renderSettingsTab: container를 찾을 수 없습니다.');
+window.addPaymentMethod = function (type) {
+  let inputId = '';
+  if (type === 'creditCards') inputId = 'new-credit-card';
+  else if (type === 'checkCards') inputId = 'new-check-card';
+  else if (type === 'accounts') inputId = 'new-account-payment';
+  else if (type === 'etc') inputId = 'new-etc-payment';
+
+  const input = document.getElementById(inputId);
+  if (!input || !input.value.trim()) {
+    alert('값을 입력하세요.');
     return;
   }
-  
-  // container 완전히 비우기 (안전성 보장)
-  container.innerHTML = '';
-  
-  container.innerHTML = `
-    <div style="padding: 20px;">
-      <h2 style="margin-bottom: 20px;">⚙️ 설정</h2>
-      <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #E5E7EB; margin-bottom: 20px;">
-        <h3 style="margin-bottom: 16px;">데이터 관리</h3>
-        <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
-          <button id="backup-btn" class="header-btn">💾 백업 (다운로드)</button>
-          <button id="restore-btn" class="header-btn">📥 복원 (파일 선택)</button>
-        </div>
-        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB;">
-          <p style="font-size: 0.9rem; color: #6B7280; margin-bottom: 12px;">
-            File System Access API를 사용하여 OneDrive 등 클라우드 폴더에 자동 동기화할 수 있습니다.
-          </p>
-          <button id="select-folder-btn" class="header-btn" style="background: #10B981;">📁 데이터 폴더 선택</button>
-          <p id="folder-status" style="font-size: 0.85rem; color: #6B7280; margin-top: 8px;">
-            ${(typeof dataFolderHandle !== 'undefined' && dataFolderHandle) || (typeof window !== 'undefined' && window.dataFolderHandle) ? '✅ 폴더가 선택되었습니다. 데이터가 자동으로 동기화됩니다.' : '폴더를 선택하면 데이터가 자동으로 파일에 저장됩니다.'}
-          </p>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // 백업 버튼
-  container.querySelector('#backup-btn')?.addEventListener('click', function() {
-    const data = {
-      transactions: transactionData,
-      accounts: accountData,
-      merchants: merchantHistory,
-      cards: cardData,
-      version: APP_VERSION,
-      date: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ddpw-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    alert('백업 완료! 파일이 다운로드되었습니다.');
-  });
-  
-  // 폴더 선택 버튼 (16번 QA: 최초 폴더 선택 시 불러오기 확인)
-  container.querySelector('#select-folder-btn')?.addEventListener('click', async function() {
-    if (typeof window.selectDataFolder === 'function') {
-      const success = await window.selectDataFolder();
-      if (success) {
-        const folderStatus = container.querySelector('#folder-status');
-        if (folderStatus) {
-          folderStatus.textContent = '✅ 폴더가 선택되었습니다. 헤더의 저장/불러오기 버튼을 사용하세요.';
-          folderStatus.style.color = '#10B981';
-        }
-        
-        // 최초 폴더 선택 시 불러오기 확인 (16번 QA 요구사항)
-        const shouldLoad = confirm('이 폴더의 데이터를 불러오시겠습니까?');
-        if (shouldLoad) {
-          if (typeof window.loadDataFromFolder === 'function') {
-            const loadSuccess = await window.loadDataFromFolder();
-            if (loadSuccess) {
-              // 파일에서 로드한 후 localStorage와 동기화
-              if (typeof saveData === 'function') saveData();
-              if (typeof saveAccountData === 'function') saveAccountData();
-              if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
-              if (typeof saveCardData === 'function') saveCardData();
-              
-              // UI 갱신
-              if (typeof updateDashboard === 'function') updateDashboard();
-              const mainContent = document.getElementById('main-content');
-              if (mainContent) {
-                if (window.currentActiveTab === 'dashboard' && typeof window.renderDashboard === 'function') {
-                  window.renderDashboard(mainContent);
-                } else if (window.currentActiveTab === 'accounts' && typeof window.renderAccountsTab === 'function') {
-                  window.renderAccountsTab(mainContent);
-                } else if (window.currentActiveTab === 'cards' && typeof window.renderPaymentMethodsTab === 'function') {
-                  window.renderPaymentMethodsTab(mainContent);
-                }
-              }
-              alert('데이터를 불러왔습니다.');
-            } else {
-              // 폴더에는 데이터가 없지만 선택은 완료됨
-              // 현재 localStorage 데이터를 폴더에 저장
-              if (typeof saveData === 'function') saveData();
-              if (typeof saveAccountData === 'function') saveAccountData();
-              if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
-              if (typeof saveCardData === 'function') saveCardData();
-              
-              alert('폴더가 선택되었습니다. 현재 데이터가 폴더에 저장되었습니다.');
-            }
-          } else {
-            // loadDataFromFolder 함수가 없는 경우에도 현재 데이터 저장
-            if (typeof saveData === 'function') saveData();
-            if (typeof saveAccountData === 'function') saveAccountData();
-            if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
-            if (typeof saveCardData === 'function') saveCardData();
-            
-            alert('폴더가 선택되었습니다. 이제 데이터가 자동으로 파일에 저장됩니다.');
-          }
-        } else {
-          // 폴더만 지정하고 불러오지 않음
-          console.log('폴더만 선택되었습니다. 이후 헤더의 저장/불러오기 버튼을 사용하세요.');
-        }
-      } else {
-        alert('폴더 선택이 취소되었습니다.');
-      }
-    } else {
-      alert('File System Access API를 지원하지 않는 브라우저입니다.');
+
+  if (window.DataManager.addPaymentMethod(type, input.value.trim())) {
+    renderPaymentMethods();
+    input.value = '';
+  }
+};
+
+window.removePaymentMethodItem = function (type, value) {
+  if (confirm(`'${value}'을(를) 삭제하시겠습니까?`)) {
+    if (window.DataManager.removePaymentMethod(type, value)) {
+      renderPaymentMethods();
     }
-  });
-  
-  // 복원 버튼
-  container.querySelector('#restore-btn')?.addEventListener('click', function() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data.transactions) transactionData = data.transactions;
-          if (data.accounts) accountData = data.accounts;
-          if (data.merchants) merchantHistory = data.merchants;
-          if (data.cards) cardData = data.cards;
-          
-          saveData();
-          saveAccountData();
-          saveMerchantHistory();
-          saveCardData();
-          
-          alert('복원 완료! 페이지를 새로고침하세요.');
-        } catch (error) {
-          alert('복원 실패: ' + error.message);
-        }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
+  }
+};
+
+// =====================
+// 2. 계좌정보 렌더링
+// =====================
+function renderAccounts() {
+  const config = window.DataManager.loadConfig();
+  if (!config || !config.accountDetails) return;
+
+  const tbody = document.getElementById('account-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  config.accountDetails.forEach(acc => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+            <td>${acc.no || '-'}</td>
+            <td>${acc.accountNo || '-'}</td>
+            <td>${acc.name || '-'}</td>
+            <td>${acc.bank || '-'}</td>
+            <td>${acc.note || '-'}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="window.editAccountInfo(${acc.no})">수정</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="window.deleteAccountInfo(${acc.no})">삭제</button>
+            </td>
+        `;
+    tbody.appendChild(tr);
   });
 }
 
-console.log('settings.js 로드 완료');
+window.openAddAccountForm = function () {
+  // 임시: 간단한 prompt로 구현 (추후 모달 내 폼으로 고도화 가능)
+  const name = prompt('계좌명 입력:');
+  if (!name) return;
+  const bank = prompt('은행명 입력:');
+  const accountNo = prompt('계좌번호 입력:');
+  const note = prompt('비고:');
 
+  window.DataManager.addAccount({
+    name, bank, accountNo, note
+  });
+  renderAccounts();
+};
+
+window.editAccountInfo = function (no) {
+  // 임시: prompt 수정 (실제로는 상세 폼 필요)
+  alert('계좌 수정 기능은 상세 모달 구현 시 제공됩니다.\n현재는 삭제 후 다시 추가해주세요.');
+};
+
+window.deleteAccountInfo = function (no) {
+  if (confirm('정말 이 계좌 정보를 삭제하시겠습니까?')) {
+    window.DataManager.removeAccount(no);
+    renderAccounts();
+  }
+};
+
+// =====================
+// 3. 카테고리 렌더링
+// =====================
+function renderCategories() {
+  const config = window.DataManager.loadConfig();
+  if (!config) return;
+
+  // 수입 렌더링
+  const incomeSelect = document.getElementById('income-main-category');
+  const incomeListEl = document.getElementById('income-category-list');
+
+  if (incomeSelect && incomeListEl) {
+    // 대분류 옵션 (기존 선택 값 유지 필요 시 로직 추가)
+    const currentVal = incomeSelect.value;
+    incomeSelect.innerHTML = '<option value="">대분류 선택</option>';
+    Object.keys(config.incomeCategories).forEach(key => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = key;
+      incomeSelect.appendChild(option);
+    });
+    if (currentVal) incomeSelect.value = currentVal;
+
+    // 리스트 표시
+    incomeListEl.innerHTML = '';
+    Object.entries(config.incomeCategories).forEach(([main, subs]) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mb-3';
+
+      // 대분류 제목
+      const title = document.createElement('h6');
+      title.className = 'fw-bold text-dark border-bottom pb-1';
+      title.textContent = main;
+      wrapper.appendChild(title);
+
+      // 소분류 배지들
+      const badgeContainer = document.createElement('div');
+      badgeContainer.className = 'd-flex flex-wrap gap-2';
+
+      subs.forEach(sub => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-secondary d-flex align-items-center gap-1';
+        badge.innerHTML = `
+                    ${sub}
+                    <i class="ms-1" style="cursor:pointer;" onclick="window.removeIncomeSubCategory('${main}', '${sub}')">&times;</i>
+                `;
+        badgeContainer.appendChild(badge);
+      });
+      wrapper.appendChild(badgeContainer);
+      incomeListEl.appendChild(wrapper);
+    });
+  }
+
+  // 지출 렌더링
+  const expenseSelect = document.getElementById('expense-main-category');
+  const expenseListEl = document.getElementById('expense-category-list');
+
+  if (expenseSelect && expenseListEl) {
+    const currentVal = expenseSelect.value;
+    expenseSelect.innerHTML = '<option value="">대분류 선택</option>';
+    Object.keys(config.expenseCategories).forEach(key => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = key;
+      expenseSelect.appendChild(option);
+    });
+    if (currentVal) expenseSelect.value = currentVal;
+
+    expenseListEl.innerHTML = '';
+    Object.entries(config.expenseCategories).forEach(([main, subs]) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mb-3';
+
+      const title = document.createElement('h6');
+      title.className = 'fw-bold text-dark border-bottom pb-1';
+      title.textContent = main;
+      wrapper.appendChild(title);
+
+      const badgeContainer = document.createElement('div');
+      badgeContainer.className = 'd-flex flex-wrap gap-2';
+
+      subs.forEach(sub => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-danger bg-opacity-75 d-flex align-items-center gap-1';
+        badge.innerHTML = `
+                    ${sub}
+                    <i class="ms-1 text-white" style="cursor:pointer;" onclick="window.removeExpenseSubCategory('${main}', '${sub}')">&times;</i>
+                `;
+        badgeContainer.appendChild(badge);
+      });
+      wrapper.appendChild(badgeContainer);
+      expenseListEl.appendChild(wrapper);
+    });
+  }
+}
+
+window.addIncomeSubCategory = function () {
+  const mainSelect = document.getElementById('income-main-category');
+  const input = document.getElementById('new-income-sub');
+
+  if (!mainSelect.value) { alert('대분류를 선택하세요.'); return; }
+  if (!input.value.trim()) { alert('소분류를 입력하세요.'); return; }
+
+  if (window.DataManager.addCategory('income', mainSelect.value, input.value.trim())) {
+    renderCategories();
+    input.value = '';
+  }
+};
+
+window.removeIncomeSubCategory = function (main, sub) {
+  if (confirm(`'${main} > ${sub}' 카테고리를 삭제하시겠습니까?`)) {
+    if (window.DataManager.removeCategory('income', main, sub)) {
+      renderCategories();
+    }
+  }
+};
+
+window.addExpenseSubCategory = function () {
+  const mainSelect = document.getElementById('expense-main-category');
+  const input = document.getElementById('new-expense-sub');
+
+  if (!mainSelect.value) { alert('대분류를 선택하세요.'); return; }
+  if (!input.value.trim()) { alert('소분류를 입력하세요.'); return; }
+
+  if (window.DataManager.addCategory('expense', mainSelect.value, input.value.trim())) {
+    renderCategories();
+    input.value = '';
+  }
+};
+
+window.removeExpenseSubCategory = function (main, sub) {
+  if (confirm(`'${main} > ${sub}' 카테고리를 삭제하시겠습니까?`)) {
+    if (window.DataManager.removeCategory('expense', main, sub)) {
+      renderCategories();
+    }
+  }
+};
+
+console.log('settings.js 로드 완료');

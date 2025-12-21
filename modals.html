@@ -1,0 +1,713 @@
+<div id="modal-overlay">
+    <div id="modal-content" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-header">
+            <span class="modal-title">📝 내역 입력</span>
+            <button class="modal-close" type="button" id="modal-close-btn" aria-label="닫기">✕</button>
+        </div>
+
+        <!-- 탭 버튼 -->
+        <div class="entry-tabs">
+            <button type="button" class="entry-tab-btn active" data-tab="manual">✍️ 수동 입력</button>
+            <button type="button" class="entry-tab-btn" data-tab="auto">📄 자동 입력</button>
+        </div>
+
+        <div class="modal-body">
+            <!-- 수동 입력 탭 -->
+            <div id="entry-tab-manual" class="entry-tab-content active">
+                <form class="modal-form" id="entry-form" autocomplete="off">
+                    <div>
+                        <label for="entry-date">날짜</label>
+                        <input id="entry-date" name="date" type="date" value="2025-11-22" required>
+                    </div>
+
+                    <div>
+                        <label for="entry-owner">담당자</label>
+                        <select id="entry-owner" required>
+                            <option value="">--선택--</option>
+                            <option value="둠둠">둠둠</option>
+                            <option value="파우">파우</option>
+                            <option value="공용">공용</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>구분</label>
+                        <div class="row-radio">
+                            <label>
+                                <input type="radio" name="type" value="expense" checked required> 지출
+                            </label>
+                            <label>
+                                <input type="radio" name="type" value="income" required> 수입
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="entry-category-kind">카테고리</label>
+                        <select id="entry-category-kind" name="category" required>
+                            <option value="">구분을 먼저 선택하세요</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="entry-category-item">항목</label>
+                        <select id="entry-category-item" name="item" required>
+                            <option value="">카테고리를 먼저 선택하세요</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="entry-amount">금액</label>
+                        <input id="entry-amount" name="amount" type="text" placeholder="금액 입력 (예: 1,000,000)" required>
+                    </div>
+
+                    <div>
+                        <label for="entry-method">결제수단</label>
+                        <select id="entry-method" name="method" required>
+                            <option value="credit">신용카드</option>
+                            <option value="debit">체크카드</option>
+                            <option value="transfer">계좌이체</option>
+                            <option value="cash">현금</option>
+                        </select>
+
+                        <div id="payment-credit" style="display: none; margin-top: 10px;">
+                            <label style="margin-right:6px;">카드 선택</label>
+                            <select name="credit-card">
+                                <option value="KB 탄탄대로 올쇼핑">KB 탄탄대로 올쇼핑 티타늄</option>
+                                <option value="삼성 네이버 taptap">삼성 네이버 taptap</option>
+                                <option value="삼성 베네핏">삼성 베네핏</option>
+                            </select>
+                            <div style="margin-top: 6px;">
+                                <span style="margin-right:14px;">결제일: <span>매월 25일</span></span>
+                                <span>연결계좌: <span>KB국민-98</span></span>
+                            </div>
+                        </div>
+
+                        <div id="payment-debit" style="display: none; margin-top: 10px;">
+                            <label style="margin-right:6px;">카드 선택</label>
+                            <select name="debit-card">
+                                <option value="카카오뱅크 체크">카카오뱅크 체크카드</option>
+                            </select>
+                            <div style="margin-top: 6px;">
+                                <span style="margin-right:14px;">결제일: <span>매월 1일</span></span>
+                                <span>연결계좌: <span>카카오-5678</span></span>
+                            </div>
+                        </div>
+
+                        <div id="payment-transfer" style="display: none; margin-top: 10px;">
+                            <label style="margin-right:6px;">계좌 선택</label>
+                            <select name="transfer-account">
+                                <option value="KB국민-98">KB국민-98</option>
+                                <option value="카카오-5678">카카오-5678</option>
+                            </select>
+                            <div style="margin-top: 6px; color: #8492a6; font-size: 13px;">
+                                (즉시 차감됨)
+                            </div>
+                        </div>
+
+                        <div id="payment-cash" style="display: none; margin-top: 10px;">
+                            <label style="margin-right:6px;">출금계좌</label>
+                            <select name="cash-account">
+                                <option value="KB국민-98">KB국민-98</option>
+                                <option value="카카오-5678">카카오-5678</option>
+                            </select>
+                            <div style="margin-top: 6px; color: #8492a6; font-size: 13px;">
+                                (즉시 차감됨)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="entry-merchant">사용처</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center;">
+                            <input id="entry-merchant" name="merchant" type="text" placeholder="사용처 입력 (예: (주)우아한형제들)"
+                                style="flex: 1; padding: 12px 16px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827;">
+                            <select id="merchant-history"
+                                style="padding: 12px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; background: #FFFFFF; color: #111827; cursor: pointer; width: 140px;">
+                                <option value="">자주 쓰는 항목</option>
+                            </select>
+                            <button type="button" id="merchant-manage-btn"
+                                style="padding: 12px 16px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; background: #F3F4F6; color: #374151; cursor: pointer; white-space: nowrap; transition: all 0.2s;"
+                                onmouseover="this.style.background='#E5E7EB'"
+                                onmouseout="this.style.background='#F3F4F6'">관리</button>
+                        </div>
+                        <div class="checkbox-row" style="margin-top: 8px;">
+                            <input id="entry-save-merchant" name="saveMerchant" type="checkbox"
+                                style="width:17px;height:17px;margin:0 5px 0 0;vertical-align:-2px;">
+                            <label for="entry-save-merchant"
+                                style="margin-bottom:0; user-select:none; font-size: 0.9rem; color: #6B7280;">자주 쓰는 항목에
+                                등록</label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="entry-detail">세부내용</label>
+                        <textarea id="entry-detail" name="detail" placeholder="세부내용 입력 (예: 족발 2인분)"
+                            style="min-height: 56px; max-height: 120px;"></textarea>
+                    </div>
+
+                    <div class="checkbox-row">
+                        <input id="entry-regular" name="regular" type="checkbox"
+                            style="width:17px;height:17px;margin:0 5px 0 0;vertical-align:-2px;">
+                        <label for="entry-regular" style="margin-bottom:0; user-select:none;">정기 등록 (매월 반복)</label>
+                    </div>
+
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                        <button type="button" class="modal-btn modal-btn-cancel" id="modal-cancel-btn">취소</button>
+                        <button type="submit" class="modal-btn modal-btn-save">저장</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 자동 입력 탭 -->
+            <div id="entry-tab-auto" class="entry-tab-content">
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 1rem;">📄 청구서 파일 일괄
+                        등록하기</label>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+                        <input type="file" id="entry-statement-file" accept=".xlsx,.xls" style="display: none;">
+                        <button type="button" id="upload-entry-statement-btn"
+                            style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: all 0.2s;"
+                            onmouseover="this.style.background='#DC2626'"
+                            onmouseout="this.style.background='#EF4444'">파일 선택</button>
+                        <span id="entry-file-info" style="font-size: 0.9rem; color: #6B7280;"></span>
+                    </div>
+                    <div
+                        style="font-size: 0.85rem; color: #6B7280; padding: 12px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
+                        💡 파일을 업로드하면 카드사가 자동으로 감지되고 거래내역이 자동으로 등록됩니다.
+                    </div>
+                </div>
+
+                <!-- 카드사 및 카드 선택 (파싱 결과 표시 후 수정 가능) -->
+                <div id="entry-card-selection"
+                    style="display: none; margin-bottom: 20px; padding: 16px; background: #FFFFFF; border-radius: 8px; border: 1px solid #E5E7EB;">
+                    <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 0.95rem;">💳 카드사 및
+                        카드 선택</label>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <label for="entry-auto-card-company"
+                                style="font-size: 0.9rem; color: #6B7280; margin-bottom: 6px; display: block;">카드사</label>
+                            <select id="entry-auto-card-company"
+                                style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
+                                <option value="">--선택--</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="entry-auto-card-select"
+                                style="font-size: 0.9rem; color: #6B7280; margin-bottom: 6px; display: block;">카드</label>
+                            <select id="entry-auto-card-select"
+                                style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
+                                <option value="">--카드사를 먼저 선택하세요--</option>
+                            </select>
+                        </div>
+                        <!-- 청구연월 선택 (항상 표시, 수동 설정 가능) -->
+                        <div id="entry-billing-period-selection">
+                            <label style="font-size: 0.9rem; color: #6B7280; margin-bottom: 6px; display: block;">청구연월
+                                (수동 설정)</label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <select id="entry-auto-year-select"
+                                    style="flex: 1; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
+                                    <option value="">연도</option>
+                                </select>
+                                <select id="entry-auto-month-select"
+                                    style="flex: 1; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; background: #FFFFFF; color: #111827; cursor: pointer;">
+                                    <option value="">월</option>
+                                </select>
+                            </div>
+                            <div id="entry-billing-period-display"
+                                style="margin-top: 8px; font-size: 0.85rem; color: #6B7280; padding: 8px; background: #F9FAFB; border-radius: 6px;">
+                                청구기간: 선택해주세요
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="entry-parse-result" style="display: none; margin-top: 20px;">
+                    <div id="entry-parsed-data"
+                        style="font-size: 0.9rem; color: #0C4A6E; padding: 16px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                    <button type="button" class="modal-btn modal-btn-cancel" id="modal-cancel-btn-auto">취소</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- 계좌 입출금 내역 등록 모달 -->
+<div id="account-transaction-modal-overlay"
+    style="display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div id="account-transaction-modal-content"
+        style="background: #FFFFFF; border-radius: 16px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); margin: auto; display: flex; flex-direction: column; padding: 40px 32px 32px 32px; position: relative; animation: modalFadeIn .2s; border: 1px solid #E5E7EB;">
+        <div class="modal-header">
+            <span class="modal-title" id="account-transaction-modal-title">💰 입출금 내역 등록</span>
+            <button class="modal-close" type="button" id="account-transaction-modal-close" aria-label="닫기">✕</button>
+        </div>
+
+        <!-- 탭 버튼 -->
+        <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid #E5E7EB;">
+            <button type="button" class="entry-tab-btn active" data-tab="general"
+                style="padding: 12px 20px; border: none; background: transparent; color: #EF4444; font-weight: 600; border-bottom: 2px solid #EF4444; cursor: pointer;">일반
+                입출금 등록</button>
+            <button type="button" class="entry-tab-btn" data-tab="card-statement"
+                style="padding: 12px 20px; border: none; background: transparent; color: #6B7280; font-weight: 500; border-bottom: 2px solid transparent; cursor: pointer;">카드
+                명세서 등록</button>
+        </div>
+
+        <!-- 일반 입출금 등록 탭 -->
+        <div id="account-transaction-tab-general" class="entry-tab-content" style="display: block;">
+            <form class="modal-form" id="account-transaction-form" autocomplete="off">
+                <div>
+                    <label for="account-transaction-date">날짜</label>
+                    <input id="account-transaction-date" name="date" type="date" required>
+                </div>
+
+                <div>
+                    <label for="account-transaction-user">담당자</label>
+                    <select id="account-transaction-user" name="user" required>
+                        <option value="">--선택--</option>
+                        <option value="둠둠">둠둠</option>
+                        <option value="파우">파우</option>
+                        <option value="공용">공용</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>구분</label>
+                    <div class="row-radio">
+                        <label>
+                            <input type="radio" name="account-transaction-type" value="expense" checked required> 지출
+                        </label>
+                        <label>
+                            <input type="radio" name="account-transaction-type" value="income" required> 수입
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="account-transaction-category-kind">카테고리</label>
+                    <select id="account-transaction-category-kind" name="category" required>
+                        <option value="">구분을 먼저 선택하세요</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="account-transaction-category-item">항목</label>
+                    <select id="account-transaction-category-item" name="item" required>
+                        <option value="">카테고리를 먼저 선택하세요</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>결제수단</label>
+                    <div class="row-radio">
+                        <label>
+                            <input type="radio" name="account-transaction-payment-method" value="transfer" checked
+                                required> 계좌 이체
+                        </label>
+                        <label>
+                            <input type="radio" name="account-transaction-payment-method" value="cash" required> 현금
+                        </label>
+                    </div>
+                </div>
+
+                <div id="account-transaction-payment-fields">
+                    <div>
+                        <label for="account-transaction-account">계좌</label>
+                        <select id="account-transaction-account" name="account" required>
+                            <option value="">--선택--</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="account-transaction-cash-fields" style="display: none;">
+                    <div
+                        style="font-size: 0.85rem; color: #6B7280; padding: 8px; background: #F9FAFB; border-radius: 6px;">
+                        현금 거래는 계좌 선택 없이 등록됩니다.
+                    </div>
+                </div>
+
+                <div>
+                    <label for="account-transaction-amount">금액</label>
+                    <input id="account-transaction-amount" name="amount" type="text" placeholder="금액 입력 (예: 1,000,000)"
+                        required>
+                </div>
+
+                <div>
+                    <label for="account-transaction-memo">메모</label>
+                    <textarea id="account-transaction-memo" name="memo" rows="3" placeholder="메모 입력 (선택)"></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn modal-btn-cancel"
+                        id="account-transaction-modal-cancel">취소</button>
+                    <button type="submit" class="modal-btn modal-btn-save">저장</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 카드 명세서 등록 탭 -->
+        <div id="account-transaction-tab-card-statement" class="entry-tab-content" style="display: none;">
+            <form class="modal-form" id="account-transaction-card-form" autocomplete="off">
+                <!-- 청구서 파일 업로드 섹션 -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 1rem;">📄 청구서 파일
+                        업로드</label>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+                        <input type="file" id="account-transaction-statement-file" accept=".xlsx,.xls"
+                            style="display: none;">
+                        <button type="button" id="upload-account-transaction-statement-btn"
+                            onclick="document.getElementById('account-transaction-statement-file').click();"
+                            style="padding: 12px 24px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: all 0.2s;"
+                            onmouseover="this.style.background='#DC2626'"
+                            onmouseout="this.style.background='#EF4444'">파일 선택</button>
+                        <span id="account-transaction-file-info" style="font-size: 0.9rem; color: #6B7280;"></span>
+                    </div>
+                    <div
+                        style="font-size: 0.85rem; color: #6B7280; padding: 12px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
+                        💡 파일을 업로드하면 카드사가 자동으로 감지되고 거래내역이 파싱됩니다.
+                    </div>
+                </div>
+
+                <!-- 파싱 결과 표시 -->
+                <div id="account-transaction-parse-result" style="display: none; margin-bottom: 20px;">
+                    <div id="account-transaction-parsed-data"
+                        style="font-size: 0.9rem; color: #0C4A6E; padding: 16px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="account-transaction-card-date">날짜</label>
+                    <input id="account-transaction-card-date" name="date" type="date" required>
+                </div>
+
+                <div>
+                    <label for="account-transaction-card-select">카드</label>
+                    <select id="account-transaction-card-select" name="card" required>
+                        <option value="">--선택--</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="account-transaction-payment-account">결제 계좌</label>
+                    <input id="account-transaction-payment-account" name="paymentAccount" type="text" readonly
+                        style="background: #F3F4F6;">
+                </div>
+
+                <div>
+                    <label for="account-transaction-card-amount">금액</label>
+                    <input id="account-transaction-card-amount" name="amount" type="text" readonly
+                        style="background: #F3F4F6;">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn modal-btn-cancel"
+                        id="account-transaction-card-modal-cancel">취소</button>
+                    <button type="submit" class="modal-btn modal-btn-save">확인</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 계좌 추가/수정 모달 -->
+<div id="account-modal-overlay"
+    style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div id="account-modal-content"
+        style="background: #FFFFFF; border-radius: 16px; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.15); margin: auto; display: flex; flex-direction: column; padding: 40px 32px 32px 32px; position: relative; animation: modalFadeIn .2s; border: 1px solid #E5E7EB;">
+        <div class="modal-header">
+            <span class="modal-title" id="account-modal-title">📝 계좌 추가</span>
+            <button class="modal-close" type="button" id="account-modal-close-btn" aria-label="닫기">✕</button>
+        </div>
+        <form class="modal-form" id="account-form" autocomplete="off">
+            <div>
+                <label for="account-name">계좌명</label>
+                <input id="account-name" name="name" type="text" placeholder="예: KB국민-98" required>
+            </div>
+
+            <div>
+                <label>소유자</label>
+                <div class="row-radio">
+                    <label>
+                        <input type="radio" name="account-owner" value="둠둠" checked required> 둠둠
+                    </label>
+                    <label>
+                        <input type="radio" name="account-owner" value="파우" required> 파우
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label>계좌 유형</label>
+                <div class="row-radio">
+                    <label>
+                        <input type="radio" name="account-type" value="bank" checked required> 통장
+                    </label>
+                    <label>
+                        <input type="radio" name="account-type" value="card" required> 카드
+                    </label>
+                </div>
+            </div>
+
+            <div id="bank-fields">
+                <div>
+                    <label for="account-initial-balance">초기 잔액</label>
+                    <input id="account-initial-balance" name="initialBalance" type="text"
+                        placeholder="금액 입력 (예: 1,000,000)" value="0">
+                </div>
+            </div>
+
+            <div id="card-fields" style="display: none;">
+                <div>
+                    <label for="account-credit-limit">신용 한도</label>
+                    <input id="account-credit-limit" name="creditLimit" type="text" placeholder="금액 입력 (예: 5,000,000)"
+                        value="0">
+                </div>
+                <div>
+                    <label for="account-payment-day">결제일</label>
+                    <input id="account-payment-day" name="paymentDay" type="number" min="1" max="31"
+                        placeholder="매월 결제일 (1-31)">
+                </div>
+                <div>
+                    <label for="account-linked-account">연결계좌</label>
+                    <select id="account-linked-account" name="linkedAccount">
+                        <option value="">선택 안함</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn-cancel" id="account-modal-cancel-btn">취소</button>
+                <button type="submit" class="modal-btn modal-btn-save">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 자주 쓰는 사용처 관리 모달 -->
+<div id="merchant-modal-overlay"
+    style="display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div id="merchant-modal-content"
+        style="background: #FFFFFF; border-radius: 16px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.15); margin: auto; display: flex; flex-direction: column; padding: 32px; position: relative; animation: modalFadeIn .2s; border: 1px solid #E5E7EB;">
+        <div class="modal-header">
+            <span class="modal-title">📋 자주 쓰는 사용처 관리</span>
+            <button class="modal-close" type="button" id="merchant-modal-close-btn" aria-label="닫기">✕</button>
+        </div>
+        <div style="margin-top: 20px; max-height: 400px; overflow-y: auto;">
+            <div id="merchant-list" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- 자주 쓰는 항목 목록이 여기에 동적으로 추가됨 -->
+            </div>
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="merchant-add-input" placeholder="새 사용처 입력"
+                        style="flex: 1; padding: 10px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem;">
+                    <button type="button" id="merchant-add-btn"
+                        style="padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #EF4444; color: #fff; transition: background 0.2s;"
+                        onmouseover="this.style.background='#DC2626'"
+                        onmouseout="this.style.background='#EF4444'">추가</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 24px;">
+            <button type="button" class="modal-btn modal-btn-cancel" id="merchant-modal-cancel-btn">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 카드 관리 모달 -->
+<div id="card-manage-modal-overlay"
+    style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div id="card-manage-modal-content"
+        style="background: #FFFFFF; border-radius: 16px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); margin: auto; display: flex; flex-direction: column; padding: 40px 32px 32px 32px; position: relative; animation: modalFadeIn .2s; border: 1px solid #E5E7EB;">
+        <div class="modal-header">
+            <span class="modal-title" id="card-manage-modal-title">💳 카드 관리</span>
+            <button class="modal-close" type="button" id="card-manage-modal-close" aria-label="닫기">✕</button>
+        </div>
+        <form class="modal-form" id="card-manage-form" autocomplete="off">
+            <div>
+                <label for="card-manage-name">카드명</label>
+                <input id="card-manage-name" name="name" type="text" placeholder="예: KB 탄탄대로 올쇼핑" required>
+            </div>
+
+            <div>
+                <label>카드 유형</label>
+                <div class="row-radio">
+                    <label>
+                        <input type="radio" name="card-type" value="credit" checked required> 신용카드
+                    </label>
+                    <label>
+                        <input type="radio" name="card-type" value="debit" required> 체크카드
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label for="card-manage-company">카드사</label>
+                <select id="card-manage-company" name="cardCompany" required>
+                    <option value="">--선택--</option>
+                    <option value="KB카드">KB카드</option>
+                    <option value="삼성카드">삼성카드</option>
+                    <option value="신한카드">신한카드</option>
+                    <option value="현대카드">현대카드</option>
+                    <option value="롯데카드">롯데카드</option>
+                    <option value="하나카드">하나카드</option>
+                    <option value="우리카드">우리카드</option>
+                    <option value="NH카드">NH카드</option>
+                    <option value="카카오뱅크">카카오뱅크</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn-cancel" id="card-manage-modal-cancel">취소</button>
+                <button type="submit" class="modal-btn modal-btn-save">저장</button>
+            </div>
+        </form>
+
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #E5E7EB;">
+            <div style="font-weight: 600; margin-bottom: 16px; color: #111827;">등록된 카드 목록</div>
+            <div id="card-list"
+                style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;">
+                <!-- 카드 목록이 여기에 동적으로 추가됨 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 카드 대금 등록 모달 -->
+<div id="card-payment-modal-overlay"
+    style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div id="card-payment-modal-content"
+        style="background: #FFFFFF; border-radius: 16px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); margin: auto; display: flex; flex-direction: column; padding: 40px 32px 32px 32px; position: relative; animation: modalFadeIn .2s; border: 1px solid #E5E7EB;">
+        <div class="modal-header">
+            <span class="modal-title">💳 카드 대금 등록</span>
+            <button class="modal-close" type="button" id="card-payment-modal-close" aria-label="닫기">✕</button>
+        </div>
+        <form class="modal-form" id="card-payment-form" autocomplete="off">
+            <div>
+                <label for="card-payment-card-company-select">카드사 선택</label>
+                <select id="card-payment-card-company-select" required>
+                    <option value="">--선택--</option>
+                    <option value="KB카드">KB카드</option>
+                    <option value="삼성카드">삼성카드</option>
+                    <option value="신한카드">신한카드</option>
+                    <option value="현대카드">현대카드</option>
+                    <option value="롯데카드">롯데카드</option>
+                    <option value="하나카드">하나카드</option>
+                    <option value="우리카드">우리카드</option>
+                    <option value="NH카드">NH카드</option>
+                    <option value="카카오뱅크">카카오뱅크</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="card-payment-card-select">카드 선택</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="card-payment-card-select" required style="flex: 1;">
+                        <option value="">--카드사를 먼저 선택하세요--</option>
+                    </select>
+                    <button type="button" id="manage-cards-btn"
+                        style="padding: 10px 16px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; background: #F3F4F6; color: #374151; cursor: pointer; white-space: nowrap; transition: all 0.2s;"
+                        onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">카드
+                        관리</button>
+                </div>
+            </div>
+
+            <div>
+                <label style="margin-bottom: 8px; display: block;">청구 기간</label>
+                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                    <input id="card-payment-period-start" name="periodStart" type="date" required
+                        style="width: 140px; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem;">
+                    <span style="color: #6B7280; font-size: 0.9rem;">~</span>
+                    <input id="card-payment-period-end" name="periodEnd" type="date" required
+                        style="width: 140px; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem;">
+                    <select id="card-payment-year-select"
+                        style="padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; background: #FFFFFF; color: #111827; cursor: pointer; width: 100px;">
+                        <option value="">연도</option>
+                    </select>
+                    <select id="card-payment-month-select"
+                        style="padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; background: #FFFFFF; color: #111827; cursor: pointer; width: 90px;">
+                        <option value="">월</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="card-payment-date">결제일</label>
+                <input id="card-payment-date" name="paymentDate" type="date" required>
+            </div>
+
+            <div>
+                <label for="card-payment-amount">청구 금액</label>
+                <input id="card-payment-amount" name="amount" type="text" placeholder="금액 입력 (예: 1,000,000)" required>
+            </div>
+
+            <div>
+                <label for="card-payment-account-select">결제 계좌</label>
+                <select id="card-payment-account-select" required>
+                    <option value="">--선택--</option>
+                </select>
+            </div>
+
+            <!-- 청구서 파일 업로드 섹션 -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                <label style="font-weight: 600; margin-bottom: 12px; display: block;">📄 청구서 파일 업로드 (선택)</label>
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                    <input type="file" id="card-statement-file" accept=".xlsx,.xls" style="display: none;">
+                    <button type="button" id="upload-statement-btn"
+                        style="padding: 10px 20px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; background: #F3F4F6; color: #374151; transition: all 0.2s;"
+                        onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">파일
+                        선택</button>
+                    <span id="file-info" style="font-size: 0.9rem; color: #6B7280;"></span>
+                </div>
+                <div id="parse-result"
+                    style="display: none; margin-top: 12px; padding: 12px; background: #F0F9FF; border-radius: 8px; border: 1px solid #BAE6FD;">
+                    <div id="parsed-data" style="font-size: 0.9rem; color: #0C4A6E;"></div>
+                </div>
+            </div>
+
+            <!-- 카드 사용 내역 요약 -->
+            <div
+                style="margin-top: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;">
+                <div style="font-weight: 600; margin-bottom: 12px; color: #111827;">카드 사용 내역 요약</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+                    <span style="color: #6B7280;">기간 내 사용액:</span>
+                    <span id="card-usage-sum" style="font-weight: 600; color: #111827;">0원</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+                    <span style="color: #6B7280;">청구 금액:</span>
+                    <span id="card-billing-amount" style="font-weight: 600; color: #111827;">0원</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem;">
+                    <span style="color: #6B7280;">차이:</span>
+                    <span id="card-difference" style="font-weight: 600; color: #111827;">0원</span>
+                </div>
+                <div id="validation-message"
+                    style="display: none; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem;"></div>
+            </div>
+
+            <!-- 수동 조정 -->
+            <div style="margin-top: 16px;">
+                <div class="checkbox-row">
+                    <input id="card-payment-manual-adjust" name="manualAdjust" type="checkbox"
+                        style="width:17px;height:17px;margin:0 5px 0 0;vertical-align:-2px;">
+                    <label for="card-payment-manual-adjust" style="margin-bottom:0; user-select:none;">수동 조정</label>
+                </div>
+                <div id="card-payment-adjustment" style="display: none; margin-top: 10px;">
+                    <label for="card-payment-adjust-amount">조정 금액 (예: 수수료, 할인 등)</label>
+                    <input id="card-payment-adjust-amount" name="adjustAmount" type="text"
+                        placeholder="금액 입력 (예: -5,000 또는 +10,000)">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn-cancel" id="card-payment-modal-cancel">취소</button>
+                <button type="submit" class="modal-btn modal-btn-save">등록</button>
+            </div>
+        </form>
+    </div>
+</div>

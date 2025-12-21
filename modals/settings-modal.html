@@ -1,0 +1,176 @@
+<!-- 항목관리 모달 (Settings Modal) -->
+<div class="modal fade" id="settingsModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="settingsModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">⚙️ 항목관리</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- 탭 네비게이션 -->
+                <ul class="nav nav-tabs mb-3" id="settingsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="payment-tab" data-bs-toggle="tab"
+                            data-bs-target="#payment-panel" type="button" role="tab" aria-controls="payment-panel"
+                            aria-selected="true">💳 결제수단</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account-panel"
+                            type="button" role="tab" aria-controls="account-panel" aria-selected="false">🏦
+                            계좌정보</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="category-tab" data-bs-toggle="tab" data-bs-target="#category-panel"
+                            type="button" role="tab" aria-controls="category-panel" aria-selected="false">📋
+                            카테고리</button>
+                    </li>
+                </ul>
+
+                <!-- 탭 컨텐츠 -->
+                <div class="tab-content" id="settingsTabContent">
+
+                    <!-- 1. 결제수단 패널 -->
+                    <div class="tab-pane fade show active" id="payment-panel" role="tabpanel"
+                        aria-labelledby="payment-tab">
+                        <div class="row">
+                            <!-- 신용카드 -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">신용카드</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" id="new-credit-card" class="form-control form-control-sm"
+                                        placeholder="카드명 입력">
+                                    <button class="btn btn-primary btn-sm"
+                                        onclick="window.addPaymentMethod('creditCards')">추가</button>
+                                </div>
+                                <div id="credit-card-list" class="list-group list-group-flush border rounded"
+                                    style="max-height: 300px; overflow-y: auto;">
+                                    <!-- 자바스크립트로 렌더링 -->
+                                </div>
+                            </div>
+
+                            <!-- 체크카드 -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">체크카드</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" id="new-check-card" class="form-control form-control-sm"
+                                        placeholder="카드명 입력">
+                                    <button class="btn btn-primary btn-sm"
+                                        onclick="window.addPaymentMethod('checkCards')">추가</button>
+                                </div>
+                                <div id="check-card-list" class="list-group list-group-flush border rounded"
+                                    style="max-height: 300px; overflow-y: auto;">
+                                    <!-- 자바스크립트로 렌더링 -->
+                                </div>
+                            </div>
+
+                            <!-- 계좌 -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">계좌</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" id="new-account-payment" class="form-control form-control-sm"
+                                        placeholder="계좌 입력">
+                                    <button class="btn btn-primary btn-sm"
+                                        onclick="window.addPaymentMethod('accounts')">추가</button>
+                                </div>
+                                <div id="account-payment-list" class="list-group list-group-flush border rounded"
+                                    style="max-height: 300px; overflow-y: auto;">
+                                    <!-- 자바스크립트로 렌더링 -->
+                                </div>
+                            </div>
+
+                            <!-- 기타 -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">기타</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" id="new-etc-payment" class="form-control form-control-sm"
+                                        placeholder="결제수단 입력">
+                                    <button class="btn btn-primary btn-sm"
+                                        onclick="window.addPaymentMethod('etc')">추가</button>
+                                </div>
+                                <div id="etc-payment-list" class="list-group list-group-flush border rounded"
+                                    style="max-height: 300px; overflow-y: auto;">
+                                    <!-- 자바스크립트로 렌더링 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 계좌정보 패널 -->
+                    <div class="tab-pane fade" id="account-panel" role="tabpanel" aria-labelledby="account-tab">
+                        <button class="btn btn-primary mb-3" onclick="window.openAddAccountForm()">➕ 계좌 추가</button>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>NO</th>
+                                        <th>계좌번호</th>
+                                        <th>계좌명</th>
+                                        <th>은행명</th>
+                                        <th>비고</th>
+                                        <th>작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="account-table-body">
+                                    <!-- 자바스크립트로 렌더링 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 3. 카테고리 패널 -->
+                    <div class="tab-pane fade" id="category-panel" role="tabpanel" aria-labelledby="category-tab">
+                        <div class="row">
+                            <!-- 수입 카테고리 -->
+                            <div class="col-md-6 border-end">
+                                <h6 class="fw-bold mb-3 text-primary">💰 수입 카테고리</h6>
+                                <div class="card p-3 bg-light mb-3">
+                                    <label class="form-label">소분류 추가</label>
+                                    <div class="d-flex gap-2">
+                                        <select id="income-main-category" class="form-select form-select-sm"
+                                            style="width: 40%;">
+                                            <!-- 대분류 옵션 -->
+                                        </select>
+                                        <input type="text" id="new-income-sub" class="form-control form-control-sm"
+                                            placeholder="소분류 입력">
+                                        <button class="btn btn-primary btn-sm"
+                                            onclick="window.addIncomeSubCategory()">추가</button>
+                                    </div>
+                                </div>
+                                <div id="income-category-list">
+                                    <!-- 자바스크립트로 렌더링 -->
+                                </div>
+                            </div>
+
+                            <!-- 지출 카테고리 -->
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-3 text-danger">💸 지출 카테고리</h6>
+                                <div class="card p-3 bg-light mb-3">
+                                    <label class="form-label">소분류 추가</label>
+                                    <div class="d-flex gap-2">
+                                        <select id="expense-main-category" class="form-select form-select-sm"
+                                            style="width: 40%;">
+                                            <!-- 대분류 옵션 -->
+                                        </select>
+                                        <input type="text" id="new-expense-sub" class="form-control form-control-sm"
+                                            placeholder="소분류 입력">
+                                        <button class="btn btn-primary btn-sm"
+                                            onclick="window.addExpenseSubCategory()">추가</button>
+                                    </div>
+                                </div>
+                                <div id="expense-category-list">
+                                    <!-- 자바스크립트로 렌더링 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>

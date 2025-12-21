@@ -1,0 +1,351 @@
+---
+alwaysApply: true
+---
+
+# DDPW Moneybook Flux – Core Project Rules
+
+## 0. 공통 원칙 (Vibe + Rule-Growing)
+
+- 이 프로젝트는 `@prd.md`와 `@tasklist.md`, `@prompt-qa-list.md`를 기준으로 작업한다.
+- 코드는 95%까지 AI가 작성하고, 사람(둠둠파우)은 구조 검토·버그 확인·룰 업데이트를 담당한다.
+- 새로운 중요한 규칙이나 반복되는 패턴이 발견되면, 이 rules 파일과 관련 md 문서를 **최우선으로 업데이트**한다.
+- 기능 변경과 리팩토링은 **항상 분리된 Task**로 진행한다. 한 요청 안에 둘을 섞지 않는다.
+
+---
+
+## 1. 작업 모드 구분 (기능 vs 리팩토링)
+
+- 내가 명시하지 않는 한, 기본 모드는 **“기능/버그 수정 모드”**이다.
+- 기능/버그 수정 모드에서 AI는 다음을 지킨다.
+  - 내가 요청한 범위 밖의 구조 변경·대규모 리팩토링을 하지 않는다.
+  - “가능한 단순한 솔루션”을 우선 선택한다.
+  - 네이밍/파일 구조를 전면 개편하지 않는다.
+- 리팩토링 모드는 내가 명시적으로 지시했을 때만 사용한다.
+  - 예: “이번 작업은 RF-modal-01 리팩토링 전용이다. 동작 변화 금지.”
+
+---
+
+## 2. 파일·데이터 구조 관련 룰
+
+- 주요 파일:
+  - `index.html`, `app.js`, `dashboard.js`, `accounts.js`, `cards.js`,
+    `settings.js`, `data-manager.js`, `modal.js`, `utils.js`, `config.js`.
+- 데이터 저장 구조:
+  - 런타임 캐시는 `localStorage`와 메모리 객체를 사용한다.
+  - 영구 저장은 선택된 폴더의 JSON 파일(`data.json` 및 백업 파일)을 사용한다.
+- 새로운 데이터 구조나 필드를 추가할 때는:
+  - `config.js` 또는 `data-manager.js`에 타입/필드 정의를 먼저 추가한다.
+  - 사용하는 모든 파일에서 일관된 키/타입을 유지한다.
+
+---
+
+## 3. 저장/불러오기 & 동기화 룰
+
+- 헤더의 `💾 저장`, `🔄 불러오기` 버튼만이 파일 I/O를 트리거한다.
+- 자동 저장/자동 불러오기는 기본적으로 **사용하지 않는다**.
+  - 새로고침 시에는 데이터를 자동으로 덮어쓰지 않는다.
+- `saveAllData()` 구현 시 규칙:
+  - `exportAllData()`로 하나의 JS 객체를 만든 후 JSON으로 직렬화한다.
+  - 선택된 폴더에 두 개의 파일을 쓴다.
+    - `data.json`  : 항상 덮어쓰기.
+    - `data_YYYYMMDD_HHmm.json` : 백업용 새 파일 생성.
+- `loadAllData()` 구현 시 규칙:
+  - 폴더에서 `data.json`을 읽어 전체 상태를 교체한다.
+  - 읽은 데이터는 `localStorage`와 메모리, UI 모두에 반영한다.
+- 타임스탬프 충돌 감지:
+  - 데이터 루트에 `lastUpdated` 필드를 유지한다.
+  - 로컬과 파일의 `lastUpdated`가 다를 때는 팝업으로 선택지를 제공하고, **자동으로 덮어쓰지 않는다.**
+
+---
+
+## 4. 카드 명세서(엑셀) 파싱 룰
+
+- 문자/SMS/카카오톡 파싱은 구현 대상이 아니다. 명세서(엑셀) 업로드만 지원한다.
+- 카드사 인식 순서:
+  - 1) 파일명에서 키워드(KB, 삼성, 신한, 현대, 롯데 등)를 먼저 확인.
+  - 2) 안 나오면 시트 상단(헤더) 텍스트에서 카드사 키워드 검색.
+- 열(Column) 매핑:
+  - 카드사별 컬럼 이름이 달라도, 최소한 다음 3가지를 공통 필드로 매핑한다.
+    - 거래일자(이용일/승인일 등)
+    - 금액
+    - 가맹점/사용처
+  - `parseDate`, `parseAmountFromCell` 같은 유틸리티 함수는 재사용하되, 카드사 하나에만 의존하는 하드코딩을 피한다.
+- 파싱 실패 시:
+  - 조용히 무시하지 않고, **몇 건 중 몇 건 성공/실패했는지**를 로그나 UI에 표시한다.
+  - 치명적인 오류가 발생하면 전체 중단 대신 “해당 행 스킵 + 경고” 방식을 우선한다.
+
+---
+
+## 5. 중복 함수/로직 및 리팩토링 룰
+
+- 새 함수를 만들기 전에:
+  - 비슷한 역할을 하는 함수가 이미 있는지 반드시 검색한다 (`DUPE-xxx` 이슈를 줄이기 위함).
+  - "없다고 가정하고 새로 만드는 것"을 금지하고, **찾아보고 정말 없을 때만** 새로 만든다.
+- 기능 작업 중 중복을 발견하면:
+  - 그 자리에서 대규모 리팩토링을 하지 말고, `prompt-qa-list.md`의 `Duplicate Issues` 섹션에
+    `DUPE-파일명-번호` 형식으로 메모를 남긴다.
+- 리팩토링 작업(RF-*)은 항상:
+  - 한 번에 **한 파일 + 한 종류의 정리**만 목표로 한다.
+  - "동작 변화 없음(Behavior must remain identical)"을 명시한다.
+
+### 5.1. 중복 함수 통합 절차 (신규 추가)
+
+중복 함수를 발견했을 때:
+
+1. **어떤 함수가 실제로 사용되는지 확인**:
+   - 브라우저 콘솔에서 호출 스택 확인
+   - `grep`으로 함수 호출 위치 확인
+   - 파일 로드 순서 확인 (`index.html`의 `<script>` 태그 순서)
+
+2. **통합 기준 결정**:
+   - 외부 JS 파일의 함수 우선 (모듈화 원칙)
+   - `index.html`의 인라인 함수는 최소화
+   - 함수명 충돌 시 네임스페이스 사용 고려
+
+3. **통합 실행**:
+   - 사용되는 함수를 기준으로 통합
+   - 사용되지 않는 함수는 제거 또는 주석 처리
+   - 통합 후 모든 호출 지점 확인
+
+4. **검증**:
+   - 브라우저 콘솔 에러 확인
+   - 기능 동작 테스트
+   - `read_lints` 실행
+
+---
+
+## 6. 테스트 & 안전장치 룰
+
+- 중요한 기능을 수정하거나 추가할 때는 가능하면 **단위 테스트 또는 간단한 검증 루틴**을 함께 작성한다.
+  - 예: 저장 후 다시 로드했을 때 데이터 건수/합계가 같은지 검증하는 함수.
+- AI는 테스트를 “삭제해서 통과시키는” 방향을 선택하면 안 된다.
+  - 테스트 기준을 낮추거나, 실패하는 테스트를 제거하는 방식으로 문제를 해결하지 않는다.
+- 에러 해결 시:
+  - 메모리 사용, 재시도 횟수, 경고 삭제 등 **우회적인 해결책**보다
+    근본 원인(로직/자료구조)을 먼저 수정하는 방향을 우선한다.
+
+---
+
+## 7. 작업 요청(프롬프트) 스타일 룰
+
+- 기능/버그 태스크를 요청할 때 기본 문구:
+  - "이번 작업은 기능/버그 수정 모드입니다. 구조 변경·리팩토링은 하지 말고, 내가 설명한 범위만 수정하세요."
+- 리팩토링 태스크를 요청할 때 기본 문구:
+  - "이번 작업은 리팩토링 전용입니다. 동작/기능은 절대 바꾸지 말고, DUPE-xxx 이슈만 해결하세요."
+- 긴 작업 세션이 길어지면:
+  - 필요한 시점에 새 스레드를 열고, `prd.md`, `tasklist.md`, 이 rules 파일을 다시 참조하도록 한다.
+
+---
+
+## 8. 데이터 통합 및 일관성 룰 (신규 추가)
+
+- **단일 데이터베이스 원칙**:
+  - `accountData`는 은행 계좌(`type: 'bank'`)와 카드(`type: 'card'`)를 모두 포함하는 **단일 DB**이다.
+  - `cardData`는 레거시 호환성을 위해 유지되지만, **신규 코드에서는 사용하지 않는다**.
+  
+- **카드 등록/수정**:
+  - 카드는 **반드시 `accountData`에 저장**한다.
+  - 카드 객체 구조:
+    ```javascript
+    {
+      id: timestamp,
+      name: '카드명',
+      type: 'card',              // ✅ 필수
+      cardType: 'credit|debit',  // credit 또는 debit
+      cardCompany: '카드사명',
+      linkedAccount: '연결계좌',  // 선택
+      paymentDay: 15              // 선택
+    }
+    ```
+
+- **카드 조회/검색**:
+  - 카드를 찾을 때는 **`accountData.filter(acc => acc.type === 'card')` 우선 사용**.
+  - 레거시 호환성을 위해 `cardData`도 체크하되, 중복 제거 필수.
+  - 예시:
+    ```javascript
+    // ✅ 올바른 방법
+    const cards = accountData.filter(acc => acc.type === 'card');
+    
+    // 레거시 호환 (중복 제거)
+    if (cardData && cardData.length > 0) {
+      cardData.forEach(card => {
+        if (!cards.find(c => c.id === card.id)) {
+          cards.push(card);
+        }
+      });
+    }
+    ```
+
+- **데이터 일관성 검증**:
+  - 카드 관련 함수 작성 시, `accountData`와 `cardData` 간 불일치가 발생하지 않도록 주의한다.
+  - 저장 시 `saveAccountData()` 호출 필수.
+
+---
+
+## 9. 코드 길이 제한 및 자동 리팩토링 룰 (신규 추가)
+
+### 9.1. index.html 길이 제한
+
+- **목표**: `index.html`은 **5,000 라인 이하**를 유지한다.
+- **경고 수준**: **7,000 라인 초과 시** 즉시 리팩토링을 고려한다.
+- **임계점**: **8,000 라인 초과 시** 반드시 리팩토링을 수행한다.
+
+### 9.2. 자동 리팩토링 트리거
+
+AI는 다음 상황에서 **자동으로 리팩토링을 제안**한다:
+
+1. **`index.html`이 7,000 라인 초과** 시:
+   - 사용자에게 "index.html이 {현재 라인 수}줄입니다. 리팩토링을 권장합니다." 알림.
+   - 분리 가능한 코드 블록 목록 제시.
+
+2. **같은 함수가 3회 이상 중복** 발견 시:
+   - `prompt-qa-list.md`에 `DUPE-xxx` 이슈 자동 등록.
+   - 통합 함수 작성 제안.
+
+3. **인라인 스크립트가 500 라인 초과** 시:
+   - 외부 JS 파일로 분리 권장.
+
+### 9.3. 리팩토링 우선순위
+
+리팩토링 시 다음 순서로 진행:
+
+1. **모달 관련 코드 분리** → `js/modal-init.js`, `js/modal-handlers.js`
+2. **이벤트 리스너 분리** → `js/event-handlers.js`
+3. **중복 함수 제거** → 유틸리티 함수로 통합
+4. **인라인 스크립트 최소화** → 외부 JS 파일로 이동
+
+### 9.4. 파일 분리 규칙
+
+- **모달 초기화**: `js/modal-init.js`
+  - 모달 DOM 요소 캐싱
+  - 초기 상태 설정
+  - 모달 열기/닫기 함수
+
+- **모달 이벤트 핸들러**: `js/modal-handlers.js`
+  - 폼 제출 이벤트
+  - 버튼 클릭 이벤트
+  - 입력 필드 변경 이벤트
+
+- **범용 이벤트 리스너**: `js/event-handlers.js`
+  - 탭 전환
+  - 파일 업로드
+  - 검색/필터링
+
+- **인라인 스크립트 허용 범위** (`index.html` 내):
+  - `DOMContentLoaded` 리스너 **1개만** 허용.
+  - 초기 데이터 로드 및 외부 JS 파일 로드만 포함.
+  - **최대 50 라인 이하**로 제한.
+
+### 9.5. 리팩토링 체크리스트
+
+리팩토링 후 반드시 확인:
+
+- [ ] Linter 에러 0개
+- [ ] 브라우저 콘솔 에러 0개
+- [ ] 기존 기능 모두 정상 동작
+- [ ] `accountData`, `cardData` 데이터 일관성 유지
+- [ ] 파일 길이: `index.html` < 7,000 라인
+
+---
+
+## 10. 모달 개발 및 관리 룰 (신규 추가)
+
+### 10.1. 모달 추가 시 필수 사항
+
+새 모달을 추가할 때는 다음 구조를 따른다:
+
+1. **HTML 구조** (`index.html`):
+   ```html
+   <!-- 모달 오버레이 -->
+   <div id="modal-name-overlay" class="modal-overlay">
+     <div class="modal">
+       <div class="modal-header">
+         <h3>모달 제목</h3>
+         <button id="modal-name-close" class="modal-close">✕</button>
+       </div>
+       <form id="modal-name-form">
+         <!-- 폼 내용 -->
+         <button type="submit">확인</button>
+       </form>
+     </div>
+   </div>
+   ```
+
+2. **초기화 함수** (`js/modal-init.js` 또는 해당 파일):
+   ```javascript
+   function initModalName() {
+     const modal = document.getElementById('modal-name-overlay');
+     const closeBtn = document.getElementById('modal-name-close');
+     const form = document.getElementById('modal-name-form');
+     
+     if (closeBtn) {
+       closeBtn.addEventListener('click', closeModalName);
+     }
+     
+     if (form) {
+       form.addEventListener('submit', handleModalNameSubmit);
+     }
+   }
+   
+   function openModalName() {
+     const modal = document.getElementById('modal-name-overlay');
+     if (modal) modal.style.display = 'flex';
+   }
+   
+   function closeModalName() {
+     const modal = document.getElementById('modal-name-overlay');
+     if (modal) modal.style.display = 'none';
+   }
+   ```
+
+3. **이벤트 핸들러 분리** (`js/modal-handlers.js` 또는 해당 파일):
+   ```javascript
+   function handleModalNameSubmit(e) {
+     e.preventDefault();
+     // 폼 제출 로직
+     closeModalName();
+   }
+   ```
+
+### 10.2. 모달 중복 방지
+
+- 모달 추가 전, 기존 모달 목록을 **반드시 확인**한다.
+- 비슷한 기능의 모달이 있다면 **재사용 또는 확장**한다.
+- 새 모달이 필요한 경우, `prompt-qa-list.md`에 사유를 기록한다.
+
+### 10.3. 모달 네이밍 규칙
+
+- **ID**: `{기능명}-modal-overlay` (예: `account-transaction-modal-overlay`)
+- **닫기 버튼**: `{기능명}-modal-close`
+- **폼**: `{기능명}-form`
+- **함수**: `open{기능명}Modal()`, `close{기능명}Modal()`, `init{기능명}Modal()`
+
+---
+
+## 11. 작업 전 체크리스트 (신규 추가)
+
+AI가 작업 시작 전 **반드시 확인**해야 할 사항:
+
+### 11.1. 기능 추가 작업 전
+
+- [ ] 비슷한 기능이 이미 구현되어 있는지 검색 (`grep`, `codebase_search`)
+- [ ] 관련 함수가 이미 존재하는지 확인
+- [ ] `index.html` 현재 라인 수 확인 (3,000 라인 초과 시 리팩토링 먼저)
+- [ ] `accountData` vs `cardData` 사용 여부 확인 (accountData 우선)
+
+### 11.2. 리팩토링 작업 전
+
+- [ ] 기존 기능 동작 방식 완전 이해
+- [ ] 영향받는 모든 파일 목록 작성
+- [ ] 리팩토링 범위 명확히 정의 (1개 파일 + 1개 목적)
+- [ ] 테스트 계획 수립 (브라우저 테스트 항목 명시)
+
+### 11.3. 작업 완료 후
+
+- [ ] `read_lints` 실행 → 모든 에러 수정
+- [ ] 브라우저 콘솔 에러 확인
+- [ ] 관련 기능 수동 테스트 (최소 2개 시나리오)
+- [ ] `index.html` 라인 수 확인 (증가 시 분리 계획 수립)
+- [ ] TODO 리스트 업데이트
+
+---
