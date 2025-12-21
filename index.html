@@ -1067,6 +1067,14 @@
                   <option value="둠둠">둠둠</option>
                 </select>
               </div>
+              <!-- 10. 고정 지출 체크박스 (위치 상향 조정) -->
+              <div class="col-12">
+                <div class="form-check form-switch p-2 ps-5 border rounded bg-light">
+                  <input class="form-check-input" type="checkbox" id="tx-is-fixed">
+                  <label class="form-check-label fw-bold" for="tx-is-fixed">🔄 고정 거래 (매월 반복)</label>
+                  <small class="text-muted d-block mt-1">이 항목을 체크하면 지정한 기간 동안 매월 자동 등록됩니다.</small>
+                </div>
+              </div>
               <!-- 3. 구분 -->
               <div class="col-12">
                 <label class="form-label fw-bold">📊 구분 <span class="text-danger">*</span></label>
@@ -1097,6 +1105,14 @@
               <div class="col-md-6">
                 <label for="tx-merchant" class="form-label fw-bold">🏪 사용처</label>
                 <input type="text" class="form-control" id="tx-merchant" placeholder="예: 스타벅스 강남점">
+                <!-- 자주 쓰는 사용처 (스켈레톤) -->
+                <div id="quick-merchant-area" class="mt-2" style="display: none;">
+                  <div class="d-flex flex-wrap gap-1" id="quick-merchant-list">
+                    <!-- 스크립트에서 동적 생성 -->
+                  </div>
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none mt-1"
+                    id="manage-merchants-btn">+ 사용처 관리</button>
+                </div>
               </div>
               <!-- 7. 세부내용 -->
               <div class="col-md-6">
@@ -1128,55 +1144,51 @@
                 </select>
               </div>
 
-              <!-- 할부 설정 (신용카드 선택 시에만 보임) -->
-              <div class="col-12" id="tx-installment-area" style="display: none;">
-                <div class="card border-info">
-                  <div class="card-body py-2">
-                    <div class="form-check mb-2">
-                      <input class="form-check-input" type="checkbox" id="tx-use-installment">
-                      <label class="form-check-label fw-bold" for="tx-use-installment">📅 할부 결제 사용</label>
+              <!-- 할부 설정 (신용카드 선택 시 항상 노출, 체크박스로 활성화) -->
+              <div class="col-12" id="tx-installment-area">
+                <div class="p-2 border rounded border-info bg-opacity-10 bg-info">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="tx-use-installment">
+                    <label class="form-check-label fw-bold" for="tx-use-installment">📅 할부 결제 사용</label>
+                  </div>
+                  <div class="row g-2 align-items-center mt-1" id="tx-installment-options" style="display: none;">
+                    <div class="col-auto">
+                      <select class="form-select form-select-sm" id="tx-installment-period" style="width: 120px;">
+                        <option value="1">일시불</option>
+                        <option value="2">2개월</option>
+                        <option value="3">3개월</option>
+                        <option value="4">4개월</option>
+                        <option value="5">5개월</option>
+                        <option value="6">6개월</option>
+                        <option value="12">12개월</option>
+                      </select>
                     </div>
-                    <div class="row g-2 align-items-center" id="tx-installment-options" style="display: none;">
-                      <div class="col-auto">
-                        <select class="form-select form-select-sm" id="tx-installment-period" style="width: 120px;">
-                          <option value="1">일시불</option>
-                          <option value="2">2개월</option>
-                          <option value="3">3개월</option>
-                          <option value="4">4개월</option>
-                          <option value="5">5개월</option>
-                          <option value="6">6개월</option>
-                          <option value="12">12개월</option>
-                        </select>
-                      </div>
-                      <div class="col-auto">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="tx-is-interest-free">
-                          <label class="form-check-label small" for="tx-is-interest-free">무이자</label>
-                        </div>
+                    <div class="col-auto">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="tx-is-interest-free">
+                        <label class="form-check-label small" for="tx-is-interest-free">무이자</label>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <!-- 고정 지출 체크박스 -->
-              <div class="col-12">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="tx-is-fixed">
-                  <label class="form-check-label" for="tx-is-fixed">🔄 고정 거래 (매월 반복)</label>
-                </div>
-              </div>
-
               <!-- 고정 거래 상세 설정 (기본 숨김) -->
               <div class="col-12" id="tx-fixed-options" style="display: none;">
-                <div class="card bg-light border-0">
+                <div class="card bg-warning bg-opacity-10 border-warning border-opacity-25">
                   <div class="card-body py-2 px-3">
                     <div class="row g-2">
-                      <div class="col-md-6">
-                        <label for="tx-fixed-start" class="form-label small fw-bold">📅 시작월</label>
+                      <div class="col-md-4">
+                        <label for="tx-fixed-day" class="form-label small fw-bold">📅 반복 등록일</label>
+                        <select class="form-select form-select-sm" id="tx-fixed-day">
+                          <!-- 1일부터 28/31일까지 동적 생성 -->
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label for="tx-fixed-start" class="form-label small fw-bold">🛫 시작월</label>
                         <input type="month" class="form-control form-control-sm" id="tx-fixed-start">
                       </div>
-                      <div class="col-md-6">
-                        <label for="tx-fixed-end" class="form-label small fw-bold">📅 종료월</label>
+                      <div class="col-md-4">
+                        <label for="tx-fixed-end" class="form-label small fw-bold">🛬 종료월</label>
                         <input type="month" class="form-control form-control-sm" id="tx-fixed-end">
                       </div>
                     </div>

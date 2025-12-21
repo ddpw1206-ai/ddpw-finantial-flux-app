@@ -552,16 +552,78 @@ const DataManager = {
     return `ddpw_transactions_${year}_${month}`;
   },
 
-  // 11. 거래 목록 가져오기 (특정 연월)
+  // 11. 거래 목록 가져오기 (특정 연월 + 고정 거래 포함)
   getTransactions: function (year, month) {
     const mm = String(month).padStart(2, '0');
     const key = `ddpw_transactions_${year}_${mm}`;
     try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : [];
+      const storageData = localStorage.getItem(key);
+      let transactions = storageData ? JSON.parse(storageData) : [];
+
+      // 고정 거래 마스터 가져와서 해당 월에 해당하는 것들 추가
+      const fixedMasters = this.getFixedMasters();
+      const currentMonthStr = `${year}-${mm}`;
+
+      console.log(`${year}-${mm} 고정 마스터 조회:`, fixedMasters.length, '건');
+
+      fixedMasters.forEach(master => {
+        // 이미 해당 월에 이 마스터로부터 생성된 거래가 있는지 확인 (중복 방지)
+        const exists = transactions.some(tx => tx.masterId === master.id);
+
+        // 기간 확인 (YYYY-MM 비교)
+        const start = master.fixedStart || '0000-00';
+        const end = master.fixedEnd || '9999-12';
+        const isInRange = start <= currentMonthStr && end >= currentMonthStr;
+
+        if (isInRange && !exists) {
+          // 인스턴스 생성 (해당 월의 지정된 일자로)
+          let day = 1;
+          const maxDay = new Date(year, month, 0).getDate();
+          if (master.fixedDay === 'last') {
+            day = maxDay;
+          } else {
+            day = Math.min(parseInt(master.fixedDay) || 1, maxDay);
+          }
+
+          const instance = {
+            ...master,
+            masterId: master.id,
+            id: `fixed-${master.id}-${year}-${mm}`, // 합성 ID (문자열)
+            date: `${year}-${mm}-${String(day).padStart(2, '0')}`,
+            isFixedInstance: true,
+            isFixed: true // 테이블 필터링을 위해 명시적 설정
+          };
+          transactions.push(instance);
+          console.log(`고정 거래 생성: ${master.merchant} (${instance.date})`);
+        }
+      });
+
+      return transactions;
     } catch (e) {
       console.error('거래 로드 실패:', e);
       return [];
+    }
+  },
+
+  // 11-1. 고정 거래 마스터 목록 가져오기
+  getFixedMasters: function () {
+    try {
+      const data = localStorage.getItem('ddpw_fixed_masters');
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('고정 마스터 로드 실패:', e);
+      return [];
+    }
+  },
+
+  // 11-2. 고정 거래 마스터 저장
+  saveFixedMasters: function (masters) {
+    try {
+      localStorage.setItem('ddpw_fixed_masters', JSON.stringify(masters));
+      return true;
+    } catch (e) {
+      console.error('고정 마스터 저장 실패:', e);
+      return false;
     }
   },
 
@@ -580,12 +642,20 @@ const DataManager = {
 
   // 13. 거래 추가
   addTransaction: function (transaction) {
+    // 고정 거래인 경우 마스터에 저장
+    if (transaction.isFixed) {
+      const masters = this.getFixedMasters();
+      transaction.id = transaction.id || Date.now();
+      transaction.createdAt = new Date().toISOString();
+      masters.push(transaction);
+      return this.saveFixedMasters(masters);
+    }
+
     const date = new Date(transaction.date);
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
 
     const transactions = this.getTransactions(year, month);
-    // ID 할당
     transaction.id = transaction.id || Date.now();
     transaction.createdAt = new Date().toISOString();
     transactions.push(transaction);
@@ -595,14 +665,21 @@ const DataManager = {
 
   // 14. 거래 수정
   updateTransaction: function (id, updates) {
-    // 주의: 날짜가 변경될 경우 기존 월에서 삭제하고 새 월로 이동해야 할 수도 있음
-    // 여기서는 단순 수정을 가정 (날짜 변경 대응 필요 시 추후 확장)
+    // 1. 고정 마스터에서 찾기
+    const masters = this.getFixedMasters();
+    const mIndex = masters.findIndex(m => m.id === id);
+    if (mIndex > -1) {
+      masters[mIndex] = { ...masters[mIndex], ...updates, updatedAt: new Date().toISOString() };
+      return this.saveFixedMasters(masters);
+    }
+
+    // 2. 일반 거래에서 찾기
     const date = new Date(updates.date);
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
 
     const transactions = this.getTransactions(year, month);
-    const index = transactions.findIndex(tx => tx.id === id);
+    const index = transactions.findIndex(tx => tx.id.toString() === id.toString());
 
     if (index > -1) {
       transactions[index] = { ...transactions[index], ...updates, updatedAt: new Date().toISOString() };
@@ -611,15 +688,51 @@ const DataManager = {
     return false;
   },
 
+  // 사용처 히스토리 가져오기
+  getMerchantHistory: function () {
+    try {
+      const saved = localStorage.getItem('merchantHistory');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('사용처 히스토리 로드 실패:', e);
+      return [];
+    }
+  },
+
   // 15. 거래 삭제
   deleteTransaction: function (id, year, month) {
+    // 1. 고정 마스터에서 삭제 시도
+    const masters = this.getFixedMasters();
+    const mIndex = masters.findIndex(m => m.id === id);
+    if (mIndex > -1) {
+      masters.splice(mIndex, 1);
+      return this.saveFixedMasters(masters);
+    }
+
+    // 2. 일반 거래에서 삭제
     const transactions = this.getTransactions(year, month);
-    const index = transactions.findIndex(tx => tx.id === id);
+    const index = transactions.findIndex(tx => tx.id.toString() === id.toString());
 
     if (index > -1) {
       transactions.splice(index, 1);
       return this.saveTransactions(year, month, transactions);
     }
+
+    // 3. 합성 ID인 경우 (고정 거래의 인스턴스) - 마스터를 삭제해야 함
+    if (id.toString().startsWith('fixed-')) {
+      const parts = id.toString().split('-');
+      const masterIdStr = parts[1];
+      const masters2 = this.getFixedMasters();
+      const mIndex2 = masters2.findIndex(m => m.id.toString() === masterIdStr);
+
+      if (mIndex2 > -1) {
+        if (confirm('이 항목은 고정 거래의 일부입니다. 전체 고정 거래를 삭제하시겠습니까?')) {
+          masters2.splice(mIndex2, 1);
+          return this.saveFixedMasters(masters2);
+        }
+      }
+    }
+
     return false;
   }
 };

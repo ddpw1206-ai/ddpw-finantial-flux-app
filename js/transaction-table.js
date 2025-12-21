@@ -97,7 +97,7 @@ const TransactionTable = {
     const checkboxes = document.querySelectorAll('.row-checkbox');
     checkboxes.forEach(cb => {
       cb.checked = checkbox.checked;
-      const id = Number(cb.dataset.id);
+      const id = cb.dataset.id;
       if (checkbox.checked) {
         this.selectedIds.add(id);
       } else {
@@ -262,7 +262,7 @@ const TransactionTable = {
         <td>
           <input type="checkbox" class="form-check-input row-checkbox" 
                  data-id="${tx.id}" ${isChecked}
-                 onchange="TransactionTable.toggleRowSelect(this, ${tx.id})">
+                 onchange="TransactionTable.toggleRowSelect(this, '${tx.id}')">
         </td>
         <td>${idx}</td>
         <td>${tx.date || '-'}</td>
@@ -274,8 +274,8 @@ const TransactionTable = {
         <td class="text-end fw-bold ${typeClass}">${amount}원</td>
         <td>${tx.paymentDetail || '-'}</td>
         <td>
-          <button class="btn btn-sm btn-outline-primary me-1" onclick="TransactionTable.editRow(${tx.id})">수정</button>
-          <button class="btn btn-sm btn-outline-danger" onclick="TransactionTable.deleteRow(${tx.id})">삭제</button>
+          <button class="btn btn-sm btn-outline-primary me-1" onclick="TransactionTable.editRow('${tx.id}')">수정</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="TransactionTable.deleteRow('${tx.id}')">삭제</button>
         </td>
       </tr>
     `;

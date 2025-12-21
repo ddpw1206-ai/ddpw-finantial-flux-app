@@ -127,22 +127,13 @@ window.renderDashboard = function (mainContent) {
         </div>
       </div>
 
-      <!-- 액션 버튼 및 정렬 -->
+      <!-- 액션 버튼 -->
       <div class="row mb-4 align-items-center">
         <div class="col-md-6 d-flex gap-2">
           <button id="new-entry-btn" class="btn btn-primary px-4 fw-bold">📝 신규 거래 등록</button>
-          <button id="add-transaction-btn" class="btn btn-outline-primary shadow-sm">+ 거래 필터 추가</button>
         </div>
         <div class="col-md-6 d-flex justify-content-end align-items-center gap-3">
-          <div class="d-flex align-items-center gap-2">
-            <span class="small fw-bold text-muted text-nowrap">정렬:</span>
-            <select id="sort-select" class="form-select form-select-sm" style="width: 150px;">
-              <option value="date-desc">날짜 최신순</option>
-              <option value="date-asc">날짜 오래된순</option>
-              <option value="amount-desc">금액 높은순</option>
-              <option value="amount-asc">금액 낮은순</option>
-            </select>
-          </div>
+          <!-- 정렬 드롭다운 삭제 (테이블 헤더 정렬 사용) -->
         </div>
       </div>
 

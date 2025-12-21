@@ -16,6 +16,10 @@ const MonthlyPage = {
         this.currentYear = year;
         this.currentMonth = month;
 
+        // 전역 변수 동기화
+        if (typeof window.curYear !== 'undefined') window.curYear = year;
+        if (typeof window.curMonth !== 'undefined') window.curMonth = month;
+
         // UI 업데이트
         this.updateMonthDisplay();
 
@@ -33,6 +37,13 @@ const MonthlyPage = {
             TransactionFilter.filters.dateStart = `${year}-${mm}-01`;
             TransactionFilter.filters.dateEnd = `${year}-${mm}-${String(lastDay).padStart(2, '0')}`;
             TransactionFilter.apply();
+        }
+
+        // 계좌 관리 탭 연동
+        if (window.currentActiveTab === 'accounts' && typeof renderAccountTransactionTable === 'function') {
+            const accountSelect = document.getElementById('account-filter-select');
+            const selectedAccount = accountSelect ? accountSelect.value : 'all';
+            renderAccountTransactionTable(selectedAccount);
         }
     },
 
@@ -112,12 +123,12 @@ const MonthlyPage = {
         // ========== 월 이동 버튼 ==========
         const prevBtn = document.getElementById('prev-month');
         if (prevBtn) {
-            prevBtn.addEventListener('click', () => self.prevMonth());
+            prevBtn.onclick = () => self.prevMonth();
         }
 
         const nextBtn = document.getElementById('next-month');
         if (nextBtn) {
-            nextBtn.addEventListener('click', () => self.nextMonth());
+            nextBtn.onclick = () => self.nextMonth();
         }
 
         // ========== 거래 추가 버튼들 ==========
@@ -192,11 +203,14 @@ const MonthlyPage = {
         console.log('MonthlyPage 이벤트 바인딩 완료');
     },
 
-    // 초기화
     init: function () {
         console.log('MonthlyPage 초기화 시도');
 
-        // 연월 표시 업데이트
+        // 전역 변수에서 초기 연월 가져오기
+        if (typeof window.curYear !== 'undefined') this.currentYear = window.curYear;
+        if (typeof window.curMonth !== 'undefined') this.currentMonth = window.curMonth;
+
+        // 현재 월 표시
         this.updateMonthDisplay();
 
         // 각 모듈 초기화 (순서 중요)

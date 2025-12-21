@@ -2,44 +2,44 @@
 // 메인 초기화 및 이벤트
 // ========================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   console.log('앱 시작 - 버전:', APP_VERSION);
-  
+
   // 버전 표시
   const versionEl = document.querySelector('.version');
   if (versionEl) versionEl.textContent = `V.${APP_VERSION}`;
-  
+
   // 데이터 로드 (localStorage에서 먼저 로드)
   loadData();
   loadAccountData();
   loadMerchantHistory();
   loadCardData();
   loadCardParsingTemplates();
-  
+
   // 자동 불러오기 로직 제거 (16번 QA: 수동 제어로 변경)
   // initializeFolderData() 함수는 제거되었고, 사용자가 명시적으로 불러오기 버튼을 눌렀을 때만 동기화됩니다.
-  
+
   // 탭 전환 이벤트 (완전 독립 렌더링, 오류 방지 강화)
   const tabButtons = document.querySelectorAll('.nav-tab');
-  
+
   // 탭 전환 핸들러 함수 (중복 등록 방지)
-  const handleTabSwitch = function(tabKey) {
+  const handleTabSwitch = function (tabKey) {
     // 1. 유효성 검사
     if (!tabKey) {
       console.error('탭 키가 없습니다.');
       return;
     }
-    
+
     // 2. mainContent 확인
     const mainContent = document.getElementById('main-content');
     if (!mainContent) {
       console.error('main-content 요소를 찾을 수 없습니다.');
       return;
     }
-    
+
     // 3. 이전 탭의 모든 이벤트 리스너 정리 (필요시)
     // mainContent의 모든 자식 요소 제거로 자동 정리됨
-    
+
     // 4. mainContent 완전히 비우기
     try {
       mainContent.innerHTML = '';
@@ -47,9 +47,9 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('mainContent 초기화 오류:', error);
       return;
     }
-    
+
     console.log('탭 전환:', tabKey);
-    
+
     // 5. 연/월 표시 제어 (dashboard와 accounts만 표시)
     const monthBar = document.querySelector('.month-bar');
     if (monthBar) {
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
         monthBar.style.display = 'none';
       }
     }
-    
+
     // 6. FAB 버튼 상태 업데이트
     if (typeof window.updateFabButton === 'function') {
       try {
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('updateFabButton 오류:', error);
       }
     }
-    
+
     // 7. 탭별 독립적인 렌더링 함수 호출 (window 객체를 통해 호출)
     // requestAnimationFrame을 사용하여 DOM 업데이트 완료 후 렌더링
     requestAnimationFrame(() => {
@@ -117,20 +117,20 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   };
-  
+
   // 탭 버튼에 이벤트 리스너 등록 (중복 방지)
   tabButtons.forEach(btn => {
     // 기존 이벤트 리스너 제거 (중복 방지)
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
-    
-    newBtn.addEventListener('click', function(e) {
+
+    newBtn.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // 모든 탭 버튼을 다시 쿼리 (최신 상태 보장)
       const allTabButtons = document.querySelectorAll('.nav-tab');
-      
+
       // 1. 모든 탭의 active 클래스 제거 및 스타일 초기화
       allTabButtons.forEach(b => {
         b.classList.remove('active');
@@ -141,112 +141,44 @@ document.addEventListener('DOMContentLoaded', function() {
         b.style.borderBottomColor = '';
         b.style.background = '';
       });
-      
+
       // 2. 클릭한 탭만 활성화 (CSS 클래스만 사용, 인라인 스타일 제거)
       this.classList.add('active');
-      
+
       const tabKey = this.getAttribute('data-tab');
       if (!tabKey) {
         console.error('탭 버튼에 data-tab 속성이 없습니다.');
         return;
       }
-      
+
       window.currentActiveTab = tabKey;
-      
+
       console.log('탭 전환:', tabKey, '활성화된 탭:', this.textContent);
-      
+
       // 탭 전환 핸들러 호출
       handleTabSwitch(tabKey);
     });
   });
-  
-  // 월 선택 버튼 (dashboard와 accounts 탭에서만 동작)
-  document.getElementById('prev-month')?.addEventListener('click', function() {
-    // dashboard 또는 accounts 탭에서만 동작
-    if (window.currentActiveTab !== 'dashboard' && window.currentActiveTab !== 'accounts') {
-      return;
-    }
-    
-    curMonth--;
-    if (curMonth < 1) {
-      curMonth = 12;
-      curYear--;
-    }
-    updateMonthText();
-    updateDashboard();
-    
-    // 대시보드가 열려있으면 테이블도 업데이트
-    if (window.currentActiveTab === 'dashboard') {
-      if (typeof renderTable === 'function') {
-        renderTable();
-      }
-      if (typeof renderCardTable === 'function') {
-        renderCardTable('all');
-      }
-      if (typeof renderBankTable === 'function') {
-        renderBankTable();
-      }
-    } else if (window.currentActiveTab === 'accounts') {
-      // 계좌 관리 탭인 경우 계좌 테이블 갱신
-      if (typeof renderAccountTransactionTable === 'function') {
-        const accountSelect = document.getElementById('account-filter-select');
-        const selectedAccount = accountSelect ? accountSelect.value : 'all';
-        renderAccountTransactionTable(selectedAccount);
-      }
-    }
-  });
-  
-  document.getElementById('next-month')?.addEventListener('click', function() {
-    // dashboard 또는 accounts 탭에서만 동작
-    if (window.currentActiveTab !== 'dashboard' && window.currentActiveTab !== 'accounts') {
-      return;
-    }
-    
-    curMonth++;
-    if (curMonth > 12) {
-      curMonth = 1;
-      curYear++;
-    }
-    updateMonthText();
-    updateDashboard();
-    
-    // 대시보드가 열려있으면 테이블도 업데이트
-    if (window.currentActiveTab === 'dashboard') {
-      if (typeof renderTable === 'function') {
-        renderTable();
-      }
-      if (typeof renderCardTable === 'function') {
-        renderCardTable('all');
-      }
-      if (typeof renderBankTable === 'function') {
-        renderBankTable();
-      }
-    } else if (window.currentActiveTab === 'accounts') {
-      // 계좌 관리 탭인 경우 계좌 테이블 갱신
-      if (typeof renderAccountTransactionTable === 'function') {
-        const accountSelect = document.getElementById('account-filter-select');
-        const selectedAccount = accountSelect ? accountSelect.value : 'all';
-        renderAccountTransactionTable(selectedAccount);
-      }
-    }
-  });
-  
+
+  // 월 선택 버튼 제거 (MonthlyPage가 처리함)
+
+
   // FAB 메뉴 토글
   const fabMain = document.getElementById('fab-main');
   const fabContainer = document.getElementById('fab-container');
   const fabMenu = document.getElementById('fab-menu');
   let fabMenuOpen = false;
-  
+
   // FAB 버튼 표시/숨김 업데이트 함수
-  window.updateFabButton = function() {
+  window.updateFabButton = function () {
     if (!fabContainer) return;
-    
+
     if (window.currentActiveTab === 'dashboard' || window.currentActiveTab === 'accounts' || window.currentActiveTab === 'cards' || window.currentActiveTab === 'saving') {
       fabContainer.style.display = 'flex';
     } else {
       fabContainer.style.display = 'none';
     }
-    
+
     // 메뉴 닫기
     if (fabMenu && fabMenuOpen) {
       fabMenuOpen = false;
@@ -254,13 +186,13 @@ document.addEventListener('DOMContentLoaded', function() {
       fabMenu.classList.remove('active');
     }
   };
-  
+
   if (fabMain && fabMenu) {
     // 메인 FAB 클릭 시 메뉴 토글
-    fabMain.addEventListener('click', function(e) {
+    fabMain.addEventListener('click', function (e) {
       e.stopPropagation();
       fabMenuOpen = !fabMenuOpen;
-      
+
       if (fabMenuOpen) {
         fabMain.classList.add('active');
         fabMenu.classList.add('active');
@@ -271,9 +203,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('FAB 메뉴 닫힘, fabMenuOpen:', fabMenuOpen);
       }
     });
-    
+
     // 외부 클릭 시 메뉴 닫기
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
       if (!e.target.closest('.fab-container') && fabMenuOpen) {
         fabMenuOpen = false;
         fabMain.classList.remove('active');
@@ -281,23 +213,23 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('외부 클릭으로 FAB 메뉴 닫힘');
       }
     });
-    
+
     // 하위 FAB 버튼 클릭 이벤트 (이벤트 위임 사용)
     if (fabMenu) {
-      fabMenu.addEventListener('click', function(e) {
+      fabMenu.addEventListener('click', function (e) {
         const target = e.target.closest('.fab-sub');
         if (!target) return;
-        
+
         e.stopPropagation();
-        
+
         const targetTab = target.getAttribute('data-tab');
         console.log('FAB 버튼 클릭:', targetTab);
-        
+
         // 1. 메뉴 닫기
         fabMenuOpen = false;
         fabMain.classList.remove('active');
         fabMenu.classList.remove('active');
-        
+
         // 2. 해당 탭으로 전환
         const tabButton = document.querySelector(`.nav-tab[data-tab="${targetTab}"]`);
         if (tabButton) {
@@ -311,13 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
             b.style.borderBottomColor = '';
             b.style.background = '';
           });
-          
+
           // 선택한 탭만 활성화
           tabButton.classList.add('active');
-          
+
           // 탭 버튼 클릭 이벤트 트리거 (기존 로직 재사용)
           tabButton.click();
-          
+
           // 3. 해당 탭의 모달 열기 (탭 렌더링 완료 대기)
           // requestAnimationFrame을 사용하여 DOM 업데이트 완료 후 모달 열기
           requestAnimationFrame(() => {
@@ -358,10 +290,10 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   }
-  
+
   // 월 텍스트 초기화
   updateMonthText();
-  
+
   // 초기 로드 시 탭 활성화 상태 정리 (모든 탭의 인라인 스타일 제거)
   const initialTabButtons = document.querySelectorAll('.nav-tab');
   initialTabButtons.forEach(btn => {
@@ -374,10 +306,10 @@ document.addEventListener('DOMContentLoaded', function() {
       btn.style.background = '';
     }
   });
-  
+
   // 초기 활성 탭 설정
   window.currentActiveTab = 'dashboard';
-  
+
   // 모달 초기화 (카테고리 옵션, 자주 쓰는 사용처, 결제수단 옵션)
   setTimeout(() => {
     if (typeof updateCategoryOptions === 'function') {
@@ -390,28 +322,28 @@ document.addEventListener('DOMContentLoaded', function() {
       updatePaymentOptions();
     }
   }, 200);
-  
+
   // 초기 탭 로드
   initDashboard();
-  
+
   // 초기 연/월 표시 설정 (dashboard는 표시)
   const monthBar = document.querySelector('.month-bar');
   if (monthBar && window.currentActiveTab === 'dashboard') {
     monthBar.style.display = 'flex';
   }
-  
+
   // 저장/불러오기 버튼 이벤트 리스너 (16번 QA: 수동 제어)
   const saveDataBtn = document.getElementById('save-data-btn');
   const loadDataBtn = document.getElementById('load-data-btn');
-  
+
   if (saveDataBtn) {
-    saveDataBtn.addEventListener('click', async function() {
+    saveDataBtn.addEventListener('click', async function () {
       const folderHandle = window.dataFolderHandle || dataFolderHandle;
       if (!folderHandle) {
         alert('먼저 설정에서 저장 폴더를 선택해주세요.');
         return;
       }
-      
+
       // localStorage의 모든 데이터를 폴더에 저장
       if (typeof window.saveDataToFolder === 'function') {
         const success = await window.saveDataToFolder();
@@ -430,20 +362,20 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-  
+
   if (loadDataBtn) {
-    loadDataBtn.addEventListener('click', async function() {
+    loadDataBtn.addEventListener('click', async function () {
       const folderHandle = window.dataFolderHandle || dataFolderHandle;
       if (!folderHandle) {
         alert('먼저 설정에서 저장 폴더를 선택해주세요.');
         return;
       }
-      
+
       const shouldLoad = confirm('폴더에서 최신 데이터를 불러오시겠습니까?\n\n현재 데이터가 사라질 수 있습니다.');
       if (!shouldLoad) {
         return;
       }
-      
+
       if (typeof window.loadDataFromFolder === 'function') {
         const loaded = await window.loadDataFromFolder();
         if (loaded) {
@@ -452,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
           if (typeof saveAccountData === 'function') saveAccountData();
           if (typeof saveMerchantHistory === 'function') saveMerchantHistory();
           if (typeof saveCardData === 'function') saveCardData();
-          
+
           // UI 갱신
           if (typeof updateDashboard === 'function') updateDashboard();
           const mainContent = document.getElementById('main-content');
@@ -474,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-  
+
   console.log('앱 초기화 완료');
 });
 

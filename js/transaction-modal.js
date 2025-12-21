@@ -72,9 +72,9 @@ const TransactionModal = {
         // 선택 필드
         const merchant = document.getElementById('tx-merchant')?.value || '';
         const detail = document.getElementById('tx-detail')?.value || '';
-        const isFixed = document.getElementById('tx-is-fixed')?.checked || false;
-
-        // 고정 거래용 기간
+        // 고정 거래용 정보
+        let isFixed = document.getElementById('tx-is-fixed')?.checked || false;
+        let fixedDay = document.getElementById('tx-fixed-day')?.value || '';
         let fixedStart = null;
         let fixedEnd = null;
         if (isFixed) {
@@ -93,7 +93,7 @@ const TransactionModal = {
         return {
             date, user, type, mainCategory, subCategory,
             amount, paymentMethod, paymentDetail,
-            merchant, detail, isFixed, fixedStart, fixedEnd, installment
+            merchant, detail, isFixed, fixedDay, fixedStart, fixedEnd, installment
         };
     },
 
@@ -160,9 +160,9 @@ const TransactionModal = {
         methodSelect.innerHTML = '<option value="">--선택--</option>';
         const options = [
             { value: 'creditCard', text: '신용카드' },
-            { value: 'creditInstallment', text: '신용카드(할부)' },
             { value: 'checkCard', text: '체크카드' },
             { value: 'account', text: '계좌이체' },
+            { value: 'cash', text: '현금' },
             { value: 'etc', text: '기타' }
         ];
 
@@ -174,6 +174,40 @@ const TransactionModal = {
         });
     },
 
+    // 사용처 퀵 메뉴 업데이트
+    updateQuickMerchants: function (currentMerchant) {
+        const area = document.getElementById('quick-merchant-area');
+        const list = document.getElementById('quick-merchant-list');
+        if (!area || !list) return;
+
+        // merchantHistory에서 데이터 가져오기 (상단 10개 혹은 빈도순)
+        let commonMerchants = ['쿠팡', '네이버페이', '배달의민족', '스타벅스', '교통카드'];
+        if (typeof window.DataManager !== 'undefined' && window.DataManager.getMerchantHistory) {
+            const merchantHistory = window.DataManager.getMerchantHistory();
+            if (merchantHistory.length > 0) {
+                // 빈도순 정렬
+                const counts = {};
+                merchantHistory.forEach(m => counts[m] = (counts[m] || 0) + 1);
+                commonMerchants = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 10);
+            }
+        }
+
+        list.innerHTML = '';
+        commonMerchants.forEach(m => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-outline-secondary btn-sm rounded-pill py-0 px-2';
+            btn.style.fontSize = '0.75rem';
+            btn.textContent = m;
+            btn.onclick = () => {
+                document.getElementById('tx-merchant').value = m;
+                // 선택 시 강조 효과 등 (생략)
+            };
+            list.appendChild(btn);
+        });
+
+        area.style.display = 'block';
+    },
     // 세부 결제수단 업데이트
     updatePaymentDetails: function (method) {
         const detailSelect = document.getElementById('tx-payment-detail');
@@ -188,14 +222,14 @@ const TransactionModal = {
             case 'creditCard':
                 items = pm.creditCards || [];
                 break;
-            case 'creditInstallment':
-                items = pm.creditInstallment || [];
-                break;
             case 'checkCard':
                 items = pm.checkCards || [];
                 break;
             case 'account':
                 items = pm.accounts || [];
+                break;
+            case 'cash':
+                items = pm.cash || [];
                 break;
             case 'etc':
                 items = pm.etc || [];
@@ -237,10 +271,24 @@ const TransactionModal = {
 
     // 모달 닫기
     close: function () {
-        const modal = document.getElementById('transactionModal');
-        if (modal) {
-            const bsModal = bootstrap.Modal.getInstance(modal);
-            if (bsModal) bsModal.hide();
+        const modalEl = document.getElementById('transactionModal');
+        if (modalEl) {
+            const bsModal = bootstrap.Modal.getInstance(modalEl);
+            if (bsModal) {
+                bsModal.hide();
+            } else {
+                // 인스턴스가 없으면 직접 닫기
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+            }
+
+            // 공통 백드롭 제거 로직 (확실하게)
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+            }, 300);
         }
         window._editingTransactionId = null;
     },
@@ -265,6 +313,14 @@ const TransactionModal = {
 
         const detailSelect = document.getElementById('tx-payment-detail');
         if (detailSelect) detailSelect.innerHTML = '<option value="">결제방법을 먼저 선택하세요</option>';
+
+        // 퀵 사용처 영역 숨기기
+        const quickMerchantArea = document.getElementById('quick-merchant-area');
+        if (quickMerchantArea) quickMerchantArea.style.display = 'none';
+
+        // 할부 영역 - 항상 노출 유지 (이전 설정 반영)
+        const installmentArea = document.getElementById('tx-installment-area');
+        if (installmentArea) installmentArea.style.display = 'block';
     },
 
     // 폼 데이터 채우기 (수정 모드)
@@ -287,6 +343,9 @@ const TransactionModal = {
         document.getElementById('tx-detail').value = data.detail || '';
         document.getElementById('tx-amount').value = data.amount ? data.amount.toLocaleString() : '';
 
+        // 사용처 스켈레톤 트리거
+        this.updateQuickMerchants(data.merchant);
+
         document.getElementById('tx-payment-method').value = data.paymentMethod || '';
         this.updatePaymentDetails(data.paymentMethod);
         document.getElementById('tx-payment-detail').value = data.paymentDetail || '';
@@ -296,23 +355,25 @@ const TransactionModal = {
         document.getElementById('tx-is-fixed').checked = isFixed;
         const fixedOptions = document.getElementById('tx-fixed-options');
         if (fixedOptions) fixedOptions.style.display = isFixed ? 'block' : 'none';
+
         if (isFixed) {
+            const daySelect = document.getElementById('tx-fixed-day');
+            if (daySelect) daySelect.value = data.fixedDay || '';
             document.getElementById('tx-fixed-start').value = data.fixedStart || '';
             document.getElementById('tx-fixed-end').value = data.fixedEnd || '';
         }
 
         // 할부 정보 복원
         const installment = data.installment || { period: 1, isInterestFree: false };
-        const isCreditCard = data.paymentMethod === 'creditCard' || data.paymentMethod === 'creditInstallment';
-        const installmentArea = document.getElementById('tx-installment-area');
-        if (installmentArea) installmentArea.style.display = isCreditCard ? 'block' : 'none';
+        const useInstallment = installment.period > 1;
+        document.getElementById('tx-use-installment').checked = useInstallment;
+        document.getElementById('tx-installment-period').value = installment.period;
+        document.getElementById('tx-is-interest-free').checked = installment.isInterestFree;
 
-        const useInst = installment.period > 1;
-        document.getElementById('tx-use-installment').checked = useInst;
         const instOptions = document.getElementById('tx-installment-options');
-        if (instOptions) instOptions.style.display = useInst ? 'flex' : 'none';
+        if (instOptions) instOptions.style.display = useInstallment ? 'flex' : 'none';
 
-        if (useInst) {
+        if (useInstallment) {
             document.getElementById('tx-installment-period').value = installment.period;
             document.getElementById('tx-is-interest-free').checked = installment.isInterestFree;
         }
@@ -386,14 +447,8 @@ const TransactionModal = {
                 const val = e.target.value;
                 this.updatePaymentDetails(val);
 
-                // 신용카드일 때만 할부 UI 표시 (다양한 신용카드 계열 호환)
-                const installmentArea = document.getElementById('tx-installment-area');
-                if (installmentArea) {
-                    // creditCard, creditInstallment 등 'credit'을 포함하는 경우 표시
-                    const isCredit = val.toLowerCase().includes('credit');
-                    installmentArea.style.display = isCredit ? 'block' : 'none';
-                    console.log('Installment UI display set to:', isCredit ? 'block' : 'none', 'for value:', val);
-                }
+                // 할부 체크박스는 항상 노출하되, 비추천 수단일 때 경고나 안내를 줄 수 있음
+                // 현재는 별도 처리 없이 항상 노출 유지
             });
         }
 
@@ -409,7 +464,8 @@ const TransactionModal = {
         // 고정 거래 체크박스 이벤트
         const isFixedCheck = document.getElementById('tx-is-fixed');
         if (isFixedCheck) {
-            isFixedCheck.addEventListener('change', (e) => {
+            isFixedCheck.onchange = (e) => {
+                console.log('고정 거래 체크 토글:', e.target.checked);
                 const options = document.getElementById('tx-fixed-options');
                 if (options) options.style.display = e.target.checked ? 'block' : 'none';
 
@@ -420,7 +476,7 @@ const TransactionModal = {
                         document.getElementById('tx-fixed-start').value = dateVal.substring(0, 7);
                     }
                 }
-            });
+            };
         }
 
         // 금액 입력 콤마 처리
@@ -432,6 +488,35 @@ const TransactionModal = {
             });
         }
 
+        // 사용일 기반 반복일 기본값 연동
+        const dateInput = document.getElementById('tx-date');
+        if (dateInput) {
+            dateInput.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    const day = new Date(e.target.value).getDate();
+                    const daySelect = document.getElementById('tx-fixed-day');
+                    if (daySelect && !daySelect.value) {
+                        daySelect.value = day;
+                    }
+                }
+            });
+        }
+
+        // 반복일 옵션 초기화
+        this.initFixedDayOptions();
+
+        // 사용처 관리 버튼
+        const manageBtn = document.getElementById('manage-merchants-btn');
+        if (manageBtn) {
+            manageBtn.onclick = () => alert('자주 쓰는 사용처 관리 기능은 준비 중입니다.');
+        }
+
+        // 사용처 입력 시 퀵 영역 표시
+        const merchantInput = document.getElementById('tx-merchant');
+        if (merchantInput) {
+            merchantInput.addEventListener('focus', () => this.updateQuickMerchants(merchantInput.value));
+        }
+
         // 취소 버튼
         const cancelBtn = document.getElementById('tx-cancel-btn');
         if (cancelBtn) {
@@ -439,6 +524,24 @@ const TransactionModal = {
         }
 
         console.log('TransactionModal 초기화 완료');
+    },
+
+    // 반복일 옵션 생성 (1~31일 + 말일)
+    initFixedDayOptions: function () {
+        const daySelect = document.getElementById('tx-fixed-day');
+        if (!daySelect) return;
+
+        daySelect.innerHTML = '<option value="">--일--</option>';
+        for (let i = 1; i <= 31; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `${i}일`;
+            daySelect.appendChild(opt);
+        }
+        const lastOpt = document.createElement('option');
+        lastOpt.value = 'last';
+        lastOpt.textContent = '말일';
+        daySelect.appendChild(lastOpt);
     }
 };
 
@@ -449,7 +552,7 @@ if (typeof window !== 'undefined') {
     window.openModal = function (isEdit = false) {
         if (isEdit && window.editingId) {
             // Find transaction by id and open
-            const tx = DataManager.getTransactions().find(t => t.id === window.editingId);
+            const tx = DataManager.getTransactions().find(t => t.id.toString() === window.editingId.toString());
             TransactionModal.open(tx);
         } else {
             TransactionModal.open();

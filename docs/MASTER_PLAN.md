@@ -86,57 +86,49 @@ const EXPENSE_CATEGORIES = {
 
 거래 내역 스키마
 const TRANSACTION_SCHEMA = {
-  id: "tx_20250115_001",
+  id: "tx_20250115_001", // 일반 ID 또는 합성 ID (fixed-masterId-year-month)
   date: "2025-01-15",
   user: "파우",
-  type: "지출",
+  type: "expense", // 'expense' | 'income'
   mainCategory: "식비",
   subCategory: "외식",
   merchant: "맥도날드",
   detail: "점심 먹음",
   amount: 15000,
-  paymentMethod: "신용카드",
+  paymentMethod: "creditCard",
   paymentDetail: "KB탄탄대로(파우)",
-  accountNo: "KB(3652) 파우",
   installment: {
-    period: 1,
+    period: 1, // 2개월 이상이면 할부
     isInterestFree: false
   },
   isFixed: false,
-  fixedTransactionId: null,
+  isFixedInstance: false, // 고정 거래에서 생성된 인스턴스인 경우 true
+  masterId: null, // 고정 거래의 원본 ID
+  fixedDay: "15", // 반복 등록일
+  fixedStart: "2025-01",
+  fixedEnd: "2025-12",
   createdAt: "2025-01-15T10:30:00",
-  updatedAt: "2025-01-15T10:30:00",
-  updatedBy: "파우",
-  duplicateCheckFields: {
-    date: "2025-01-15",
-    user: "파우",
-    mainCategory: "식비",
-    subCategory: "외식",
-    paymentDetail: "KB탄탄대로(파우)",
-    amount: 15000,
-    timestamp: "2025-01-15T10:30:00"
-  }
+  updatedAt: "2025-01-15T10:30:00"
 }
 
 ### 2-3. 고정 거래 (FIXED_TRANSACTION)
 
 고정 거래 관리 스키마
 const FIXED_TRANSACTION_SCHEMA = {
-  id: "fixed_001",
-  name: "통신비",
+  id: "1734823543210", // Master ID (Date.now())
   user: "파우",
-  type: "지출",
+  type: "expense",
   amount: 50000,
   mainCategory: "주거",
   subCategory: "통신비",
-  accountNo: "KB(3652) 파우",
+  paymentMethod: "creditCard",
   paymentDetail: "KB탄탄대로(파우)",
-  dayOfMonth: 5,
-  startDate: "2025-01-01",
-  endDate: "2025-12-31",
-  isActive: true,
   merchant: "SKT",
   detail: "월 이용료",
+  isFixed: true,
+  fixedDay: "5", // 1~31 또는 'last'
+  fixedStart: "2025-01",
+  fixedEnd: "2025-12",
   createdAt: "2025-01-01T00:00:00",
   updatedAt: "2025-01-01T00:00:00"
 }
