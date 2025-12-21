@@ -1,0 +1,123 @@
+<!-- 거래 입력 모달 (Transaction Modal) -->
+<div class="modal fade" id="transactionModal" data-bs-backdrop="static" tabindex="-1"
+    aria-labelledby="transactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionModalLabel">📝 거래 입력</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transaction-form" autocomplete="off">
+                    <div class="row g-3">
+
+                        <!-- 1. 사용일자 -->
+                        <div class="col-md-6">
+                            <label for="tx-date" class="form-label fw-bold">📅 사용일자 <span
+                                    class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="tx-date" required>
+                        </div>
+
+                        <!-- 2. 사용자 -->
+                        <div class="col-md-6">
+                            <label for="tx-user" class="form-label fw-bold">👤 사용자 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-user" required>
+                                <option value="">--선택--</option>
+                                <option value="공용">공용</option>
+                                <option value="파우">파우</option>
+                                <option value="둠둠">둠둠</option>
+                            </select>
+                        </div>
+
+                        <!-- 3. 구분 (수입/지출) -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold">📊 구분 <span class="text-danger">*</span></label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="tx-type" id="tx-type-expense"
+                                    value="expense" checked>
+                                <label class="btn btn-outline-danger" for="tx-type-expense">💸 지출</label>
+
+                                <input type="radio" class="btn-check" name="tx-type" id="tx-type-income" value="income">
+                                <label class="btn btn-outline-success" for="tx-type-income">💰 수입</label>
+                            </div>
+                        </div>
+
+                        <!-- 4. 대분류 -->
+                        <div class="col-md-6">
+                            <label for="tx-main-category" class="form-label fw-bold">📁 대분류 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-main-category" required>
+                                <option value="">--선택--</option>
+                            </select>
+                        </div>
+
+                        <!-- 5. 소분류 -->
+                        <div class="col-md-6">
+                            <label for="tx-sub-category" class="form-label fw-bold">📂 소분류 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-sub-category" required>
+                                <option value="">대분류를 먼저 선택하세요</option>
+                            </select>
+                        </div>
+
+                        <!-- 6. 사용처 -->
+                        <div class="col-md-6">
+                            <label for="tx-merchant" class="form-label fw-bold">🏪 사용처</label>
+                            <input type="text" class="form-control" id="tx-merchant" placeholder="예: 스타벅스 강남점">
+                        </div>
+
+                        <!-- 7. 세부내용 -->
+                        <div class="col-md-6">
+                            <label for="tx-detail" class="form-label fw-bold">📝 세부내용</label>
+                            <input type="text" class="form-control" id="tx-detail" placeholder="예: 아메리카노 2잔">
+                        </div>
+
+                        <!-- 8. 금액 -->
+                        <div class="col-md-6">
+                            <label for="tx-amount" class="form-label fw-bold">💵 금액 <span
+                                    class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="tx-amount" placeholder="0" required>
+                                <span class="input-group-text">원</span>
+                            </div>
+                        </div>
+
+                        <!-- 9. 결제방법 -->
+                        <div class="col-md-6">
+                            <label for="tx-payment-method" class="form-label fw-bold">💳 결제방법 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-payment-method" required>
+                                <option value="">--선택--</option>
+                            </select>
+                        </div>
+
+                        <!-- 10. 세부 결제수단 -->
+                        <div class="col-12">
+                            <label for="tx-payment-detail" class="form-label fw-bold">🔖 세부 결제수단 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-payment-detail" required>
+                                <option value="">결제방법을 먼저 선택하세요</option>
+                            </select>
+                        </div>
+
+                        <!-- 고정 지출 체크박스 -->
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="tx-is-fixed">
+                                <label class="form-check-label" for="tx-is-fixed">
+                                    🔄 고정 거래 (매월 반복)
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="tx-cancel-btn" data-bs-dismiss="modal">취소</button>
+                <button type="submit" class="btn btn-primary" form="transaction-form">저장</button>
+            </div>
+        </div>
+    </div>
+</div>

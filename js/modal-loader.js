@@ -8,7 +8,8 @@
     // 로드할 모달 파일 목록
     const modalFiles = [
         'modals.html',
-        'modals/settings-modal.html'
+        'modals/settings-modal.html',
+        'modals/transaction-modal.html'
     ];
 
     // 모달 컨테이너
