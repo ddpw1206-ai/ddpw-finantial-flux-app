@@ -1,66 +1,44 @@
-# 📝 DDPW Moneybook Flux - 개발 이력
+# DDPW Moneybook Flux - Development Log
 
-**목적**: 날짜별 작업 내역을 시간순으로 기록
+## 2025-12-21: 월별현황 탭 리팩토링
 
----
+### 정리/삭제한 파일
+- `js/verification.js` → `js/legacy/verification.js` (미사용 파일 이동)
+- index.html의 중복 FAB 컨테이너 제거 (lines 1231-1240)
 
-## 📅 **2025-12-21 (토)**
+### 생성/수정한 파일
+1. **js/monthly-page.js** - 완전 재작성
+   - FAB 버튼 이벤트 바인딩 추가
+   - 신규 등록 버튼 연결
+   - 월 이동 기능 구현
 
-### **21:00 - Cursor → Antigravity 전환**
-- ✅ Google Antigravity 설치 및 설정
-- ✅ GitHub 저장소 연결 (ddpw1206-ai/ddpw-finantial-flux-app)
-- ✅ 프로젝트 파일 구조 확인
-- ✅ 기존 작업 내용 파악
+2. **js/transaction-modal.js** - 기존 유지
+   - Bootstrap 5 모달 사용
+   - localStorage CRUD 완성
 
-### **21:30 - 문서 구조 재정비**
-- ✅ 기존 문서 분석 (14개 파일)
-- ✅ 문서 통합 전략 수립
-- ✅ MASTER_PLAN.md 중심 구조 결정
+3. **js/transaction-table.js** - 기존 유지
+   - 테이블 렌더링
+   - 정렬 기능
 
-### **21:48 - 새로운 문서 구조 생성**
-- ✅ docs/ 폴더 생성
-- ✅ MASTER_PLAN.md 작성
-- ✅ DEVELOPMENT_LOG.md 작성
-- ✅ VIBE_CODING_QUEUE.md 작성
+4. **js/transaction-filter.js** - 기존 유지
+   - 검색/필터 기능
 
-### **21:50 - Phase 1-1 준비**
-- ✅ config.js 현재 상태 분석
-- ⏳ config.js 데이터 구조 추가 대기 중
+5. **js/monthly-summary.js** - 기존 유지
+   - 대시보드 카드 계산/렌더링
 
-### **다음 작업**
-- [ ] config.js 데이터 구조 추가
-- [ ] data-manager.js CRUD 함수 구현
-- [ ] settings-modal.html UI 생성
-- [ ] settings.js 이벤트 핸들러 구현
-- [ ] index.html 통합
-- [ ] 최종 검증
+6. **index.html** - 수정
+   - 중복 FAB 컨테이너 제거
+   - Bootstrap 5 CDN 추가 (이전 세션에서)
+   - 필터/테이블/대시보드 컨테이너 추가 (이전 세션에서)
 
----
+### localStorage 키 구조
+```
+ddpw_transactions_YYYY_MM  - 월별 거래 데이터
+ddpw_monthly_summary_YYYY_MM - 월별 요약 캐시
+```
 
-## 📅 **2025-12-22 (일) - 예정**
-
-### **00:00 - Phase 1-1 완료 목표**
-- [ ] config.js 완성
-- [ ] data-manager.js 완성
-- [ ] settings-modal.html 완성
-- [ ] settings.js 완성
-- [ ] index.html 통합
-- [ ] 브라우저 테스트 (에러 0개)
-- [ ] Git 커밋: "feat: 항목관리 시스템 구현 완료 (Phase 1-1)"
-
-### **10:00 - Phase 1-2 시작 목표**
-- [ ] 월별 거래 입력 모달 설계
-- [ ] localStorage 스키마 구현
-- [ ] 테이블 렌더링 함수 작성
-
----
-
-## 📅 **2025-12-23 (월) - 예정**
-
-### **Phase 1-2 완료 + Phase 1-3 시작**
-- [ ] 거래 입력 기능 완료
-- [ ] 테이블 정렬/검색/필터 구현
-
----
-
-**마지막 업데이트**: 2025-12-21 21:50 KST
+### 주요 변경사항
+1. 신규 등록 버튼 및 FAB 버튼에서 거래 입력 모달 열기 가능
+2. 거래 추가/수정/삭제 시 테이블 및 대시보드 자동 갱신
+3. 월 이동 (◀ ▶) 정상 동작
+4. 중복 코드 정리로 파일 크기 감소

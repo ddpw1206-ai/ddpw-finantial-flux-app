@@ -77,6 +77,18 @@
             window.initSettingsModal();
         }
 
+        // TransactionModal 초기화 (거래 입력 모달)
+        if (typeof window.TransactionModal !== 'undefined' && typeof window.TransactionModal.init === 'function') {
+            window.TransactionModal.init();
+            console.log('TransactionModal 초기화 완료');
+        }
+
+        // MonthlyPage 초기화 (월별 현황 페이지)
+        if (typeof window.MonthlyPage !== 'undefined' && typeof window.MonthlyPage.init === 'function') {
+            window.MonthlyPage.init();
+            console.log('MonthlyPage 초기화 완료');
+        }
+
         console.log('모달 초기화 완료');
     }
 })();

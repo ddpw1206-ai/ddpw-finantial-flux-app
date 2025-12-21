@@ -414,7 +414,7 @@ const TransactionModal = {
 if (typeof window !== 'undefined') {
     window.TransactionModal = TransactionModal;
 
-    // DOMContentLoaded 후 초기화
+    // DOMContentLoaded 후 초기화 (인라인 모달 HTML 사용)
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => TransactionModal.init());
     } else {
@@ -423,3 +423,4 @@ if (typeof window !== 'undefined') {
 }
 
 console.log('transaction-modal.js 로드 완료');
+
