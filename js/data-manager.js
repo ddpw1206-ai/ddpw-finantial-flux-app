@@ -540,6 +540,87 @@ const DataManager = {
       return this.saveConfig(config);
     }
     return false;
+  },
+
+  // --- 거래 내역 관리 ---
+
+  // 10. 스토리지 키 생성
+  getStorageKey: function (dateStr) {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `ddpw_transactions_${year}_${month}`;
+  },
+
+  // 11. 거래 목록 가져오기 (특정 연월)
+  getTransactions: function (year, month) {
+    const mm = String(month).padStart(2, '0');
+    const key = `ddpw_transactions_${year}_${mm}`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('거래 로드 실패:', e);
+      return [];
+    }
+  },
+
+  // 12. 거래 저장 (특정 연월)
+  saveTransactions: function (year, month, transactions) {
+    const mm = String(month).padStart(2, '0');
+    const key = `ddpw_transactions_${year}_${mm}`;
+    try {
+      localStorage.setItem(key, JSON.stringify(transactions));
+      return true;
+    } catch (e) {
+      console.error('거래 저장 실패:', e);
+      return false;
+    }
+  },
+
+  // 13. 거래 추가
+  addTransaction: function (transaction) {
+    const date = new Date(transaction.date);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+
+    const transactions = this.getTransactions(year, month);
+    // ID 할당
+    transaction.id = transaction.id || Date.now();
+    transaction.createdAt = new Date().toISOString();
+    transactions.push(transaction);
+
+    return this.saveTransactions(year, month, transactions);
+  },
+
+  // 14. 거래 수정
+  updateTransaction: function (id, updates) {
+    // 주의: 날짜가 변경될 경우 기존 월에서 삭제하고 새 월로 이동해야 할 수도 있음
+    // 여기서는 단순 수정을 가정 (날짜 변경 대응 필요 시 추후 확장)
+    const date = new Date(updates.date);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+
+    const transactions = this.getTransactions(year, month);
+    const index = transactions.findIndex(tx => tx.id === id);
+
+    if (index > -1) {
+      transactions[index] = { ...transactions[index], ...updates, updatedAt: new Date().toISOString() };
+      return this.saveTransactions(year, month, transactions);
+    }
+    return false;
+  },
+
+  // 15. 거래 삭제
+  deleteTransaction: function (id, year, month) {
+    const transactions = this.getTransactions(year, month);
+    const index = transactions.findIndex(tx => tx.id === id);
+
+    if (index > -1) {
+      transactions.splice(index, 1);
+      return this.saveTransactions(year, month, transactions);
+    }
+    return false;
   }
 };
 

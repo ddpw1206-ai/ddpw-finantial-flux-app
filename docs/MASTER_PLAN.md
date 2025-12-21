@@ -98,6 +98,10 @@ const TRANSACTION_SCHEMA = {
   paymentMethod: "신용카드",
   paymentDetail: "KB탄탄대로(파우)",
   accountNo: "KB(3652) 파우",
+  installment: {
+    period: 1,
+    isInterestFree: false
+  },
   isFixed: false,
   fixedTransactionId: null,
   createdAt: "2025-01-15T10:30:00",

@@ -757,191 +757,8 @@
         <!-- TransactionTable.render() 에서 채워짐 -->
       </div>
 
-      <!-- 하위 탭별 내용 영역 -->
+      <!-- 하위 탭별 내용 영역 (카드/통장) -->
       <section class="sub-tab-content">
-        <div id="total-content" style="display: block; overflow-x: auto;">
-          <style>
-            .expense-table-container {
-              background: #FFFFFF;
-              padding: 24px;
-              border-radius: 12px;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-              border: 1px solid #E5E7EB;
-              margin-bottom: 24px;
-              overflow-x: auto;
-            }
-
-            .expense-table {
-              width: 100%;
-              border-collapse: separate;
-              border-spacing: 0;
-              min-width: 1000px;
-            }
-
-            .expense-table th,
-            .expense-table td {
-              padding: 14px 16px;
-              border-bottom: 1px solid #F3F4F6;
-              text-align: center;
-              word-wrap: break-word;
-              overflow-wrap: break-word;
-              max-width: 200px;
-            }
-
-            .expense-table th {
-              background: #F9FAFB;
-              font-weight: 600;
-              color: #111827;
-              border-bottom: 2px solid #E5E7EB;
-              font-size: 0.9rem;
-              letter-spacing: -0.2px;
-              position: sticky;
-              top: 0;
-              z-index: 10;
-            }
-
-            .expense-table td {
-              color: #374151;
-              font-size: 0.9rem;
-            }
-
-            .expense-table tbody tr:hover {
-              background: #F9FAFB;
-            }
-
-            .expense-income {
-              color: #059669;
-              font-weight: 600;
-            }
-
-            .expense-out {
-              color: #DC2626;
-              font-weight: 600;
-            }
-
-            .expense-bankpay {
-              background: #F9FAFB;
-            }
-
-            .expense-table .btn-action {
-              display: inline-block;
-              border: 1px solid #D1D5DB;
-              background: #FFFFFF;
-              color: #374151;
-              font-size: 0.85rem;
-              border-radius: 6px;
-              padding: 6px 12px;
-              margin: 0 2px;
-              cursor: pointer;
-              transition: all 0.2s ease;
-              text-decoration: none;
-              font-weight: 500;
-            }
-
-            .expense-table .btn-action:hover {
-              background: #EF4444;
-              color: #FFFFFF;
-              border-color: #EF4444;
-            }
-
-            @media (max-width: 600px) {
-              .expense-table-container {
-                padding: 6px 1px 6px 1px;
-                border-radius: 0;
-                box-shadow: none;
-              }
-
-              .expense-table th,
-              .expense-table td {
-                padding: 7px 5px;
-                font-size: 13px;
-              }
-            }
-          </style>
-          <div class="expense-table-container">
-            <table class="expense-table" aria-label="전체 소비 내역">
-              <thead>
-                <tr>
-                  <th>날짜</th>
-                  <th>담당자</th>
-                  <th>항목</th>
-                  <th>카테고리</th>
-                  <th>금액</th>
-                  <th>결제수단</th>
-                  <th>상태</th>
-                  <th>작업</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>11/22</td>
-                  <td>🔵둠둠파우</td>
-                  <td>점심</td>
-                  <td>식비</td>
-                  <td class="expense-out">-12,000원</td>
-                  <td>KB신용</td>
-                  <td>⏳대기</td>
-                  <td>
-                    <button class="btn-action">수정</button>
-                    <button class="btn-action">삭제</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>11/22</td>
-                  <td>🔵둠둠파우</td>
-                  <td>월급</td>
-                  <td>수입</td>
-                  <td class="expense-income">+3,000,000원</td>
-                  <td>이체</td>
-                  <td>✅완료</td>
-                  <td>
-                    <button class="btn-action">수정</button>
-                    <button class="btn-action">삭제</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>11/21</td>
-                  <td>🔴배우자</td>
-                  <td>마트</td>
-                  <td>생활</td>
-                  <td class="expense-out">-50,000원</td>
-                  <td>삼성신용</td>
-                  <td>⏳대기</td>
-                  <td>
-                    <button class="btn-action">수정</button>
-                    <button class="btn-action">삭제</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>11/20</td>
-                  <td>🔵둠둠파우</td>
-                  <td>택시</td>
-                  <td>교통</td>
-                  <td class="expense-out">-15,000원</td>
-                  <td>현금</td>
-                  <td>✅완료</td>
-                  <td>
-                    <button class="btn-action">수정</button>
-                    <button class="btn-action">삭제</button>
-                  </td>
-                </tr>
-                <tr class="expense-bankpay">
-                  <td>11/25</td>
-                  <td>-</td>
-                  <td>KB카드11월</td>
-                  <td>카드대금</td>
-                  <td class="expense-out">-1,220,000원</td>
-                  <td>자동</td>
-                  <td>✅완료</td>
-                  <td>
-                    <button class="btn-action">수정</button>
-                    <button class="btn-action">삭제</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
         <div id="card-content" style="display: none;">
           <!-- 카드 필터 드롭다운 -->
           <div style="margin-bottom: 24px;">
@@ -950,13 +767,8 @@
             <select id="card-filter-select"
               style="padding: 10px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.95rem; outline: none; cursor: pointer; background: #FFFFFF; color: #111827; transition: all 0.2s ease; min-width: 200px;">
               <option value="all">전체 카드</option>
-              <option value="KB 탄탄대로 올쇼핑">KB 탄탄대로 올쇼핑</option>
-              <option value="삼성 네이버 taptap">삼성 네이버 taptap</option>
-              <option value="삼성 베네핏">삼성 베네핏</option>
-              <option value="카카오뱅크 체크">카카오뱅크 체크</option>
             </select>
           </div>
-          <!-- 테이블 컨테이너 -->
           <div id="card-table-container"></div>
         </div>
         <div id="bank-content" style="display: none;">통장 입출금 내역 테이블이 여기 표시됩니다</div>
@@ -1315,11 +1127,60 @@
                   <option value="">결제방법을 먼저 선택하세요</option>
                 </select>
               </div>
+
+              <!-- 할부 설정 (신용카드 선택 시에만 보임) -->
+              <div class="col-12" id="tx-installment-area" style="display: none;">
+                <div class="card border-info">
+                  <div class="card-body py-2">
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" id="tx-use-installment">
+                      <label class="form-check-label fw-bold" for="tx-use-installment">📅 할부 결제 사용</label>
+                    </div>
+                    <div class="row g-2 align-items-center" id="tx-installment-options" style="display: none;">
+                      <div class="col-auto">
+                        <select class="form-select form-select-sm" id="tx-installment-period" style="width: 120px;">
+                          <option value="1">일시불</option>
+                          <option value="2">2개월</option>
+                          <option value="3">3개월</option>
+                          <option value="4">4개월</option>
+                          <option value="5">5개월</option>
+                          <option value="6">6개월</option>
+                          <option value="12">12개월</option>
+                        </select>
+                      </div>
+                      <div class="col-auto">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="tx-is-interest-free">
+                          <label class="form-check-label small" for="tx-is-interest-free">무이자</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <!-- 고정 지출 체크박스 -->
               <div class="col-12">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" id="tx-is-fixed">
                   <label class="form-check-label" for="tx-is-fixed">🔄 고정 거래 (매월 반복)</label>
+                </div>
+              </div>
+
+              <!-- 고정 거래 상세 설정 (기본 숨김) -->
+              <div class="col-12" id="tx-fixed-options" style="display: none;">
+                <div class="card bg-light border-0">
+                  <div class="card-body py-2 px-3">
+                    <div class="row g-2">
+                      <div class="col-md-6">
+                        <label for="tx-fixed-start" class="form-label small fw-bold">📅 시작월</label>
+                        <input type="month" class="form-control form-control-sm" id="tx-fixed-start">
+                      </div>
+                      <div class="col-md-6">
+                        <label for="tx-fixed-end" class="form-label small fw-bold">📅 종료월</label>
+                        <input type="month" class="form-control form-control-sm" id="tx-fixed-end">
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

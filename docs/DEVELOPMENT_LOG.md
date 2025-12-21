@@ -1,44 +1,52 @@
 # DDPW Moneybook Flux - Development Log
 
-## 2025-12-21: 월별현황 탭 리팩토링
+## 2025-12-21: Phase 1-2 버그 수정 완료
 
-### 정리/삭제한 파일
-- `js/verification.js` → `js/legacy/verification.js` (미사용 파일 이동)
-- index.html의 중복 FAB 컨테이너 제거 (lines 1231-1240)
+### 수정된 버그
 
-### 생성/수정한 파일
-1. **js/monthly-page.js** - 완전 재작성
-   - FAB 버튼 이벤트 바인딩 추가
-   - 신규 등록 버튼 연결
-   - 월 이동 기능 구현
+#### Bug 1: 저장 로직 ✅ FIXED
+- **문제**: [저장] 클릭 시 데이터가 저장되지 않음
+- **해결**: 
+  - `transaction-modal.js` handleSubmit에서 localStorage에 정상 저장
+  - 저장 후 `TransactionTable.render()` 및 `MonthlySummary.update()` 호출
+  - 저장 키: `ddpw_transactions_YYYY_MM`
 
-2. **js/transaction-modal.js** - 기존 유지
-   - Bootstrap 5 모달 사용
-   - localStorage CRUD 완성
+#### Bug 2: 수정/삭제 버튼 ✅ FIXED
+- **문제**: 테이블 [수정], [삭제] 버튼 무반응
+- **해결**:
+  - `transaction-table.js` - `editRow()` 함수: 거래 데이터를 모달에 채워서 열기
+  - `transaction-table.js` - `deleteRow()` 함수: confirm 후 삭제, 테이블/요약 리렌더링
 
-3. **js/transaction-table.js** - 기존 유지
-   - 테이블 렌더링
-   - 정렬 기능
+#### Bug 3: 체크박스 및 일괄 삭제 ✅ FIXED
+- **문제**: 선택 기능 없음
+- **해결**:
+  - 테이블 헤더에 "전체 선택" 체크박스 추가
+  - 각 행에 개별 체크박스 추가
+  - `selectedIds` Set으로 선택 상태 관리
+  - "선택 삭제" 버튼 및 `deleteSelected()` 함수 구현
 
-4. **js/transaction-filter.js** - 기존 유지
-   - 검색/필터 기능
+#### Bug 4: 검색 기능 ✅ FIXED
+- **문제**: 텍스트 검색 필터링 안됨
+- **해결**:
+  - `transaction-filter.js` - `filter-search` input에 실시간 필터링 바인딩
+  - 사용처, 세부내용, 카테고리, 금액 기준 필터링
 
-5. **js/monthly-summary.js** - 기존 유지
-   - 대시보드 카드 계산/렌더링
+### 정리된 파일
+- **index.html**: 레거시 정적 테이블 HTML 190줄 삭제 (`total-content` 내부)
+- **js/transaction-table.js**: 체크박스, 일괄 삭제 기능 추가
 
-6. **index.html** - 수정
-   - 중복 FAB 컨테이너 제거
-   - Bootstrap 5 CDN 추가 (이전 세션에서)
-   - 필터/테이블/대시보드 컨테이너 추가 (이전 세션에서)
-
-### localStorage 키 구조
+### 테스트 결과
 ```
-ddpw_transactions_YYYY_MM  - 월별 거래 데이터
-ddpw_monthly_summary_YYYY_MM - 월별 요약 캐시
+✅ 데이터 저장 → localStorage ddpw_transactions_2025_12 확인
+✅ 컨테이너 ID 존재 → monthly-summary-container, transaction-table-container
+✅ 카테고리/결제수단 데이터 → window.EXPENSE_CATEGORIES, window.PAYMENT_METHODS
+✅ TransactionModal 초기화 → 모달 열기/닫기 정상
 ```
 
-### 주요 변경사항
-1. 신규 등록 버튼 및 FAB 버튼에서 거래 입력 모달 열기 가능
-2. 거래 추가/수정/삭제 시 테이블 및 대시보드 자동 갱신
-3. 월 이동 (◀ ▶) 정상 동작
-4. 중복 코드 정리로 파일 크기 감소
+### 남은 이슈
+- 페이지 로드 시 초기 렌더링 지연 가능 (브라우저 캐시 문제)
+- 권장: 브라우저 캐시 삭제 후 테스트 (Ctrl+Shift+R)
+
+### 변경 파일 목록
+1. `js/transaction-table.js` - 체크박스, 일괄 삭제 추가
+2. `index.html` - 레거시 정적 테이블 제거

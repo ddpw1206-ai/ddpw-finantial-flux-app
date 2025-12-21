@@ -194,13 +194,10 @@ const MonthlyPage = {
 
     // 초기화
     init: function () {
-        console.log('MonthlyPage 초기화 시작');
+        console.log('MonthlyPage 초기화 시도');
 
-        // 현재 월 표시
+        // 연월 표시 업데이트
         this.updateMonthDisplay();
-
-        // 이벤트 바인딩
-        this.bindEvents();
 
         // 각 모듈 초기화 (순서 중요)
         if (typeof TransactionTable !== 'undefined') {
@@ -219,7 +216,10 @@ const MonthlyPage = {
             MonthlySummary.init();
         }
 
-        console.log('MonthlyPage 초기화 완료');
+        // 이벤트 바인딩 (중복 방지: 기존 리스너가 있다면 새로 고침)
+        this.bindEvents();
+
+        console.log('MonthlyPage 초기화 시도 완료');
     }
 };
 
