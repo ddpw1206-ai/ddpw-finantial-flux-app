@@ -1,0 +1,109 @@
+<!-- transaction-modal.html -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionModalLabel">📝 거래 입력</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="transaction-form" novalidate>
+                    <input type="hidden" id="tx-id" name="id" />
+
+                    <!-- 1행: 날짜, 사용자, 구분 -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="tx-date" class="form-label">날짜 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="tx-date" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tx-user" class="form-label">사용자 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-user" required>
+                                <option value="">선택</option>
+                                <!-- JS에서 USERS 바인딩 -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tx-type" class="form-label">구분 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-type" required>
+                                <option value="expense" selected>지출</option>
+                                <option value="income">수입</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 2행: 대분류, 소분류 -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="tx-main-category" class="form-label">대분류 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-main-category" required>
+                                <option value="">선택</option>
+                                <!-- JS에서 카테고리 바인딩 -->
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tx-sub-category" class="form-label">소분류 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-sub-category" required>
+                                <option value="">대분류를 먼저 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 3행: 사용처, 내용 -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="tx-merchant" class="form-label">사용처 (가맹점)</label>
+                            <input type="text" class="form-control" id="tx-merchant" placeholder="예: 스타벅스, 편의점" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tx-detail" class="form-label">내용 (메모)</label>
+                            <input type="text" class="form-control" id="tx-detail" placeholder="예: 커피, 생수 구매" />
+                        </div>
+                    </div>
+
+                    <!-- 4행: 금액 -->
+                    <div class="mb-3">
+                        <label for="tx-amount" class="form-label fw-bold">금액 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">₩</span>
+                            <input type="number" class="form-control text-end fs-5 fw-bold" id="tx-amount" min="1"
+                                step="1" placeholder="0" required />
+                        </div>
+                    </div>
+
+                    <!-- 5행: 결제방법, 세부 결제수단 -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="tx-payment-method" class="form-label">결제유형 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-payment-method" required>
+                                <option value="">선택</option>
+                                <option value="credit">신용카드</option>
+                                <option value="check">체크카드</option>
+                                <option value="account">계좌이체/출금</option>
+                                <option value="cash">현금</option>
+                                <option value="pay">간편결제/기타</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tx-payment-detail" class="form-label">상세 결제수단 <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="tx-payment-detail" required>
+                                <option value="">결제유형을 먼저 선택하세요</option>
+                                <!-- JS에서 PAYMENT_METHODS 바인딩 -->
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" id="tx-save-btn">💾 저장</button>
+            </div>
+        </div>
+    </div>
+</div>

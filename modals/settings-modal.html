@@ -1,0 +1,167 @@
+<!-- settings-modal.html -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">⚙️ 항목관리</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- 탭 네비게이션 -->
+                <ul class="nav nav-tabs mb-3" id="settingsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="nav-payment-tab" data-bs-toggle="tab"
+                            data-bs-target="#settings-payment-tab" type="button" role="tab" aria-selected="true">
+                            💳 결제수단
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="nav-accounts-tab" data-bs-toggle="tab"
+                            data-bs-target="#settings-accounts-tab" type="button" role="tab" aria-selected="false">
+                            🏦 계좌
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="nav-categories-tab" data-bs-toggle="tab"
+                            data-bs-target="#settings-categories-tab" type="button" role="tab" aria-selected="false">
+                            📂 카테고리
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- 탭 컨텐츠 -->
+                <div class="tab-content" id="settingsTabContent">
+
+                    <!-- 1. 결제수단 탭 -->
+                    <div class="tab-pane fade show active" id="settings-payment-tab" role="tabpanel"
+                        aria-labelledby="nav-payment-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">신용/체크카드, 계좌, 기타 결제수단을 관리합니다.</span>
+                            <button class="btn btn-sm btn-outline-primary" id="btn-add-payment">
+                                + 추가
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 15%">유형</th>
+                                        <th style="width: 25%">ID</th>
+                                        <th style="width: 30%">이름</th>
+                                        <th>비고</th>
+                                        <th style="width: 10%">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payment-methods-tbody">
+                                    <!-- JS에서 로드 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. 계좌 탭 -->
+                    <div class="tab-pane fade" id="settings-accounts-tab" role="tabpanel"
+                        aria-labelledby="nav-accounts-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">
+                                계좌별 메타 정보를 관리합니다. (초기 잔액, 은행, 용도 등)
+                            </span>
+                            <button class="btn btn-sm btn-outline-primary" id="btn-add-account">
+                                + 추가
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 5%">NO</th>
+                                        <th style="width: 20%">계좌번호</th>
+                                        <th style="width: 15%">이름</th>
+                                        <th style="width: 10%">은행</th>
+                                        <th style="width: 20%">용도</th>
+                                        <th style="width: 15%">초기 잔액</th>
+                                        <th style="width: 5%">활성</th>
+                                        <th style="width: 10%">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="accounts-tbody">
+                                    <!-- JS에서 로드 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 3. 카테고리 탭 -->
+                    <div class="tab-pane fade" id="settings-categories-tab" role="tabpanel"
+                        aria-labelledby="nav-categories-tab">
+                        <div class="mb-3">
+                            <span class="text-muted small d-block mb-2">
+                                수입/지출 카테고리를 1~3 depth 구조로 관리합니다.
+                            </span>
+
+                            <!-- 수입/지출 전환 토글 -->
+                            <div class="btn-group" role="group" aria-label="Category Type Toggle">
+                                <input type="radio" class="btn-check" name="categoryType" id="cat-type-income"
+                                    value="income" autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm" for="cat-type-income">수입 카테고리</label>
+
+                                <input type="radio" class="btn-check" name="categoryType" id="cat-type-expense"
+                                    value="expense" autocomplete="off" checked>
+                                <label class="btn btn-outline-danger btn-sm" for="cat-type-expense">지출 카테고리</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- 대분류 -->
+                            <div class="col-md-5">
+                                <div class="card h-100">
+                                    <div class="card-header d-flex justify-content-between align-items-center py-2">
+                                        <strong>대분류 (Depth 1)</strong>
+                                        <button class="btn btn-sm btn-outline-secondary" id="btn-add-main-cat">
+                                            + 추가
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                                        <ul class="list-group list-group-flush" id="category-main-list">
+                                            <!-- JS에서 로드 -->
+                                            <li class="list-group-item text-muted text-center py-4">
+                                                대분류를 선택하세요.
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 소분류 -->
+                            <div class="col-md-7">
+                                <div class="card h-100">
+                                    <div class="card-header d-flex justify-content-between align-items-center py-2">
+                                        <strong>소분류 (Depth 2)</strong>
+                                        <button class="btn btn-sm btn-outline-secondary" id="btn-add-sub-cat" disabled>
+                                            + 추가
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                                        <ul class="list-group list-group-flush" id="category-sub-list">
+                                            <!-- JS에서 로드 -->
+                                            <li class="list-group-item text-muted text-center py-4">
+                                                대분류를 먼저 선택해주세요.
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> <!-- End Tab Content -->
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" id="settings-save-btn">💾 저장</button>
+            </div>
+        </div>
+    </div>
+</div>

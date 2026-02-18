@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>DDPW Moneybook Flux v2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/common.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="css/modal.css" />
+</head>
+
+<body class="bg-light">
+
+    <!-- 상단 네비게이션 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#">
+                💰 DDPW Moneybook Flux
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <!-- 좌측: 연/월 선택 -->
+                <form class="d-flex align-items-center me-auto gap-2">
+                    <select id="year-select" class="form-select form-select-sm">
+                        <!-- JS에서 연도 옵션 채우기 -->
+                    </select>
+                    <select id="month-select" class="form-select form-select-sm">
+                        <!-- JS에서 월 옵션 채우기 -->
+                    </select>
+                </form>
+
+                <!-- 우측: 주요 액션 버튼 -->
+                <div class="d-flex gap-2">
+                    <button id="btn-save-data" class="btn btn-outline-light btn-sm">
+                        💾 저장
+                    </button>
+                    <button id="btn-load-data" class="btn btn-outline-light btn-sm">
+                        🔄 불러오기
+                    </button>
+                    <button id="btn-open-settings" class="btn btn-secondary btn-sm" data-bs-toggle="modal"
+                        data-bs-target="#settingsModal">
+                        ⚙️ 항목관리
+                    </button>
+                    <button id="btn-show-dashboard" class="btn btn-outline-light btn-sm">
+                        📊 월별현황
+                    </button>
+                    <button id="btn-show-accounts" class="btn btn-outline-light btn-sm">
+                        🏦 계좌관리
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 메인 컨테이너 -->
+    <main class="container-fluid py-3">
+        <div class="row g-3">
+
+            <!-- 왼쪽: 필터 패널 -->
+            <aside class="col-12 col-lg-3">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        🔍 검색 및 필터
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="form-label">사용자</label>
+                            <select id="filter-user" class="form-select form-select-sm">
+                                <option value="">전체</option>
+                                <option value="공용">공용</option>
+                                <option value="파우">파우</option>
+                                <option value="둠둠">둠둠</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">구분</label>
+                            <select id="filter-type" class="form-select form-select-sm">
+                                <option value="">전체</option>
+                                <option value="income">수입</option>
+                                <option value="expense">지출</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">카테고리</label>
+                            <select id="filter-category" class="form-select form-select-sm">
+                                <option value="">전체</option>
+                                <!-- JS에서 항목관리 기반으로 채우기 -->
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">결제수단</label>
+                            <select id="filter-payment" class="form-select form-select-sm">
+                                <option value="">전체</option>
+                                <!-- JS에서 PAYMENT_METHODS 기반으로 채우기 -->
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">검색어 (사용처/메모)</label>
+                            <input id="filter-text" type="text" class="form-control form-control-sm"
+                                placeholder="예: 스타벅스, 보험" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">금액 범위</label>
+                            <div class="d-flex gap-1">
+                                <input id="filter-amount-min" type="number" class="form-control form-control-sm"
+                                    placeholder="최소" />
+                                <input id="filter-amount-max" type="number" class="form-control form-control-sm"
+                                    placeholder="최대" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <button id="btn-apply-filters" class="btn btn-primary btn-sm">
+                                적용
+                            </button>
+                            <button id="btn-reset-filters" class="btn btn-outline-secondary btn-sm">
+                                초기화
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 오른쪽: 거래 테이블 + 요약 -->
+            <section class="col-12 col-lg-9">
+
+                <!-- 상단: 월별 요약 카드 -->
+                <div id="monthly-summary-container" class="mb-3">
+                    <!-- JS에서 수입/지출/잔액/예산 카드 렌더링 -->
+                </div>
+
+                <!-- 거래 목록 카드 -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            🧾 사용내역
+                            <span id="current-month-label" class="text-muted ms-2"></span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <select id="sort-select" class="form-select form-select-sm">
+                                <option value="date-desc">날짜 최신순</option>
+                                <option value="date-asc">날짜 오래된순</option>
+                                <option value="amount-desc">금액 높은순</option>
+                                <option value="amount-asc">금액 낮은순</option>
+                            </select>
+                            <button id="btn-add-transaction" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#transactionModal">
+                                📝 신규 등록
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">
+                                            <input type="checkbox" id="check-all-rows" />
+                                        </th>
+                                        <th scope="col">날짜</th>
+                                        <th scope="col">사용자</th>
+                                        <th scope="col">구분</th>
+                                        <th scope="col">대분류</th>
+                                        <th scope="col">소분류</th>
+                                        <th scope="col">사용처</th>
+                                        <th scope="col">내용</th>
+                                        <th scope="col" class="text-end">금액</th>
+                                        <th scope="col">결제수단</th>
+                                        <th scope="col">세부수단</th>
+                                        <th scope="col">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transaction-table-body">
+                                    <!-- JS에서 거래 목록 렌더링 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card-footer d-flex justify-content-between">
+                        <button id="btn-delete-selected" class="btn btn-outline-danger btn-sm">
+                            선택 삭제
+                        </button>
+
+                        <div class="d-flex gap-2">
+                            <label class="btn btn-outline-secondary btn-sm mb-0">
+                                ⬆️ 엑셀 Import
+                                <input id="excel-file-input" type="file" accept=".xlsx,.xls,.csv" class="d-none" />
+                            </label>
+                            <button id="excel-analyze-btn" class="btn btn-outline-secondary btn-sm">
+                                분석
+                            </button>
+                            <button id="excel-import-btn" class="btn btn-primary btn-sm">
+                                반영
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- 모달 컨테이너 (별도 HTML 조각을 JS로 로드) -->
+    <div id="modals-container">
+        <!-- settings-modal.html, transaction-modal.html 등 로드 예정 -->
+    </div>
+
+    <!-- Bootstrap JS (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- App Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/data-manager.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/transaction-modal.js"></script>
+    <script src="js/transaction-table.js"></script>
+    <script src="js/fixed-transaction.js"></script>
+    <script src="js/accounts.js"></script>
+    <script src="js/monthly-summary.js"></script>
+    <script src="js/excel-import.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // TODO: 초기화 순서
+            // 1) DataManager 초기화
+            // 2) 연/월 선택 박스 채우기
+            // 3) 항목관리/거래 테이블/대시보드 렌더링
+        });
+    </script>
+</body>
+
+</html>
